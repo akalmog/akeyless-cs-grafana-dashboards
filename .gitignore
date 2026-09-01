@@ -1,0 +1,27 @@
+# Secrets and credentials
+.env
+.env.*
+*.pem
+*.key
+credentials.json
+kubeconfig.yaml
+
+# Local databases (use org datasource in Grafana)
+*.sqlite
+*.sqlite3
+*.db
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Grafana local state
+.grafana/

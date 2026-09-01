@@ -1,0 +1,41 @@
+-- Bar gauge: authentication method counts (latest objects report).
+WITH CompanyAccounts AS (
+    SELECT DISTINCT account_id
+    FROM companies
+    WHERE account_id IS NOT NULL AND account_id != ''
+      AND (
+        '${company_name:raw}' IN ('All', '%', '$__all')
+        OR name IN (${company_name:sqlstring})
+        OR name = '${company_name}'
+      )
+      AND (
+        '${account_id:raw}' IN ('All', '%', '$__all')
+        OR LOWER('${account_id:raw}') = 'all'
+        OR account_id = '${account_id}'
+      )
+),
+LatestObjectReport AS (
+    SELECT ro.account_id, MAX(ro.report_date) AS latest_report_date
+    FROM report_objects ro
+    INNER JOIN CompanyAccounts ca ON ca.account_id = ro.account_id
+    GROUP BY ro.account_id
+),
+ObjectCounts AS (
+    SELECT
+        SUM(CASE WHEN ro.object_type LIKE '%auth_method_api_key%' THEN ro.amount ELSE 0 END) AS auth_api_key,
+        SUM(CASE WHEN ro.object_type LIKE '%auth_method_universal_identity%' THEN ro.amount ELSE 0 END) AS auth_universal_identity,
+        SUM(CASE WHEN ro.object_type LIKE '%auth_method_aws_iam%' THEN ro.amount ELSE 0 END) AS auth_aws_iam,
+        SUM(CASE WHEN ro.object_type LIKE '%auth_method_azure_ad%' THEN ro.amount ELSE 0 END) AS auth_azure_ad,
+        SUM(CASE WHEN ro.object_type LIKE '%auth_method_gcp%' THEN ro.amount ELSE 0 END) AS auth_gcp
+    FROM LatestObjectReport lor
+    INNER JOIN report_objects ro
+        ON ro.account_id = lor.account_id
+        AND ro.report_date = lor.latest_report_date
+)
+SELECT
+    auth_api_key AS "API Key",
+    auth_universal_identity AS "Universal Identity",
+    auth_aws_iam AS "AWS IAM",
+    auth_azure_ad AS "Azure AD",
+    auth_gcp AS "GCP"
+FROM ObjectCounts

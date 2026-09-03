@@ -20,7 +20,7 @@ Products AS (
     UNION ALL SELECT 'apm'
 ),
 LastFullMonth AS (
-    SELECT strftime('%Y-%m', 'now', 'start of month', '-1 month') AS report_month
+    SELECT strftime('%Y-%m', date('now', 'start of month', '-1 month')) AS report_month
 ),
 WindowStartMonth AS (
     SELECT strftime('%Y-%m', date((SELECT report_month FROM LastFullMonth) || '-01', '-2 month')) AS report_month
@@ -86,8 +86,8 @@ SELECT
         WHEN 'apm' THEN 'PWM'
     END AS "Product",
     (SELECT start_month FROM WindowBounds) || ' → ' || (SELECT end_month FROM WindowBounds) AS "Period",
-    CAST(COALESCE(start_u.used_in_limit, 0) AS TEXT) || ' → ' || CAST(COALESCE(end_u.used_in_limit, 0) AS TEXT) AS "Used",
-    CAST(COALESCE(start_u.total_clients, 0) AS TEXT) || ' → ' || CAST(COALESCE(end_u.total_clients, 0) AS TEXT) AS "Total",
+    CAST(COALESCE(start_u.used_in_limit, 0) AS TEXT) || ' → ' || CAST(COALESCE(end_u.used_in_limit, 0) AS TEXT) AS "Used Clients",
+    CAST(COALESCE(start_u.total_clients, 0) AS TEXT) || ' → ' || CAST(COALESCE(end_u.total_clients, 0) AS TEXT) AS "Total Clients including Exceeding",
     COALESCE(end_u.total_clients, 0) - COALESCE(start_u.total_clients, 0) AS "Change",
     COALESCE(end_u.exceeded_clients, 0) AS "Last Exceeded",
     CASE

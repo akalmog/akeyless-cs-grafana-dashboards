@@ -99,8 +99,8 @@ SELECT
         ELSE COALESCE(cb.access_type, 'Unknown')
     END AS "Access Type",
     (SELECT start_month FROM WindowBounds) || ' → ' || (SELECT end_month FROM WindowBounds) AS "Period",
-    CAST(COALESCE(start_u.used_in_limit, 0) AS TEXT) || ' → ' || CAST(COALESCE(end_u.used_in_limit, 0) AS TEXT) AS "Used",
-    CAST(COALESCE(start_u.total_clients, 0) AS TEXT) || ' → ' || CAST(COALESCE(end_u.total_clients, 0) AS TEXT) AS "Total",
+    CAST(COALESCE(start_u.used_in_limit, 0) AS TEXT) || ' → ' || CAST(COALESCE(end_u.used_in_limit, 0) AS TEXT) AS "Used Clients",
+    CAST(COALESCE(start_u.total_clients, 0) AS TEXT) || ' → ' || CAST(COALESCE(end_u.total_clients, 0) AS TEXT) AS "Total Clients including Exceeding",
     COALESCE(end_u.total_clients, 0) AS "End Total",
     COALESCE(end_u.total_clients, 0) - COALESCE(start_u.total_clients, 0) AS "Change"
 FROM Combined cb

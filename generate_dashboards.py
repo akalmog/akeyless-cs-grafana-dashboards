@@ -925,6 +925,16 @@ def completed_rolling_months(count=3):
     return rolling_months(count + 1)[:-1][-count:]
 
 
+def last_completed_month_end_sql():
+    """Last day of the most recently completed calendar month."""
+    return "strftime('%Y-%m-%d', date('now', 'start of month', '-1 day'))"
+
+
+def last_full_month_sql():
+    """YYYY-MM for the most recently completed calendar month."""
+    return "strftime('%Y-%m', date('now', 'start of month', '-1 month'))"
+
+
 def one_report_per_account_date_cte():
     return """OneReportPerAccountDate AS (
     SELECT LOWER(account_id) AS account_key, date(report_date) AS report_date, MAX(id) AS report_id
@@ -1186,7 +1196,7 @@ END"""
 
 
 def portfolio_clm_utilization_sql(
-    purchased_col, company_filter, range_start, avg_expr, pivot_cols, order_by
+    purchased_col, company_filter, range_start, range_end, avg_expr, pivot_cols, order_by
 ):
     """Multi-account CLM monthly heatmap — certificate_analysis reports (not ObjectsReport)."""
     return f"""
@@ -1211,6 +1221,7 @@ CertificateDaily AS (
     INNER JOIN reports r ON LOWER(r.account_id) = cd.account_key
     WHERE r.report_type = 'certificate_analysis'
       AND date(r.report_date) >= (SELECT range_start FROM DateRange)
+      AND date(r.report_date) <= date({range_end})
 ),
 DailyMax AS (
     SELECT company_name, account_key, clients_purchased, report_month, report_date,
@@ -1250,8 +1261,20 @@ ORDER BY {order_by}
 """
 
 
-def product_utilization_sql(product, purchased_col, portfolio=False, months_count=24, experimental=True):
-    months = rolling_months(months_count)
+def product_utilization_sql(
+    product,
+    purchased_col,
+    portfolio=False,
+    months_count=24,
+    experimental=True,
+    include_current_month=False,
+):
+    if include_current_month:
+        months = rolling_months(months_count)
+        range_end = "strftime('%Y-%m-%d', 'now')"
+    else:
+        months = completed_rolling_months(months_count) if experimental else rolling_months(months_count)
+        range_end = last_completed_month_end_sql()
     avg_months = completed_rolling_months(3) if experimental else rolling_months(3)
     avg_months_sql = ", ".join(f"'{y:04d}-{m:02d}'" for y, m in avg_months)
     avg_expr = (
@@ -1295,7 +1318,7 @@ def product_utilization_sql(product, purchased_col, portfolio=False, months_coun
 
     if portfolio and product == "ca":
         return portfolio_clm_utilization_sql(
-            purchased_col, company_filter, range_start, avg_expr, pivot_cols, order_by
+            purchased_col, company_filter, range_start, range_end, avg_expr, pivot_cols, order_by
         )
 
     if portfolio:
@@ -1323,6 +1346,7 @@ MonthlyLatest AS (
     FROM CompanyData cd
     INNER JOIN OneReportPerAccountDate orad ON orad.account_key = cd.account_key
     WHERE date(orad.report_date) >= (SELECT range_start FROM DateRange)
+      AND date(orad.report_date) <= date({range_end})
     GROUP BY cd.company_name, cd.account_key, cd.clients_purchased, strftime('%Y-%m', orad.report_date)
 ),
 LatestReportId AS (
@@ -1395,6 +1419,7 @@ MonthlyLatest AS (
     FROM CompanyData cd
     INNER JOIN OneReportPerAccountDate orad ON orad.account_key = cd.account_key
     WHERE date(orad.report_date) >= (SELECT range_start FROM DateRange)
+      AND date(orad.report_date) <= date({range_end})
     GROUP BY cd.company_name, cd.account_key, strftime('%Y-%m', orad.report_date)
 ),
 LatestReportId AS (
@@ -1445,10 +1470,25 @@ ORDER BY {order_by}
 
 
 def product_utilization_table_panel(
-    title, product, purchased_col, portfolio=False, x=0, y=0, w=24, h=10, experimental=True, months_count=24
+    title,
+    product,
+    purchased_col,
+    portfolio=False,
+    x=0,
+    y=0,
+    w=24,
+    h=10,
+    experimental=True,
+    months_count=24,
+    include_current_month=False,
 ):
     sql = product_utilization_sql(
-        product, purchased_col, portfolio=portfolio, experimental=experimental, months_count=months_count
+        product,
+        purchased_col,
+        portfolio=portfolio,
+        experimental=experimental,
+        months_count=months_count,
+        include_current_month=include_current_month,
     )
     return {
         "type": "table",
@@ -1705,7 +1745,7 @@ def multi_account_clm_summary_metrics_cte():
     """Last full month CLM used count from certificate_analysis (matches original By Customer CLM chart)."""
     return f"""
 LastFullMonth AS (
-  SELECT strftime('%Y-%m', 'now', 'start of month', '-1 month') AS report_month
+  SELECT strftime('%Y-%m', date('now', 'start of month', '-1 month')) AS report_month
 ),
 CertificateDaily AS (
   SELECT fa.name, fa.account_id, fa.purchased,
@@ -1748,7 +1788,7 @@ def multi_account_summary_metrics_cte(product):
 
     return f"""
 LastFullMonth AS (
-  SELECT strftime('%Y-%m', 'now', 'start of month', '-1 month') AS report_month
+  SELECT strftime('%Y-%m', date('now', 'start of month', '-1 month')) AS report_month
 ),
 OneReportPerAccountDate AS (
   SELECT fa.account_key, date(r.report_date) AS report_date, MAX(r.id) AS report_id
@@ -1815,9 +1855,9 @@ SELECT
   COUNT(DISTINCT account_id) AS "Accounts",
   GROUP_CONCAT(DISTINCT account_id) AS "Account IDs",
   SUM(purchased) AS "Purchased",
-  SUM(used_in_limit) AS "Used",
+  SUM(used_in_limit) AS "Used Clients",
   SUM(exceeded) AS "Exceeded",
-  SUM(total_used) AS "Total",
+  SUM(total_used) AS "Total Clients including Exceeding",
   CASE
     WHEN SUM(purchased) IN (0, 999, 99999) THEN NULL
     WHEN SUM(purchased) <= 0 THEN NULL
@@ -1833,9 +1873,9 @@ SELECT
   c.name AS "Customer",
   c.account_id AS "Account ID",
   CAST(COALESCE(c.{purchased_col}, '0') AS INTEGER) AS "Purchased",
-  {used_expr} AS "Used",
+  {used_expr} AS "Used Clients",
   {exceeded_expr} AS "Exceeded",
-  ({used_expr}) + ({exceeded_expr}) AS "Total",
+  ({used_expr}) + ({exceeded_expr}) AS "Total Clients including Exceeding",
   CASE
     WHEN CAST(COALESCE(c.{purchased_col}, '0') AS INTEGER) IN (0, 999, 99999) THEN NULL
     WHEN CAST(COALESCE(c.{purchased_col}, '0') AS INTEGER) <= 0 THEN NULL
@@ -1998,12 +2038,18 @@ def product_avg_usage_sql(product, purchased_col, portfolio=False, experimental=
             product=product,
             purchased_col=purchased_col,
             legacy=not experimental,
+            time_range_end=last_completed_month_end_sql(),
         )
     return f'SELECT ROUND(AVG("Utilization %"), 1) AS value FROM ({inner})'
 
 
 def monthly_util_table_sql(product, purchased_col, portfolio=False):
-    return load_query("monthly_utilization.sql", product=product, purchased_col=purchased_col)
+    return load_query(
+        "monthly_utilization.sql",
+        product=product,
+        purchased_col=purchased_col,
+        time_range_end=last_completed_month_end_sql(),
+    )
 
 
 def last_10_days_targets(product, portfolio=False):
@@ -2383,7 +2429,7 @@ def product_section(label, product, purchased_col, y, portfolio=False, multi_acc
         )
         y += metric_h
 
-    util_height = 16 if use_portfolio_sql else 10
+    util_height = 16
     util_months = 24
     util_title = (
         f"{label} Monthly Utilization % by Customer"
@@ -2401,6 +2447,7 @@ def product_section(label, product, purchased_col, y, portfolio=False, multi_acc
             h=util_height,
             experimental=experimental,
             months_count=util_months,
+            include_current_month=True,
         )
     )
     return panels, y + util_height
@@ -2856,7 +2903,8 @@ def risk_section(y, group_by_company=False, experimental=True):
             h=6,
             overrides=risk_status_overrides,
             description=(
-                "Used = within purchased limit. Exceeded is separate. Total = Used + Exceeded."
+                "Used = within purchased limit. Exceeded is separate. "
+                "Total Clients including Exceeding = Used Clients + Exceeded."
             ),
         )
     )

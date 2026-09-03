@@ -72,11 +72,24 @@ Different panels use different time logic — do not assume one global window:
 
 ```bash
 # 1. Edit SQL in queries/ or panel config in generate_dashboards.py
-# 2. Regenerate JSON
+# 2. Regenerate JSON (runs single/multi alignment check automatically)
 python3 generate_dashboards.py
 
 # 3. Import updated JSON into Grafana (or paste JSON model)
 ```
+
+### Single-account vs multi-account alignment (required)
+
+**Always keep the single-account and multi-account dashboards aligned** when changing shared behavior.
+
+| Change type | What to update |
+|-------------|----------------|
+| Shared panels (trends, risk, access type, etc.) | `generate_dashboards.py` shared section builders (`single_account_anomaly_panels`, `best_practice_section`, `risk_section`, …) — never edit only one JSON file |
+| SQL for both views | Update **both** `queries/<name>.sql` and `queries/by_company/<name>.sql` when the panel exists on both dashboards |
+| Product utilization (SM/CLM/SRA/PWM) | `product_section()` / `product_utilization_sql()` — same display settings for both dashboards |
+| Intentional differences only | Single-account stat row vs multi-account summary table; Best Practice pie charts on single only; header/account filters |
+
+After `python3 generate_dashboards.py`, an **alignment check** compares display settings (`type`, `gridPos` size, `options`, `fieldConfig`) for all shared panels. Generation **fails** if they diverge.
 
 ## Recent change history (Sep 2026)
 

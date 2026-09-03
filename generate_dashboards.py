@@ -3175,6 +3175,91 @@ def build_dashboard(title, uid, portfolio=False, multi_account=False, experiment
     }
 
 
+# Panels that must keep identical display settings (type, size, options, fieldConfig)
+# across single- and multi-account dashboards. SQL/title may differ by design.
+SHARED_PANEL_TITLES = (
+    "Top Object Growth (Last 3 Months)",
+    "Objects Trend - All Growth & Reduction Indications",
+    "New Use Cases — Secrets & Authentication (Adoption Signals)",
+    "Access Type — Used Clients (Last 3 Months)",
+    "Access Type Breakdown",
+    "Last Full Month Status — Usage vs Purchased Limit",
+    "Client Usage Change (Last 3 Months)",
+    "Repeated Exceeded Clients — Last Month Detail",
+    "Adoption Status — Contract Age & Usage",
+)
+
+PRODUCT_UTILIZATION_PREFIXES = ("SM", "CLM", "SRA", "PWM")
+
+PANEL_COMPARE_IGNORE_KEYS = frozenset({"id", "targets", "title", "description"})
+PANEL_COMPARE_GRIDPOS_IGNORE = frozenset({"x", "y"})
+
+
+def _normalize_panel_for_compare(panel):
+    """Strip panel fields that are expected to differ between single/multi dashboards."""
+    normalized = deepcopy(panel)
+    for key in PANEL_COMPARE_IGNORE_KEYS:
+        normalized.pop(key, None)
+    if "gridPos" in normalized:
+        normalized["gridPos"] = {
+            k: v for k, v in normalized["gridPos"].items() if k not in PANEL_COMPARE_GRIDPOS_IGNORE
+        }
+    return normalized
+
+
+def _find_panel_by_title(panels, title):
+    for panel in panels:
+        if panel.get("title") == title:
+            return panel
+    return None
+
+
+def _find_utilization_panel(panels, product_prefix):
+    needle = f"{product_prefix} Monthly Utilization"
+    matches = [p for p in panels if needle in p.get("title", "")]
+    return matches[0] if len(matches) == 1 else None
+
+
+def validate_single_multi_alignment(single_dashboard, multi_dashboard):
+    """Fail generation when shared panels diverge in display settings."""
+    issues = []
+    single_panels = single_dashboard["panels"]
+    multi_panels = multi_dashboard["panels"]
+
+    for title in SHARED_PANEL_TITLES:
+        single_panel = _find_panel_by_title(single_panels, title)
+        multi_panel = _find_panel_by_title(multi_panels, title)
+        if single_panel is None:
+            issues.append(f"Missing shared panel on single-account dashboard: {title}")
+            continue
+        if multi_panel is None:
+            issues.append(f"Missing shared panel on multi-account dashboard: {title}")
+            continue
+        single_norm = _normalize_panel_for_compare(single_panel)
+        multi_norm = _normalize_panel_for_compare(multi_panel)
+        if single_norm != multi_norm:
+            issues.append(
+                f"Display settings diverged for shared panel '{title}'. "
+                "Update shared builders in generate_dashboards.py (not one JSON file only)."
+            )
+
+    for prefix in PRODUCT_UTILIZATION_PREFIXES:
+        single_panel = _find_utilization_panel(single_panels, prefix)
+        multi_panel = _find_utilization_panel(multi_panels, prefix)
+        if single_panel is None or multi_panel is None:
+            issues.append(f"Missing {prefix} Monthly Utilization panel on one dashboard")
+            continue
+        single_norm = _normalize_panel_for_compare(single_panel)
+        multi_norm = _normalize_panel_for_compare(multi_panel)
+        if single_norm != multi_norm:
+            issues.append(
+                f"Display settings diverged for {prefix} Monthly Utilization. "
+                "Keep product_section() / product_utilization_table_panel() shared."
+            )
+
+    return issues
+
+
 def main():
     prod_single = build_dashboard(
         "Akeyless CS — Account Technical Dashboard",
@@ -3219,6 +3304,14 @@ def main():
     for path, dashboard in paths.items():
         path.write_text(json.dumps(dashboard, indent=2))
         print(f"Wrote {path} ({len(dashboard['panels'])} panels)")
+
+    alignment_issues = validate_single_multi_alignment(prod_single, prod_multi)
+    if alignment_issues:
+        print("\nDashboard alignment check FAILED:")
+        for issue in alignment_issues:
+            print(f"  - {issue}")
+        raise SystemExit(1)
+    print("Dashboard alignment check passed (single-account vs multi-account).")
 
 
 if __name__ == "__main__":

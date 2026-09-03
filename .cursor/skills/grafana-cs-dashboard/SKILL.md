@@ -45,7 +45,8 @@ Task Progress:
 - [ ] Step 3: Write SQL for each panel
 - [ ] Step 4: Define variables and thresholds
 - [ ] Step 5: Build Grafana JSON
-- [ ] Step 6: Document CSE interpretation
+- [ ] Step 6: Verify single/multi alignment
+- [ ] Step 7: Document CSE interpretation
 ```
 
 ### Step 1: Clarify scope
@@ -60,6 +61,23 @@ Confirm with the user (or infer from context):
 | Output | SQL only, layout spec, full Grafana JSON, or all three |
 
 Default to **single-account drill-down** with `$account_id` variable plus a **portfolio anomalies** row if scope is unclear.
+
+### Single-account / multi-account alignment (mandatory)
+
+This repo ships **two production dashboards** that share most panels:
+
+| Dashboard | JSON | Builder flag |
+|-----------|------|--------------|
+| Single-account | `dashboard-single-account.json` | `build_dashboard(..., multi_account=False)` |
+| Multi-account | `dashboard-multi-account.json` | `build_dashboard(..., multi_account=True)` |
+
+**Rules when making changes:**
+
+1. **Never edit only one generated JSON file** — change `generate_dashboards.py` and/or SQL under `queries/`, then run `python3 generate_dashboards.py`.
+2. **Shared sections** (Technical Trends, Best Practice tables, Risk Mitigation, product utilization heatmaps) must use the **same** panel builders with `multi_account` / `group_by_company` flags — not duplicate panel config.
+3. **Paired SQL files**: if a panel uses `queries/foo.sql` on single-account, update `queries/by_company/foo.sql` too when the multi-account panel shows the same metric.
+4. **Allowed differences** (do not “align” these away): single-account header + stat row; multi-account summary-by-customer table; Best Practice pie charts on single only.
+5. **Verify**: `generate_dashboards.py` runs an alignment check after generation and exits with an error if shared panel display settings diverge.
 
 ### Step 2: Design dashboard layout
 

@@ -1,0 +1,21 @@
+---
+description: Keep single-account and multi-account Grafana dashboards aligned when editing dashboard code
+globs:
+  - generate_dashboards.py
+  - queries/**
+  - dashboard-single-account.json
+  - dashboard-multi-account.json
+alwaysApply: true
+---
+
+# Dashboard alignment — single vs multi-account
+
+When changing **either** `dashboard-single-account.json` or `dashboard-multi-account.json` (or their source SQL/generator):
+
+1. **Edit the generator, not one JSON file.** Update `generate_dashboards.py` and/or `queries/`, then run `python3 generate_dashboards.py`.
+2. **Use shared builders** for panels that exist on both dashboards (`product_section`, `risk_section`, `best_practice_section`, `single_account_anomaly_panels`, etc.). Pass `multi_account` / `group_by_company` — do not fork panel config.
+3. **Update paired SQL** — single: `queries/<file>.sql`; multi: `queries/by_company/<file>.sql` when both dashboards use the panel.
+4. **Product utilization (SM/CLM/SRA/PWM)** — one code path via `product_utilization_sql()` / `product_utilization_table_panel()`; display settings must match on both dashboards.
+5. **Run generation before finishing** — alignment check must pass (`Dashboard alignment check passed`).
+
+Intentional differences only: single-account stat row vs multi summary table; single Best Practice pies; headers/filters.

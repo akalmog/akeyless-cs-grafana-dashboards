@@ -1196,7 +1196,7 @@ END"""
 
 
 def portfolio_clm_utilization_sql(
-    purchased_col, company_filter, range_start, avg_expr, pivot_cols, order_by
+    purchased_col, company_filter, range_start, range_end, avg_expr, pivot_cols, order_by
 ):
     """Multi-account CLM monthly heatmap — certificate_analysis reports (not ObjectsReport)."""
     return f"""
@@ -1221,7 +1221,7 @@ CertificateDaily AS (
     INNER JOIN reports r ON LOWER(r.account_id) = cd.account_key
     WHERE r.report_type = 'certificate_analysis'
       AND date(r.report_date) >= (SELECT range_start FROM DateRange)
-      AND date(r.report_date) <= date({last_completed_month_end_sql()})
+      AND date(r.report_date) <= date({range_end})
 ),
 DailyMax AS (
     SELECT company_name, account_key, clients_purchased, report_month, report_date,
@@ -1261,8 +1261,20 @@ ORDER BY {order_by}
 """
 
 
-def product_utilization_sql(product, purchased_col, portfolio=False, months_count=24, experimental=True):
-    months = completed_rolling_months(months_count) if experimental else rolling_months(months_count)
+def product_utilization_sql(
+    product,
+    purchased_col,
+    portfolio=False,
+    months_count=24,
+    experimental=True,
+    include_current_month=False,
+):
+    if include_current_month:
+        months = rolling_months(months_count)
+        range_end = "strftime('%Y-%m-%d', 'now')"
+    else:
+        months = completed_rolling_months(months_count) if experimental else rolling_months(months_count)
+        range_end = last_completed_month_end_sql()
     avg_months = completed_rolling_months(3) if experimental else rolling_months(3)
     avg_months_sql = ", ".join(f"'{y:04d}-{m:02d}'" for y, m in avg_months)
     avg_expr = (
@@ -1303,11 +1315,10 @@ def product_utilization_sql(product, purchased_col, portfolio=False, months_coun
 
     exceeded_expr = f"COALESCE(SUM(CASE WHEN rcp.product = '{product}' THEN rcp.exceeded_amount ELSE 0 END), 0)"
     range_start = time_range_sql_replacements("")["time_range_start"]
-    range_end = last_completed_month_end_sql()
 
     if portfolio and product == "ca":
         return portfolio_clm_utilization_sql(
-            purchased_col, company_filter, range_start, avg_expr, pivot_cols, order_by
+            purchased_col, company_filter, range_start, range_end, avg_expr, pivot_cols, order_by
         )
 
     if portfolio:
@@ -1459,10 +1470,25 @@ ORDER BY {order_by}
 
 
 def product_utilization_table_panel(
-    title, product, purchased_col, portfolio=False, x=0, y=0, w=24, h=10, experimental=True, months_count=24
+    title,
+    product,
+    purchased_col,
+    portfolio=False,
+    x=0,
+    y=0,
+    w=24,
+    h=10,
+    experimental=True,
+    months_count=24,
+    include_current_month=False,
 ):
     sql = product_utilization_sql(
-        product, purchased_col, portfolio=portfolio, experimental=experimental, months_count=months_count
+        product,
+        purchased_col,
+        portfolio=portfolio,
+        experimental=experimental,
+        months_count=months_count,
+        include_current_month=include_current_month,
     )
     return {
         "type": "table",
@@ -2403,7 +2429,7 @@ def product_section(label, product, purchased_col, y, portfolio=False, multi_acc
         )
         y += metric_h
 
-    util_height = 16 if use_portfolio_sql else 10
+    util_height = 16
     util_months = 24
     util_title = (
         f"{label} Monthly Utilization % by Customer"
@@ -2421,6 +2447,7 @@ def product_section(label, product, purchased_col, y, portfolio=False, multi_acc
             h=util_height,
             experimental=experimental,
             months_count=util_months,
+            include_current_month=True,
         )
     )
     return panels, y + util_height

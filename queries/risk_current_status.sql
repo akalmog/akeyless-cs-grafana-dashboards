@@ -15,7 +15,7 @@ WITH CompanyAccounts AS (
       )
 ),
 LastFullMonth AS (
-    SELECT strftime('%Y-%m', 'now', 'start of month', '-1 month') AS report_month
+    SELECT strftime('%Y-%m', date('now', 'start of month', '-1 month')) AS report_month
 ),
 MonthlyLatestReport AS (
     SELECT
@@ -61,9 +61,9 @@ SELECT
         WHEN 'sra' THEN CAST(c.clients_sra AS INTEGER)
         WHEN 'apm' THEN CAST(c.clients_pm AS INTEGER)
     END AS "Purchased",
-    pu.used_clients AS "Used",
+    pu.used_clients AS "Used Clients",
     pu.exceeded_clients AS "Exceeded",
-    pu.used_clients + pu.exceeded_clients AS "Total",
+    pu.used_clients + pu.exceeded_clients AS "Total Clients including Exceeding",
     CASE
         WHEN pu.exceeded_clients > 0 THEN 'Exceeded Clients Detected'
         WHEN CASE pu.product

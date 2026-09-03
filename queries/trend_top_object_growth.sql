@@ -15,7 +15,7 @@ WITH CompanyAccounts AS (
       )
 ),
 LastFullMonth AS (
-    SELECT strftime('%Y-%m', 'now', 'start of month', '-1 month') AS report_month
+    SELECT strftime('%Y-%m', date('now', 'start of month', '-1 month')) AS report_month
 ),
 WindowStartMonth AS (
     SELECT strftime('%Y-%m', date((SELECT report_month FROM LastFullMonth) || '-01', '-2 month')) AS report_month

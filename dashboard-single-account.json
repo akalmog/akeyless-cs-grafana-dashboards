@@ -4579,7 +4579,7 @@
     },
     {
       "type": "stat",
-      "title": "Total Clients (incl. exceeding)",
+      "title": "Used Clients - Last 3 Months",
       "gridPos": {
         "h": 4,
         "w": 8,
@@ -4587,60 +4587,6 @@
         "y": 131
       },
       "id": 53,
-      "targets": [
-        {
-          "datasource": {
-            "type": "frser-sqlite-datasource",
-            "uid": null
-          },
-          "queryText": "-- Single-account aggregate totals for Access Type MoM (stat row).\n-- Net change across the last 3 completed calendar months (excludes current incomplete month).\nWITH CompanyAccounts AS (\n    SELECT DISTINCT account_id\n    FROM companies\n    WHERE account_id IS NOT NULL AND account_id != ''\n      AND (\n        '${company_name:raw}' IN ('All', '%', '$__all')\n        OR name IN (${company_name:sqlstring})\n        OR name = '${company_name}'\n      )\n      AND (\n        '${account_id:raw}' IN ('All', '%', '$__all')\n        OR LOWER('${account_id:raw}') = 'all'\n        OR account_id = '${account_id}'\n      )\n),\nLastFullMonth AS (\n    SELECT strftime('%Y-%m', date('now', 'start of month', '-1 month')) AS report_month\n),\nWindowStartMonth AS (\n    SELECT strftime('%Y-%m', date((SELECT report_month FROM LastFullMonth) || '-01', '-2 month')) AS report_month\n),\nWindowBounds AS (\n    SELECT\n        (SELECT report_month FROM WindowStartMonth) AS start_month,\n        (SELECT report_month FROM LastFullMonth) AS end_month\n),\nCalendarMonths AS (\n    SELECT (SELECT report_month FROM WindowStartMonth) AS report_month\n    UNION ALL\n    SELECT strftime('%Y-%m', date((SELECT report_month FROM LastFullMonth) || '-01', '-1 month'))\n    UNION ALL\n    SELECT (SELECT report_month FROM LastFullMonth) AS report_month\n),\nMonthlyLatestReport AS (\n    SELECT\n        ca.account_id,\n        strftime('%Y-%m', rc.report_date) AS report_month,\n        MAX(rc.report_date) AS latest_report_date\n    FROM CompanyAccounts ca\n    INNER JOIN report_clients rc ON rc.account_id = ca.account_id\n    WHERE strftime('%Y-%m', rc.report_date) IN (SELECT report_month FROM CalendarMonths)\n    GROUP BY ca.account_id, strftime('%Y-%m', rc.report_date)\n),\nAccessTypeUsage AS (\n    SELECT\n        mlr.account_id,\n        mlr.report_month,\n        rc.access_type,\n        SUM(rcp.amount) AS used_in_limit,\n        SUM(rcp.amount + COALESCE(rcp.exceeded_amount, 0)) AS total_clients\n    FROM MonthlyLatestReport mlr\n    INNER JOIN report_clients rc\n        ON rc.account_id = mlr.account_id\n        AND rc.report_date = mlr.latest_report_date\n    INNER JOIN report_clients_product_info rcp ON rcp.report_client_id = rc.id\n    WHERE rcp.product IN ('sm', 'sra', 'apm')\n    GROUP BY mlr.account_id, mlr.report_month, rc.access_type\n),\nStartMonthUsage AS (\n    SELECT account_id, access_type, used_in_limit, total_clients\n    FROM AccessTypeUsage atu\n    INNER JOIN WindowStartMonth wsm ON wsm.report_month = atu.report_month\n),\nEndMonthUsage AS (\n    SELECT account_id, access_type, used_in_limit, total_clients\n    FROM AccessTypeUsage atu\n    INNER JOIN LastFullMonth lfm ON lfm.report_month = atu.report_month\n),\nCombined AS (\n    SELECT DISTINCT account_id, access_type\n    FROM AccessTypeUsage\n    WHERE COALESCE(used_in_limit, 0) > 0 OR COALESCE(total_clients, 0) > 0\n),\nDetailRows AS (\n    SELECT\n        c.account_id AS account_id,\n        CASE cb.access_type\n            WHEN 'api_key' THEN 'API Key'\n            WHEN 'aws_iam' THEN 'AWS IAM'\n            WHEN 'saml2' THEN 'SAML'\n            WHEN 'universal_identity' THEN 'Universal Identity'\n            WHEN 'k8s' THEN 'K8s'\n            WHEN 'ldap' THEN 'LDAP'\n            WHEN 'oidc' THEN 'OIDC'\n            WHEN 'jwt' THEN 'JWT'\n            WHEN 'azure_ad' THEN 'Azure AD'\n            WHEN 'gcp' THEN 'GCP'\n            ELSE COALESCE(cb.access_type, 'Unknown')\n        END AS access_type_label,\n        (SELECT start_month FROM WindowBounds) || ' \u2192 ' || (SELECT end_month FROM WindowBounds) AS period_label,\n        COALESCE(start_u.used_in_limit, 0) AS start_used,\n        COALESCE(end_u.used_in_limit, 0) AS end_used,\n        COALESCE(start_u.total_clients, 0) AS start_total,\n        COALESCE(end_u.total_clients, 0) AS end_total\n    FROM Combined cb\n    INNER JOIN companies c ON c.account_id = cb.account_id\n    LEFT JOIN StartMonthUsage start_u\n        ON start_u.account_id = cb.account_id\n        AND start_u.access_type = cb.access_type\n    LEFT JOIN EndMonthUsage end_u\n        ON end_u.account_id = cb.account_id\n        AND end_u.access_type = cb.access_type\n)\nSELECT\n    CAST(SUM(start_total) AS TEXT) || ' \u2192 ' || CAST(SUM(end_total) AS TEXT) AS value\nFROM DetailRows",
-          "rawQueryText": "-- Single-account aggregate totals for Access Type MoM (stat row).\n-- Net change across the last 3 completed calendar months (excludes current incomplete month).\nWITH CompanyAccounts AS (\n    SELECT DISTINCT account_id\n    FROM companies\n    WHERE account_id IS NOT NULL AND account_id != ''\n      AND (\n        '${company_name:raw}' IN ('All', '%', '$__all')\n        OR name IN (${company_name:sqlstring})\n        OR name = '${company_name}'\n      )\n      AND (\n        '${account_id:raw}' IN ('All', '%', '$__all')\n        OR LOWER('${account_id:raw}') = 'all'\n        OR account_id = '${account_id}'\n      )\n),\nLastFullMonth AS (\n    SELECT strftime('%Y-%m', date('now', 'start of month', '-1 month')) AS report_month\n),\nWindowStartMonth AS (\n    SELECT strftime('%Y-%m', date((SELECT report_month FROM LastFullMonth) || '-01', '-2 month')) AS report_month\n),\nWindowBounds AS (\n    SELECT\n        (SELECT report_month FROM WindowStartMonth) AS start_month,\n        (SELECT report_month FROM LastFullMonth) AS end_month\n),\nCalendarMonths AS (\n    SELECT (SELECT report_month FROM WindowStartMonth) AS report_month\n    UNION ALL\n    SELECT strftime('%Y-%m', date((SELECT report_month FROM LastFullMonth) || '-01', '-1 month'))\n    UNION ALL\n    SELECT (SELECT report_month FROM LastFullMonth) AS report_month\n),\nMonthlyLatestReport AS (\n    SELECT\n        ca.account_id,\n        strftime('%Y-%m', rc.report_date) AS report_month,\n        MAX(rc.report_date) AS latest_report_date\n    FROM CompanyAccounts ca\n    INNER JOIN report_clients rc ON rc.account_id = ca.account_id\n    WHERE strftime('%Y-%m', rc.report_date) IN (SELECT report_month FROM CalendarMonths)\n    GROUP BY ca.account_id, strftime('%Y-%m', rc.report_date)\n),\nAccessTypeUsage AS (\n    SELECT\n        mlr.account_id,\n        mlr.report_month,\n        rc.access_type,\n        SUM(rcp.amount) AS used_in_limit,\n        SUM(rcp.amount + COALESCE(rcp.exceeded_amount, 0)) AS total_clients\n    FROM MonthlyLatestReport mlr\n    INNER JOIN report_clients rc\n        ON rc.account_id = mlr.account_id\n        AND rc.report_date = mlr.latest_report_date\n    INNER JOIN report_clients_product_info rcp ON rcp.report_client_id = rc.id\n    WHERE rcp.product IN ('sm', 'sra', 'apm')\n    GROUP BY mlr.account_id, mlr.report_month, rc.access_type\n),\nStartMonthUsage AS (\n    SELECT account_id, access_type, used_in_limit, total_clients\n    FROM AccessTypeUsage atu\n    INNER JOIN WindowStartMonth wsm ON wsm.report_month = atu.report_month\n),\nEndMonthUsage AS (\n    SELECT account_id, access_type, used_in_limit, total_clients\n    FROM AccessTypeUsage atu\n    INNER JOIN LastFullMonth lfm ON lfm.report_month = atu.report_month\n),\nCombined AS (\n    SELECT DISTINCT account_id, access_type\n    FROM AccessTypeUsage\n    WHERE COALESCE(used_in_limit, 0) > 0 OR COALESCE(total_clients, 0) > 0\n),\nDetailRows AS (\n    SELECT\n        c.account_id AS account_id,\n        CASE cb.access_type\n            WHEN 'api_key' THEN 'API Key'\n            WHEN 'aws_iam' THEN 'AWS IAM'\n            WHEN 'saml2' THEN 'SAML'\n            WHEN 'universal_identity' THEN 'Universal Identity'\n            WHEN 'k8s' THEN 'K8s'\n            WHEN 'ldap' THEN 'LDAP'\n            WHEN 'oidc' THEN 'OIDC'\n            WHEN 'jwt' THEN 'JWT'\n            WHEN 'azure_ad' THEN 'Azure AD'\n            WHEN 'gcp' THEN 'GCP'\n            ELSE COALESCE(cb.access_type, 'Unknown')\n        END AS access_type_label,\n        (SELECT start_month FROM WindowBounds) || ' \u2192 ' || (SELECT end_month FROM WindowBounds) AS period_label,\n        COALESCE(start_u.used_in_limit, 0) AS start_used,\n        COALESCE(end_u.used_in_limit, 0) AS end_used,\n        COALESCE(start_u.total_clients, 0) AS start_total,\n        COALESCE(end_u.total_clients, 0) AS end_total\n    FROM Combined cb\n    INNER JOIN companies c ON c.account_id = cb.account_id\n    LEFT JOIN StartMonthUsage start_u\n        ON start_u.account_id = cb.account_id\n        AND start_u.access_type = cb.access_type\n    LEFT JOIN EndMonthUsage end_u\n        ON end_u.account_id = cb.account_id\n        AND end_u.access_type = cb.access_type\n)\nSELECT\n    CAST(SUM(start_total) AS TEXT) || ' \u2192 ' || CAST(SUM(end_total) AS TEXT) AS value\nFROM DetailRows",
-          "queryType": "table",
-          "timeColumns": [],
-          "refId": "A"
-        }
-      ],
-      "options": {
-        "colorMode": "none",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "/.*/",
-          "values": false
-        },
-        "textMode": "auto"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "text"
-          },
-          "mappings": [],
-          "unit": "string"
-        },
-        "overrides": []
-      },
-      "datasource": {
-        "type": "frser-sqlite-datasource",
-        "uid": null
-      },
-      "description": "Aggregated across all access types. Period is the last 3 completed calendar months (excludes the current incomplete month)."
-    },
-    {
-      "type": "stat",
-      "title": "Used Clients",
-      "gridPos": {
-        "h": 4,
-        "w": 8,
-        "x": 8,
-        "y": 131
-      },
-      "id": 54,
       "targets": [
         {
           "datasource": {
@@ -4687,7 +4633,61 @@
     },
     {
       "type": "stat",
-      "title": "Change",
+      "title": "Total Clients (incl. exceeding) - Last 3 Months",
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 8,
+        "y": 131
+      },
+      "id": 54,
+      "targets": [
+        {
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": null
+          },
+          "queryText": "-- Single-account aggregate totals for Access Type MoM (stat row).\n-- Net change across the last 3 completed calendar months (excludes current incomplete month).\nWITH CompanyAccounts AS (\n    SELECT DISTINCT account_id\n    FROM companies\n    WHERE account_id IS NOT NULL AND account_id != ''\n      AND (\n        '${company_name:raw}' IN ('All', '%', '$__all')\n        OR name IN (${company_name:sqlstring})\n        OR name = '${company_name}'\n      )\n      AND (\n        '${account_id:raw}' IN ('All', '%', '$__all')\n        OR LOWER('${account_id:raw}') = 'all'\n        OR account_id = '${account_id}'\n      )\n),\nLastFullMonth AS (\n    SELECT strftime('%Y-%m', date('now', 'start of month', '-1 month')) AS report_month\n),\nWindowStartMonth AS (\n    SELECT strftime('%Y-%m', date((SELECT report_month FROM LastFullMonth) || '-01', '-2 month')) AS report_month\n),\nWindowBounds AS (\n    SELECT\n        (SELECT report_month FROM WindowStartMonth) AS start_month,\n        (SELECT report_month FROM LastFullMonth) AS end_month\n),\nCalendarMonths AS (\n    SELECT (SELECT report_month FROM WindowStartMonth) AS report_month\n    UNION ALL\n    SELECT strftime('%Y-%m', date((SELECT report_month FROM LastFullMonth) || '-01', '-1 month'))\n    UNION ALL\n    SELECT (SELECT report_month FROM LastFullMonth) AS report_month\n),\nMonthlyLatestReport AS (\n    SELECT\n        ca.account_id,\n        strftime('%Y-%m', rc.report_date) AS report_month,\n        MAX(rc.report_date) AS latest_report_date\n    FROM CompanyAccounts ca\n    INNER JOIN report_clients rc ON rc.account_id = ca.account_id\n    WHERE strftime('%Y-%m', rc.report_date) IN (SELECT report_month FROM CalendarMonths)\n    GROUP BY ca.account_id, strftime('%Y-%m', rc.report_date)\n),\nAccessTypeUsage AS (\n    SELECT\n        mlr.account_id,\n        mlr.report_month,\n        rc.access_type,\n        SUM(rcp.amount) AS used_in_limit,\n        SUM(rcp.amount + COALESCE(rcp.exceeded_amount, 0)) AS total_clients\n    FROM MonthlyLatestReport mlr\n    INNER JOIN report_clients rc\n        ON rc.account_id = mlr.account_id\n        AND rc.report_date = mlr.latest_report_date\n    INNER JOIN report_clients_product_info rcp ON rcp.report_client_id = rc.id\n    WHERE rcp.product IN ('sm', 'sra', 'apm')\n    GROUP BY mlr.account_id, mlr.report_month, rc.access_type\n),\nStartMonthUsage AS (\n    SELECT account_id, access_type, used_in_limit, total_clients\n    FROM AccessTypeUsage atu\n    INNER JOIN WindowStartMonth wsm ON wsm.report_month = atu.report_month\n),\nEndMonthUsage AS (\n    SELECT account_id, access_type, used_in_limit, total_clients\n    FROM AccessTypeUsage atu\n    INNER JOIN LastFullMonth lfm ON lfm.report_month = atu.report_month\n),\nCombined AS (\n    SELECT DISTINCT account_id, access_type\n    FROM AccessTypeUsage\n    WHERE COALESCE(used_in_limit, 0) > 0 OR COALESCE(total_clients, 0) > 0\n),\nDetailRows AS (\n    SELECT\n        c.account_id AS account_id,\n        CASE cb.access_type\n            WHEN 'api_key' THEN 'API Key'\n            WHEN 'aws_iam' THEN 'AWS IAM'\n            WHEN 'saml2' THEN 'SAML'\n            WHEN 'universal_identity' THEN 'Universal Identity'\n            WHEN 'k8s' THEN 'K8s'\n            WHEN 'ldap' THEN 'LDAP'\n            WHEN 'oidc' THEN 'OIDC'\n            WHEN 'jwt' THEN 'JWT'\n            WHEN 'azure_ad' THEN 'Azure AD'\n            WHEN 'gcp' THEN 'GCP'\n            ELSE COALESCE(cb.access_type, 'Unknown')\n        END AS access_type_label,\n        (SELECT start_month FROM WindowBounds) || ' \u2192 ' || (SELECT end_month FROM WindowBounds) AS period_label,\n        COALESCE(start_u.used_in_limit, 0) AS start_used,\n        COALESCE(end_u.used_in_limit, 0) AS end_used,\n        COALESCE(start_u.total_clients, 0) AS start_total,\n        COALESCE(end_u.total_clients, 0) AS end_total\n    FROM Combined cb\n    INNER JOIN companies c ON c.account_id = cb.account_id\n    LEFT JOIN StartMonthUsage start_u\n        ON start_u.account_id = cb.account_id\n        AND start_u.access_type = cb.access_type\n    LEFT JOIN EndMonthUsage end_u\n        ON end_u.account_id = cb.account_id\n        AND end_u.access_type = cb.access_type\n)\nSELECT\n    CAST(SUM(start_total) AS TEXT) || ' \u2192 ' || CAST(SUM(end_total) AS TEXT) AS value\nFROM DetailRows",
+          "rawQueryText": "-- Single-account aggregate totals for Access Type MoM (stat row).\n-- Net change across the last 3 completed calendar months (excludes current incomplete month).\nWITH CompanyAccounts AS (\n    SELECT DISTINCT account_id\n    FROM companies\n    WHERE account_id IS NOT NULL AND account_id != ''\n      AND (\n        '${company_name:raw}' IN ('All', '%', '$__all')\n        OR name IN (${company_name:sqlstring})\n        OR name = '${company_name}'\n      )\n      AND (\n        '${account_id:raw}' IN ('All', '%', '$__all')\n        OR LOWER('${account_id:raw}') = 'all'\n        OR account_id = '${account_id}'\n      )\n),\nLastFullMonth AS (\n    SELECT strftime('%Y-%m', date('now', 'start of month', '-1 month')) AS report_month\n),\nWindowStartMonth AS (\n    SELECT strftime('%Y-%m', date((SELECT report_month FROM LastFullMonth) || '-01', '-2 month')) AS report_month\n),\nWindowBounds AS (\n    SELECT\n        (SELECT report_month FROM WindowStartMonth) AS start_month,\n        (SELECT report_month FROM LastFullMonth) AS end_month\n),\nCalendarMonths AS (\n    SELECT (SELECT report_month FROM WindowStartMonth) AS report_month\n    UNION ALL\n    SELECT strftime('%Y-%m', date((SELECT report_month FROM LastFullMonth) || '-01', '-1 month'))\n    UNION ALL\n    SELECT (SELECT report_month FROM LastFullMonth) AS report_month\n),\nMonthlyLatestReport AS (\n    SELECT\n        ca.account_id,\n        strftime('%Y-%m', rc.report_date) AS report_month,\n        MAX(rc.report_date) AS latest_report_date\n    FROM CompanyAccounts ca\n    INNER JOIN report_clients rc ON rc.account_id = ca.account_id\n    WHERE strftime('%Y-%m', rc.report_date) IN (SELECT report_month FROM CalendarMonths)\n    GROUP BY ca.account_id, strftime('%Y-%m', rc.report_date)\n),\nAccessTypeUsage AS (\n    SELECT\n        mlr.account_id,\n        mlr.report_month,\n        rc.access_type,\n        SUM(rcp.amount) AS used_in_limit,\n        SUM(rcp.amount + COALESCE(rcp.exceeded_amount, 0)) AS total_clients\n    FROM MonthlyLatestReport mlr\n    INNER JOIN report_clients rc\n        ON rc.account_id = mlr.account_id\n        AND rc.report_date = mlr.latest_report_date\n    INNER JOIN report_clients_product_info rcp ON rcp.report_client_id = rc.id\n    WHERE rcp.product IN ('sm', 'sra', 'apm')\n    GROUP BY mlr.account_id, mlr.report_month, rc.access_type\n),\nStartMonthUsage AS (\n    SELECT account_id, access_type, used_in_limit, total_clients\n    FROM AccessTypeUsage atu\n    INNER JOIN WindowStartMonth wsm ON wsm.report_month = atu.report_month\n),\nEndMonthUsage AS (\n    SELECT account_id, access_type, used_in_limit, total_clients\n    FROM AccessTypeUsage atu\n    INNER JOIN LastFullMonth lfm ON lfm.report_month = atu.report_month\n),\nCombined AS (\n    SELECT DISTINCT account_id, access_type\n    FROM AccessTypeUsage\n    WHERE COALESCE(used_in_limit, 0) > 0 OR COALESCE(total_clients, 0) > 0\n),\nDetailRows AS (\n    SELECT\n        c.account_id AS account_id,\n        CASE cb.access_type\n            WHEN 'api_key' THEN 'API Key'\n            WHEN 'aws_iam' THEN 'AWS IAM'\n            WHEN 'saml2' THEN 'SAML'\n            WHEN 'universal_identity' THEN 'Universal Identity'\n            WHEN 'k8s' THEN 'K8s'\n            WHEN 'ldap' THEN 'LDAP'\n            WHEN 'oidc' THEN 'OIDC'\n            WHEN 'jwt' THEN 'JWT'\n            WHEN 'azure_ad' THEN 'Azure AD'\n            WHEN 'gcp' THEN 'GCP'\n            ELSE COALESCE(cb.access_type, 'Unknown')\n        END AS access_type_label,\n        (SELECT start_month FROM WindowBounds) || ' \u2192 ' || (SELECT end_month FROM WindowBounds) AS period_label,\n        COALESCE(start_u.used_in_limit, 0) AS start_used,\n        COALESCE(end_u.used_in_limit, 0) AS end_used,\n        COALESCE(start_u.total_clients, 0) AS start_total,\n        COALESCE(end_u.total_clients, 0) AS end_total\n    FROM Combined cb\n    INNER JOIN companies c ON c.account_id = cb.account_id\n    LEFT JOIN StartMonthUsage start_u\n        ON start_u.account_id = cb.account_id\n        AND start_u.access_type = cb.access_type\n    LEFT JOIN EndMonthUsage end_u\n        ON end_u.account_id = cb.account_id\n        AND end_u.access_type = cb.access_type\n)\nSELECT\n    CAST(SUM(start_total) AS TEXT) || ' \u2192 ' || CAST(SUM(end_total) AS TEXT) AS value\nFROM DetailRows",
+          "queryType": "table",
+          "timeColumns": [],
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/.*/",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "text"
+          },
+          "mappings": [],
+          "unit": "string"
+        },
+        "overrides": []
+      },
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": null
+      },
+      "description": "Aggregated across all access types. Period is the last 3 completed calendar months (excludes the current incomplete month)."
+    },
+    {
+      "type": "stat",
+      "title": "Total Change - Last 3 Months",
       "gridPos": {
         "h": 4,
         "w": 8,
@@ -4841,7 +4841,7 @@
     },
     {
       "type": "table",
-      "title": "Access Type \u2014 Used Clients (Last 3 Months)",
+      "title": "Access Type - Clients Usage (Last 3 Months)",
       "gridPos": {
         "h": 8,
         "w": 16,

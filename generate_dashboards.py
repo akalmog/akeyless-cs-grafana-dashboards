@@ -3014,9 +3014,9 @@ def access_type_mom_section(y, multi_account=False, legacy=True):
         )
         panels.append(
             stat_panel(
-                "Total Clients (incl. exceeding)",
+                "Used Clients - Last 3 Months",
                 access_type_mom_stat_sql(
-                    "CAST(SUM(start_total) AS TEXT) || ' → ' || CAST(SUM(end_total) AS TEXT)",
+                    "CAST(SUM(start_used) AS TEXT) || ' → ' || CAST(SUM(end_used) AS TEXT)",
                     legacy=legacy,
                 ),
                 0,
@@ -3029,9 +3029,9 @@ def access_type_mom_section(y, multi_account=False, legacy=True):
         panels[-1]["description"] = totals_description
         panels.append(
             stat_panel(
-                "Used Clients",
+                "Total Clients (incl. exceeding) - Last 3 Months",
                 access_type_mom_stat_sql(
-                    "CAST(SUM(start_used) AS TEXT) || ' → ' || CAST(SUM(end_used) AS TEXT)",
+                    "CAST(SUM(start_total) AS TEXT) || ' → ' || CAST(SUM(end_total) AS TEXT)",
                     legacy=legacy,
                 ),
                 8,
@@ -3044,7 +3044,7 @@ def access_type_mom_section(y, multi_account=False, legacy=True):
         panels[-1]["description"] = totals_description
         panels.append(
             stat_panel(
-                "Change",
+                "Total Change - Last 3 Months",
                 access_type_mom_stat_sql("SUM(end_total) - SUM(start_total)", legacy=legacy),
                 16,
                 y,
@@ -3074,7 +3074,7 @@ def access_type_mom_section(y, multi_account=False, legacy=True):
         )
         panels.append(
             table_panel(
-                "Access Type — Used Clients (Last 3 Months)",
+                "Access Type - Clients Usage (Last 3 Months)",
                 detail_sql,
                 8,
                 y,
@@ -3109,7 +3109,7 @@ def access_type_mom_section(y, multi_account=False, legacy=True):
     y += 5
     panels.append(
         table_panel(
-            "Access Type — Used Clients (Last 3 Months)",
+            "Access Type - Clients Usage (Last 3 Months)",
             detail_sql,
             0,
             y,

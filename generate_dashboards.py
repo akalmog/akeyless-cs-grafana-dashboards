@@ -2623,15 +2623,13 @@ def product_section(label, product, purchased_col, y, portfolio=False, multi_acc
         )
         y += metric_h
 
-    util_height = 16
+    util_height = 5 if not use_portfolio_sql else 16
     util_months = UTILIZATION_PIVOT_MONTHS
     util_title = (
         f"{label} Monthly Utilization % by Customer"
         if use_portfolio_sql
         else f"{label} Monthly Utilization %"
     )
-    panels.append(row_panel(util_title, y))
-    y += 1
     panels.append(
         product_utilization_table_panel(
             util_title,
@@ -2653,8 +2651,6 @@ def product_section(label, product, purchased_col, y, portfolio=False, multi_acc
         if use_portfolio_sql
         else f"{label} Monthly Used / Threshold"
     )
-    panels.append(row_panel(counts_title, y))
-    y += 1
     panels.append(
         product_utilization_table_panel(
             counts_title,
@@ -3423,14 +3419,17 @@ PANEL_COMPARE_IGNORE_KEYS = frozenset({"id", "targets", "title", "description"})
 PANEL_COMPARE_GRIDPOS_IGNORE = frozenset({"x", "y"})
 
 
-def _normalize_panel_for_compare(panel):
+def _normalize_panel_for_compare(panel, ignore_grid_height=False):
     """Strip panel fields that are expected to differ between single/multi dashboards."""
     normalized = deepcopy(panel)
     for key in PANEL_COMPARE_IGNORE_KEYS:
         normalized.pop(key, None)
     if "gridPos" in normalized:
+        ignore = PANEL_COMPARE_GRIDPOS_IGNORE
+        if ignore_grid_height:
+            ignore = ignore | {"h"}
         normalized["gridPos"] = {
-            k: v for k, v in normalized["gridPos"].items() if k not in PANEL_COMPARE_GRIDPOS_IGNORE
+            k: v for k, v in normalized["gridPos"].items() if k not in ignore
         }
     return normalized
 
@@ -3485,8 +3484,8 @@ def validate_single_multi_alignment(single_dashboard, multi_dashboard):
             if single_panel is None or multi_panel is None:
                 issues.append(f"Missing {prefix} Monthly {label} panel on one dashboard")
                 continue
-            single_norm = _normalize_panel_for_compare(single_panel)
-            multi_norm = _normalize_panel_for_compare(multi_panel)
+            single_norm = _normalize_panel_for_compare(single_panel, ignore_grid_height=True)
+            multi_norm = _normalize_panel_for_compare(multi_panel, ignore_grid_height=True)
             if single_norm != multi_norm:
                 issues.append(
                     f"Display settings diverged for {prefix} Monthly {label}. "

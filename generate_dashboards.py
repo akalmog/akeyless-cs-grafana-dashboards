@@ -2928,6 +2928,12 @@ def best_practice_section(y, multi_account=False, experimental=True):
                 {"id": "custom.hidden", "value": True},
             ],
         },
+        {
+            "matcher": {"id": "byName", "options": "Row Order"},
+            "properties": [
+                {"id": "custom.hidden", "value": True},
+            ],
+        },
     ]
     panels.append(
         table_panel(
@@ -2945,9 +2951,9 @@ def best_practice_section(y, multi_account=False, experimental=True):
                     else "Complete access-type inventory for the account: one row per auth method, "
                 )
                 + "totals aggregated across SM, SRA, and PWM. "
-                + "Period is the last 3 completed calendar months (excludes the current incomplete month)."
+                + "Period is the last 3 completed calendar months (excludes the current incomplete month). "
+                + "Total Used Clients sums Total Clients including Exceeding across all access types."
             ),
-            sort_by=("End Total", True),
         )
     )
     return panels, y + 8

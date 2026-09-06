@@ -1,7 +1,7 @@
--- Access type inventory per customer: one row per auth method, aggregated across SM/SRA/PWM.
+-- Single-account aggregate totals for Access Type MoM (stat row).
 -- Net change across the last 3 completed calendar months (excludes current incomplete month).
 WITH CompanyAccounts AS (
-    SELECT DISTINCT account_id, name AS company_name
+    SELECT DISTINCT account_id
     FROM companies
     WHERE account_id IS NOT NULL AND account_id != ''
       AND (
@@ -35,18 +35,17 @@ CalendarMonths AS (
 ),
 MonthlyLatestReport AS (
     SELECT
-        ca.company_name,
         ca.account_id,
         strftime('%Y-%m', rc.report_date) AS report_month,
         MAX(rc.report_date) AS latest_report_date
     FROM CompanyAccounts ca
     INNER JOIN report_clients rc ON rc.account_id = ca.account_id
     WHERE strftime('%Y-%m', rc.report_date) IN (SELECT report_month FROM CalendarMonths)
-    GROUP BY ca.company_name, ca.account_id, strftime('%Y-%m', rc.report_date)
+    GROUP BY ca.account_id, strftime('%Y-%m', rc.report_date)
 ),
 AccessTypeUsage AS (
     SELECT
-        mlr.company_name,
+        mlr.account_id,
         mlr.report_month,
         rc.access_type,
         SUM(rcp.amount) AS used_in_limit,
@@ -57,32 +56,26 @@ AccessTypeUsage AS (
         AND rc.report_date = mlr.latest_report_date
     INNER JOIN report_clients_product_info rcp ON rcp.report_client_id = rc.id
     WHERE rcp.product IN ('sm', 'sra', 'apm')
-    GROUP BY mlr.company_name, mlr.report_month, rc.access_type
+    GROUP BY mlr.account_id, mlr.report_month, rc.access_type
 ),
 StartMonthUsage AS (
-    SELECT company_name, access_type,
-        SUM(used_in_limit) AS used_in_limit,
-        SUM(total_clients) AS total_clients
+    SELECT account_id, access_type, used_in_limit, total_clients
     FROM AccessTypeUsage atu
     INNER JOIN WindowStartMonth wsm ON wsm.report_month = atu.report_month
-    GROUP BY company_name, access_type
 ),
 EndMonthUsage AS (
-    SELECT company_name, access_type,
-        SUM(used_in_limit) AS used_in_limit,
-        SUM(total_clients) AS total_clients
+    SELECT account_id, access_type, used_in_limit, total_clients
     FROM AccessTypeUsage atu
     INNER JOIN LastFullMonth lfm ON lfm.report_month = atu.report_month
-    GROUP BY company_name, access_type
 ),
 Combined AS (
-    SELECT DISTINCT company_name, access_type
+    SELECT DISTINCT account_id, access_type
     FROM AccessTypeUsage
     WHERE COALESCE(used_in_limit, 0) > 0 OR COALESCE(total_clients, 0) > 0
 ),
 DetailRows AS (
     SELECT
-        cb.company_name AS company_name,
+        c.account_id AS account_id,
         CASE cb.access_type
             WHEN 'api_key' THEN 'API Key'
             WHEN 'aws_iam' THEN 'AWS IAM'
@@ -102,23 +95,16 @@ DetailRows AS (
         COALESCE(start_u.total_clients, 0) AS start_total,
         COALESCE(end_u.total_clients, 0) AS end_total
     FROM Combined cb
+    INNER JOIN companies c ON c.account_id = cb.account_id
     LEFT JOIN StartMonthUsage start_u
-        ON start_u.company_name = cb.company_name
+        ON start_u.account_id = cb.account_id
         AND start_u.access_type = cb.access_type
     LEFT JOIN EndMonthUsage end_u
-        ON end_u.company_name = cb.company_name
+        ON end_u.account_id = cb.account_id
         AND end_u.access_type = cb.access_type
 )
 SELECT
-    company_name AS "Customer",
-    (SELECT GROUP_CONCAT(DISTINCT account_id)
-     FROM CompanyAccounts ca_ids
-     WHERE ca_ids.company_name = dr.company_name) AS "Account IDs",
-    access_type_label AS "Access Type",
-    period_label AS "Period",
-    CAST(start_used AS TEXT) || ' → ' || CAST(end_used AS TEXT) AS "Used Clients",
-    CAST(start_total AS TEXT) || ' → ' || CAST(end_total AS TEXT) AS "Total Clients including Exceeding",
-    end_total AS "End Total",
-    end_total - start_total AS "Change"
-FROM DetailRows dr
-ORDER BY "Customer", "End Total" DESC
+    CAST(SUM(start_total) AS TEXT) || ' → ' || CAST(SUM(end_total) AS TEXT) AS "Total Clients including Exceeding",
+    CAST(SUM(start_used) AS TEXT) || ' → ' || CAST(SUM(end_used) AS TEXT) AS "Used Clients",
+    SUM(end_total) - SUM(start_total) AS "Change"
+FROM DetailRows

@@ -110,19 +110,6 @@ SELECT
     CAST(start_used AS TEXT) || ' → ' || CAST(end_used AS TEXT) AS "Used Clients",
     CAST(start_total AS TEXT) || ' → ' || CAST(end_total AS TEXT) AS "Total Clients including Exceeding",
     end_total AS "End Total",
-    end_total - start_total AS "Change",
-    0 AS "Row Order"
+    end_total - start_total AS "Change"
 FROM DetailRows
-UNION ALL
-SELECT
-    account_id AS "Account ID",
-    'Total Used Clients' AS "Access Type",
-    period_label AS "Period",
-    CAST(SUM(start_used) AS TEXT) || ' → ' || CAST(SUM(end_used) AS TEXT) AS "Used Clients",
-    CAST(SUM(start_total) AS TEXT) || ' → ' || CAST(SUM(end_total) AS TEXT) AS "Total Clients including Exceeding",
-    SUM(end_total) AS "End Total",
-    SUM(end_total) - SUM(start_total) AS "Change",
-    1 AS "Row Order"
-FROM DetailRows
-GROUP BY account_id, period_label
-ORDER BY "Row Order", "End Total" DESC
+ORDER BY "End Total" DESC

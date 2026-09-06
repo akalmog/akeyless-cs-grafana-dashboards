@@ -2976,7 +2976,10 @@ def single_account_anomaly_panels(y, multi_account=False, experimental=True):
             sort_by=("Count", True),
         )
     )
-    return panels, y + 10
+    y += 10
+    mom_panels, y = access_type_mom_section(y, multi_account=multi_account, legacy=legacy)
+    panels.extend(mom_panels)
+    return panels, y
 
 
 def access_type_mom_section(y, multi_account=False, legacy=True):
@@ -3236,8 +3239,6 @@ def best_practice_section(y, multi_account=False, experimental=True):
         )
         y += 8
 
-    mom_panels, y = access_type_mom_section(y, multi_account=multi_account, legacy=legacy)
-    panels.extend(mom_panels)
     return panels, y
 
 

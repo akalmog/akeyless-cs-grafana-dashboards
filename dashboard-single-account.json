@@ -764,17 +764,12 @@
       },
       "fieldConfig": {
         "defaults": {
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "text"
-          },
           "custom": {
             "align": "center",
             "cellOptions": {
               "type": "color-background",
-              "mode": "gradient",
               "applyToRow": false,
-              "wrapText": false
+              "wrapText": true
             },
             "inspect": false,
             "filterable": false,
@@ -827,7 +822,7 @@
                 "id": "custom.cellOptions",
                 "value": {
                   "type": "auto",
-                  "wrapText": false
+                  "wrapText": true
                 }
               },
               {
@@ -859,15 +854,7 @@
             "properties": [
               {
                 "id": "custom.width",
-                "value": 80
-              },
-              {
-                "id": "custom.minWidth",
-                "value": 72
-              },
-              {
-                "id": "unit",
-                "value": "string"
+                "value": 110
               },
               {
                 "id": "mappings",
@@ -911,13 +898,8 @@
                 "id": "custom.cellOptions",
                 "value": {
                   "mode": "gradient",
-                  "type": "color-background",
-                  "wrapText": false
+                  "type": "color-background"
                 }
-              },
-              {
-                "id": "custom.width",
-                "value": 110
               }
             ]
           },
@@ -928,18 +910,6 @@
             },
             "properties": [
               {
-                "id": "custom.width",
-                "value": 80
-              },
-              {
-                "id": "custom.minWidth",
-                "value": 72
-              },
-              {
-                "id": "unit",
-                "value": "string"
-              },
-              {
                 "id": "mappings",
                 "value": [
                   {
@@ -980,9 +950,9 @@
               {
                 "id": "custom.cellOptions",
                 "value": {
-                  "mode": "gradient",
                   "type": "color-background",
-                  "wrapText": false
+                  "applyToRow": false,
+                  "wrapText": true
                 }
               }
             ]
@@ -1100,6 +1070,10 @@
                   "mode": "fixed",
                   "fixedColor": "text"
                 }
+              },
+              {
+                "id": "mappings",
+                "value": []
               }
             ]
           },
@@ -1429,17 +1403,12 @@
       },
       "fieldConfig": {
         "defaults": {
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "text"
-          },
           "custom": {
             "align": "center",
             "cellOptions": {
               "type": "color-background",
-              "mode": "gradient",
               "applyToRow": false,
-              "wrapText": false
+              "wrapText": true
             },
             "inspect": false,
             "filterable": false,
@@ -1492,7 +1461,7 @@
                 "id": "custom.cellOptions",
                 "value": {
                   "type": "auto",
-                  "wrapText": false
+                  "wrapText": true
                 }
               },
               {
@@ -1524,15 +1493,7 @@
             "properties": [
               {
                 "id": "custom.width",
-                "value": 80
-              },
-              {
-                "id": "custom.minWidth",
-                "value": 72
-              },
-              {
-                "id": "unit",
-                "value": "string"
+                "value": 110
               },
               {
                 "id": "mappings",
@@ -1576,13 +1537,8 @@
                 "id": "custom.cellOptions",
                 "value": {
                   "mode": "gradient",
-                  "type": "color-background",
-                  "wrapText": false
+                  "type": "color-background"
                 }
-              },
-              {
-                "id": "custom.width",
-                "value": 110
               }
             ]
           },
@@ -1593,18 +1549,6 @@
             },
             "properties": [
               {
-                "id": "custom.width",
-                "value": 80
-              },
-              {
-                "id": "custom.minWidth",
-                "value": 72
-              },
-              {
-                "id": "unit",
-                "value": "string"
-              },
-              {
                 "id": "mappings",
                 "value": [
                   {
@@ -1645,9 +1589,9 @@
               {
                 "id": "custom.cellOptions",
                 "value": {
-                  "mode": "gradient",
                   "type": "color-background",
-                  "wrapText": false
+                  "applyToRow": false,
+                  "wrapText": true
                 }
               }
             ]
@@ -1765,6 +1709,10 @@
                   "mode": "fixed",
                   "fixedColor": "text"
                 }
+              },
+              {
+                "id": "mappings",
+                "value": []
               }
             ]
           },
@@ -2198,17 +2146,12 @@
       },
       "fieldConfig": {
         "defaults": {
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "text"
-          },
           "custom": {
             "align": "center",
             "cellOptions": {
               "type": "color-background",
-              "mode": "gradient",
               "applyToRow": false,
-              "wrapText": false
+              "wrapText": true
             },
             "inspect": false,
             "filterable": false,
@@ -2261,7 +2204,7 @@
                 "id": "custom.cellOptions",
                 "value": {
                   "type": "auto",
-                  "wrapText": false
+                  "wrapText": true
                 }
               },
               {
@@ -2293,15 +2236,7 @@
             "properties": [
               {
                 "id": "custom.width",
-                "value": 80
-              },
-              {
-                "id": "custom.minWidth",
-                "value": 72
-              },
-              {
-                "id": "unit",
-                "value": "string"
+                "value": 110
               },
               {
                 "id": "mappings",
@@ -2345,13 +2280,8 @@
                 "id": "custom.cellOptions",
                 "value": {
                   "mode": "gradient",
-                  "type": "color-background",
-                  "wrapText": false
+                  "type": "color-background"
                 }
-              },
-              {
-                "id": "custom.width",
-                "value": 110
               }
             ]
           },
@@ -2362,18 +2292,6 @@
             },
             "properties": [
               {
-                "id": "custom.width",
-                "value": 80
-              },
-              {
-                "id": "custom.minWidth",
-                "value": 72
-              },
-              {
-                "id": "unit",
-                "value": "string"
-              },
-              {
                 "id": "mappings",
                 "value": [
                   {
@@ -2414,9 +2332,9 @@
               {
                 "id": "custom.cellOptions",
                 "value": {
-                  "mode": "gradient",
                   "type": "color-background",
-                  "wrapText": false
+                  "applyToRow": false,
+                  "wrapText": true
                 }
               }
             ]
@@ -2534,6 +2452,10 @@
                   "mode": "fixed",
                   "fixedColor": "text"
                 }
+              },
+              {
+                "id": "mappings",
+                "value": []
               }
             ]
           },
@@ -2967,17 +2889,12 @@
       },
       "fieldConfig": {
         "defaults": {
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "text"
-          },
           "custom": {
             "align": "center",
             "cellOptions": {
               "type": "color-background",
-              "mode": "gradient",
               "applyToRow": false,
-              "wrapText": false
+              "wrapText": true
             },
             "inspect": false,
             "filterable": false,
@@ -3030,7 +2947,7 @@
                 "id": "custom.cellOptions",
                 "value": {
                   "type": "auto",
-                  "wrapText": false
+                  "wrapText": true
                 }
               },
               {
@@ -3062,15 +2979,7 @@
             "properties": [
               {
                 "id": "custom.width",
-                "value": 80
-              },
-              {
-                "id": "custom.minWidth",
-                "value": 72
-              },
-              {
-                "id": "unit",
-                "value": "string"
+                "value": 110
               },
               {
                 "id": "mappings",
@@ -3114,13 +3023,8 @@
                 "id": "custom.cellOptions",
                 "value": {
                   "mode": "gradient",
-                  "type": "color-background",
-                  "wrapText": false
+                  "type": "color-background"
                 }
-              },
-              {
-                "id": "custom.width",
-                "value": 110
               }
             ]
           },
@@ -3131,18 +3035,6 @@
             },
             "properties": [
               {
-                "id": "custom.width",
-                "value": 80
-              },
-              {
-                "id": "custom.minWidth",
-                "value": 72
-              },
-              {
-                "id": "unit",
-                "value": "string"
-              },
-              {
                 "id": "mappings",
                 "value": [
                   {
@@ -3183,9 +3075,9 @@
               {
                 "id": "custom.cellOptions",
                 "value": {
-                  "mode": "gradient",
                   "type": "color-background",
-                  "wrapText": false
+                  "applyToRow": false,
+                  "wrapText": true
                 }
               }
             ]
@@ -3303,6 +3195,10 @@
                   "mode": "fixed",
                   "fixedColor": "text"
                 }
+              },
+              {
+                "id": "mappings",
+                "value": []
               }
             ]
           },

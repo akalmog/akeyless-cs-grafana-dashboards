@@ -4581,7 +4581,7 @@
       "type": "stat",
       "title": "Access Type \u2014 Account Totals (Last 3 Months)",
       "gridPos": {
-        "h": 3,
+        "h": 4,
         "w": 24,
         "x": 0,
         "y": 131
@@ -4601,7 +4601,7 @@
         }
       ],
       "options": {
-        "colorMode": "background",
+        "colorMode": "value",
         "graphMode": "none",
         "justifyMode": "center",
         "orientation": "horizontal",
@@ -4610,7 +4610,7 @@
             "lastNotNull"
           ],
           "fields": "",
-          "values": false
+          "values": true
         },
         "textMode": "value_and_name"
       },
@@ -4630,6 +4630,10 @@
             },
             "properties": [
               {
+                "id": "unit",
+                "value": "string"
+              },
+              {
                 "id": "color",
                 "value": {
                   "mode": "fixed",
@@ -4644,6 +4648,10 @@
               "options": "Used Clients"
             },
             "properties": [
+              {
+                "id": "unit",
+                "value": "string"
+              },
               {
                 "id": "color",
                 "value": {
@@ -4660,11 +4668,8 @@
             },
             "properties": [
               {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "color-background",
-                  "mode": "gradient"
-                }
+                "id": "unit",
+                "value": "none"
               },
               {
                 "id": "thresholds",
@@ -4691,10 +4696,6 @@
                 "value": {
                   "mode": "thresholds"
                 }
-              },
-              {
-                "id": "unit",
-                "value": "none"
               }
             ]
           }
@@ -4713,7 +4714,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 134
+        "y": 135
       },
       "id": 54,
       "targets": [
@@ -4797,7 +4798,7 @@
         "h": 8,
         "w": 16,
         "x": 8,
-        "y": 134
+        "y": 135
       },
       "id": 55,
       "targets": [
@@ -4913,7 +4914,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 142
+        "y": 143
       },
       "id": 56,
       "collapsed": false,
@@ -4926,7 +4927,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 143
+        "y": 144
       },
       "id": 57,
       "targets": [
@@ -5022,7 +5023,7 @@
         "h": 6,
         "w": 24,
         "x": 0,
-        "y": 151
+        "y": 152
       },
       "id": 58,
       "targets": [
@@ -5171,7 +5172,7 @@
         "h": 6,
         "w": 24,
         "x": 0,
-        "y": 157
+        "y": 158
       },
       "id": 59,
       "targets": [
@@ -5325,7 +5326,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 163
+        "y": 164
       },
       "id": 60,
       "targets": [
@@ -5473,7 +5474,7 @@
         "h": 6,
         "w": 24,
         "x": 0,
-        "y": 171
+        "y": 172
       },
       "id": 61,
       "targets": [

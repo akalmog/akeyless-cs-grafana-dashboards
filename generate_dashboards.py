@@ -1295,6 +1295,37 @@ def month_column_label(year, month):
     return date(year, month, 1).strftime("%b-%y")
 
 
+def utilization_display_sql(util_pct_expr, used_expr, purchased_expr):
+    """Format utilization as '176.0% (176/100)' for table cells."""
+    return f"""CASE
+        WHEN ({util_pct_expr}) IS NULL THEN NULL
+        ELSE printf('%.1f%% (%d/%d)', ({util_pct_expr}), ({used_expr}), ({purchased_expr}))
+    END"""
+
+
+def utilization_pivot_columns(months, util_pct="util_pct", used_total="used_total", purchased="clients_purchased"):
+    return ", ".join([
+        (
+            f"MAX(CASE WHEN report_month = '{y:04d}-{m:02d}' THEN "
+            f"{utilization_display_sql(util_pct, used_total, purchased)} END) "
+            f'AS "{month_column_label(y, m)}"'
+        )
+        for y, m in months
+    ])
+
+
+def utilization_avg_column_sql(avg_months_sql, util_pct="util_pct", used_total="used_total", purchased="clients_purchased"):
+    avg_util = f"AVG(CASE WHEN report_month IN ({avg_months_sql}) THEN {util_pct} END)"
+    avg_used = f"AVG(CASE WHEN report_month IN ({avg_months_sql}) THEN {used_total} END)"
+    return f"""CASE
+        WHEN {avg_util} IS NULL THEN NULL
+        ELSE printf('%.1f%% (%d/%d)',
+            ROUND({avg_util}, 1),
+            CAST(ROUND({avg_used}) AS INTEGER),
+            MAX({purchased}))
+    END"""
+
+
 CLM_DAILY_CERTS_EXPR = """CASE
     WHEN (COALESCE(r.ca_self_signed, 0) - COALESCE(r.risk_expired, 0)) < 0 THEN 0
     ELSE (COALESCE(r.ca_self_signed, 0) - COALESCE(r.risk_expired, 0))
@@ -1349,6 +1380,8 @@ AggregatedByCompany AS (
 ),
 FinalData AS (
     SELECT company_name, report_month,
+        clients_purchased,
+        product_used_total AS used_total,
         CASE
             WHEN clients_purchased <= 0 THEN NULL
             WHEN clients_purchased IN (999, 99999) THEN NULL
@@ -1383,13 +1416,8 @@ def product_utilization_sql(
         range_end = last_completed_month_end_sql()
     avg_months = completed_rolling_months(3) if experimental else rolling_months(3)
     avg_months_sql = ", ".join(f"'{y:04d}-{m:02d}'" for y, m in avg_months)
-    avg_expr = (
-        f'ROUND(AVG(CASE WHEN report_month IN ({avg_months_sql}) THEN util_pct END), 1)'
-    )
-    pivot_cols = ", ".join([
-        f"MAX(CASE WHEN report_month = '{y:04d}-{m:02d}' THEN util_pct END) AS \"{month_column_label(y, m)}\""
-        for y, m in months
-    ])
+    avg_expr = utilization_avg_column_sql(avg_months_sql)
+    pivot_cols = utilization_pivot_columns(months)
     order_by = '"Avg (Last 3M)" DESC' if portfolio else "company_name ASC"
     company_filter = utilization_company_filter(portfolio, experimental=experimental)
 
@@ -1481,6 +1509,8 @@ AggregatedByCompany AS (
 ),
 FinalData AS (
     SELECT company_name, report_month,
+        clients_purchased,
+        (product_used_total + product_exceeded_total) AS used_total,
         CASE
             WHEN clients_purchased <= 0 THEN NULL
             WHEN clients_purchased IN (999, 99999) THEN NULL
@@ -1554,6 +1584,8 @@ AggregatedByCompany AS (
 ),
 FinalData AS (
     SELECT abc.company_name, abc.report_month,
+        pbc.clients_purchased,
+        (abc.product_used_total + abc.product_exceeded_total) AS used_total,
         CASE
             WHEN pbc.clients_purchased <= 0 THEN NULL
             WHEN pbc.clients_purchased IN (999, 99999) THEN NULL
@@ -1610,18 +1642,15 @@ def product_utilization_table_panel(
         },
         "fieldConfig": {
             "defaults": {
-                "color": {"mode": "thresholds"},
+                "color": {"mode": "fixed", "fixedColor": "text"},
                 "custom": {
                     "align": "center",
-                    "cellOptions": {"type": "color-background", "applyToRow": False, "wrapText": True},
+                    "cellOptions": {"type": "auto", "applyToRow": False, "wrapText": True},
                     "inspect": False,
                     "filterable": False,
-                    "minWidth": 80,
+                    "minWidth": 95,
                 },
-                "decimals": 1,
                 "mappings": [],
-                "thresholds": SM_UTIL_THRESHOLDS,
-                "unit": "percent",
             },
             "overrides": [
                 {
@@ -1634,10 +1663,11 @@ def product_utilization_table_panel(
                     ],
                 },
                 {
-                    "matcher": {"id": "byName", "options": "Avg (Last 3M)"},
+                    "matcher": {"id": "byRegexp", "options": "/^(Avg \\(Last 3M\\)|[A-Z][a-z]{2}-\\d{2})$/"},
                     "properties": [
-                        {"id": "custom.width", "value": 110},
-                        {"id": "custom.cellOptions", "value": {"mode": "gradient", "type": "color-background"}},
+                        {"id": "custom.width", "value": 115},
+                        {"id": "custom.cellOptions", "value": {"type": "auto", "wrapText": True}},
+                        {"id": "unit", "value": "string"},
                     ],
                 },
             ],

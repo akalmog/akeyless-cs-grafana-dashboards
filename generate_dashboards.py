@@ -1347,24 +1347,85 @@ def utilization_counts_string_mappings():
     ]
 
 
-def utilization_month_counts_field_overrides():
-    count_cell_props = [
-        {"id": "custom.width", "value": 80},
-        {"id": "custom.minWidth", "value": 72},
-        {"id": "unit", "value": "string"},
-        {"id": "mappings", "value": utilization_counts_string_mappings()},
-        {
-            "id": "custom.cellOptions",
-            "value": {"mode": "gradient", "type": "color-background", "wrapText": False},
-        },
-    ]
-    return [
-        {"matcher": {"id": "byName", "options": "Avg (Last 3M)"}, "properties": [
-            *count_cell_props,
+def utilization_customer_field_override():
+    return {
+        "matcher": {"id": "byName", "options": "Customer"},
+        "properties": [
+            {"id": "custom.cellOptions", "value": {"type": "auto", "wrapText": True}},
+            {"id": "custom.width", "value": 200},
+            {"id": "unit", "value": "string"},
+            {"id": "color", "value": {"mode": "fixed", "fixedColor": "text"}},
+            {"id": "mappings", "value": []},
+        ],
+    }
+
+
+def utilization_avg_field_override():
+    return {
+        "matcher": {"id": "byName", "options": "Avg (Last 3M)"},
+        "properties": [
             {"id": "custom.width", "value": 110},
-        ]},
-        {"matcher": {"id": "byRegexp", "options": "/^[A-Z][a-z]{2}-\\d{2}$/"}, "properties": count_cell_props},
-    ]
+            {"id": "custom.cellOptions", "value": {"mode": "gradient", "type": "color-background"}},
+        ],
+    }
+
+
+def utilization_pct_heatmap_field_config():
+    """Field config for numeric utilization % heatmap (matches Grafana 11.1 panel JSON)."""
+    return {
+        "defaults": {
+            "color": {"mode": "thresholds"},
+            "custom": {
+                "align": "center",
+                "cellOptions": {"type": "color-background", "applyToRow": False, "wrapText": True},
+                "inspect": False,
+                "filterable": False,
+                "minWidth": 80,
+            },
+            "decimals": 1,
+            "mappings": [],
+            "thresholds": SM_UTIL_THRESHOLDS,
+            "unit": "percent",
+        },
+        "overrides": [
+            utilization_customer_field_override(),
+            utilization_avg_field_override(),
+        ],
+    }
+
+
+def utilization_counts_heatmap_field_config():
+    """Used/Threshold table: same graphic cells as % heatmap, display (used/threshold) via mappings."""
+    return {
+        "defaults": {
+            "custom": {
+                "align": "center",
+                "cellOptions": {"type": "color-background", "applyToRow": False, "wrapText": True},
+                "inspect": False,
+                "filterable": False,
+                "minWidth": 80,
+            },
+            "mappings": utilization_counts_string_mappings(),
+        },
+        "overrides": [
+            utilization_customer_field_override(),
+            {
+                "matcher": {"id": "byName", "options": "Avg (Last 3M)"},
+                "properties": [
+                    {"id": "custom.width", "value": 110},
+                    {"id": "mappings", "value": utilization_counts_string_mappings()},
+                    {"id": "custom.cellOptions", "value": {"mode": "gradient", "type": "color-background"}},
+                ],
+            },
+            {
+                "matcher": {"id": "byRegexp", "options": "/^[A-Z][a-z]{2}-\\d{2}$/"},
+                "properties": [
+                    {"id": "mappings", "value": utilization_counts_string_mappings()},
+                    {"id": "custom.cellOptions", "value": {"type": "color-background", "applyToRow": False, "wrapText": True}},
+                ],
+            },
+        ],
+    }
 
 
 CLM_DAILY_CERTS_EXPR = """CASE
@@ -1694,37 +1755,7 @@ def product_utilization_table_panel(
                 "footer": {"countRows": False, "fields": "", "reducer": ["sum"], "show": False},
                 "showHeader": True,
             },
-            "fieldConfig": {
-                "defaults": {
-                    "color": {"mode": "fixed", "fixedColor": "text"},
-                    "custom": {
-                        "align": "center",
-                        "cellOptions": {
-                            "type": "color-background",
-                            "mode": "gradient",
-                            "applyToRow": False,
-                            "wrapText": False,
-                        },
-                        "inspect": False,
-                        "filterable": False,
-                        "minWidth": 80,
-                    },
-                    "mappings": utilization_counts_string_mappings(),
-                },
-                "overrides": [
-                    {
-                        "matcher": {"id": "byName", "options": "Customer"},
-                        "properties": [
-                            {"id": "custom.cellOptions", "value": {"type": "auto", "wrapText": False}},
-                            {"id": "custom.width", "value": 200},
-                            {"id": "unit", "value": "string"},
-                            {"id": "color", "value": {"mode": "fixed", "fixedColor": "text"}},
-                            {"id": "mappings", "value": []},
-                        ],
-                    },
-                    *utilization_month_counts_field_overrides(),
-                ],
-            },
+            "fieldConfig": utilization_counts_heatmap_field_config(),
             "datasource": DS,
         }
     return {
@@ -1739,40 +1770,7 @@ def product_utilization_table_panel(
             "showHeader": True,
             "sortBy": [{"desc": True, "displayName": "Avg (Last 3M)"}],
         },
-        "fieldConfig": {
-            "defaults": {
-                "color": {"mode": "thresholds"},
-                "custom": {
-                    "align": "center",
-                    "cellOptions": {"type": "color-background", "applyToRow": False, "wrapText": True},
-                    "inspect": False,
-                    "filterable": False,
-                    "minWidth": 80,
-                },
-                "decimals": 1,
-                "mappings": [],
-                "thresholds": SM_UTIL_THRESHOLDS,
-                "unit": "percent",
-            },
-            "overrides": [
-                {
-                    "matcher": {"id": "byName", "options": "Customer"},
-                    "properties": [
-                        {"id": "custom.cellOptions", "value": {"type": "auto", "wrapText": True}},
-                        {"id": "custom.width", "value": 200},
-                        {"id": "unit", "value": "string"},
-                        {"id": "color", "value": {"mode": "fixed", "fixedColor": "text"}},
-                    ],
-                },
-                {
-                    "matcher": {"id": "byName", "options": "Avg (Last 3M)"},
-                    "properties": [
-                        {"id": "custom.width", "value": 110},
-                        {"id": "custom.cellOptions", "value": {"mode": "gradient", "type": "color-background"}},
-                    ],
-                },
-            ],
-        },
+        "fieldConfig": utilization_pct_heatmap_field_config(),
         "datasource": DS,
     }
 

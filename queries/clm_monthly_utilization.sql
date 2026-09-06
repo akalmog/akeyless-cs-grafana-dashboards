@@ -56,6 +56,7 @@ FinalData AS (
 SELECT
     company_name AS "Customer",
     {avg_expr} AS "Avg (Last 3M)",
+    {avg_counts_expr} AS "·Avg (Last 3M)",
     {pivot_cols}
 FROM FinalData
 GROUP BY company_name

@@ -592,14 +592,117 @@ def sql_target(raw_sql, query_type="table", ref="A", time_columns=None):
 
 
 def row_panel(title, y, collapsed=False):
+    if collapsed:
+        raise ValueError(
+            f"row_panel('{title}'): collapsed=true requires nested row.panels. "
+            "Use nest_dashboard_rows() or keep collapsed=false with flat siblings."
+        )
     return {
         "type": "row",
         "title": title,
         "gridPos": {"h": 1, "w": 24, "x": 0, "y": y},
         "id": next_id(),
-        "collapsed": collapsed,
+        "collapsed": False,
         "panels": [],
     }
+
+
+def flatten_dashboard_rows(panels):
+    """Normalize to Grafana's expanded-row JSON: collapsed=false, children as siblings.
+
+    Grafana stores collapsed rows with nested row.panels and expanded rows with flat
+    siblings. Mixing collapsed=true and flat siblings causes false collapse (header
+    shows 0 panels while children remain visible).
+    """
+    flattened = []
+    i = 0
+    while i < len(panels):
+        panel = panels[i]
+        if panel.get("type") != "row":
+            flattened.append(panel)
+            i += 1
+            continue
+
+        row = deepcopy(panel)
+        nested = list(row.get("panels") or [])
+        row["collapsed"] = False
+        row["panels"] = []
+        flattened.append(row)
+        i += 1
+
+        flat_children = []
+        while i < len(panels) and panels[i].get("type") != "row":
+            flat_children.append(panels[i])
+            i += 1
+
+        if flat_children:
+            flattened.extend(flat_children)
+        elif nested:
+            flattened.extend(nested)
+
+    return flattened
+
+
+def nest_dashboard_rows(panels):
+    """Normalize to Grafana's collapsed-row JSON: collapsed=true, children in row.panels."""
+    nested = []
+    i = 0
+    while i < len(panels):
+        panel = panels[i]
+        if panel.get("type") != "row":
+            nested.append(panel)
+            i += 1
+            continue
+
+        row = deepcopy(panel)
+        row_y = row["gridPos"]["y"]
+        children = []
+        i += 1
+        while i < len(panels) and panels[i].get("type") != "row":
+            child = deepcopy(panels[i])
+            children.append(child)
+            i += 1
+
+        row["collapsed"] = True
+        row["panels"] = children
+        nested.append(row)
+
+    return nested
+
+
+def validate_grafana_row_layout(panels, dashboard_name="dashboard"):
+    """Fail generation when row collapse layout would break in Grafana."""
+    issues = []
+    i = 0
+    while i < len(panels):
+        panel = panels[i]
+        if panel.get("type") != "row":
+            i += 1
+            continue
+
+        title = panel.get("title", "")
+        collapsed = bool(panel.get("collapsed"))
+        nested = panel.get("panels") or []
+
+        flat_count = 0
+        j = i + 1
+        while j < len(panels) and panels[j].get("type") != "row":
+            flat_count += 1
+            j += 1
+
+        if collapsed and flat_count > 0:
+            issues.append(
+                f"{dashboard_name}: row '{title}' has collapsed=true with {flat_count} "
+                "flat sibling panels (false collapse in Grafana)."
+            )
+        if not collapsed and nested:
+            issues.append(
+                f"{dashboard_name}: row '{title}' has collapsed=false with {len(nested)} "
+                "nested panels (Grafana hides them until the row is collapsed)."
+            )
+        i = j if j > i + 1 else i + 1
+
+    return issues
 
 
 def stat_panel(title, sql, x, y, w=4, h=4, unit=None, thresholds=None, color_mode="value"):
@@ -3140,6 +3243,8 @@ def build_dashboard(title, uid, portfolio=False, multi_account=False, experiment
         risk, y = risk_section(y, group_by_company=multi_account, experimental=experimental)
         panels.extend(risk)
 
+    panels = flatten_dashboard_rows(panels)
+
     if multi_account:
         templating = templating_multi_account(experimental=experimental)
         tags = ["akeyless", "customer-success", "usage", "technical", "multi-account"]
@@ -3173,7 +3278,7 @@ def build_dashboard(title, uid, portfolio=False, multi_account=False, experiment
         "timezone": "browser",
         "title": title,
         "uid": uid,
-        "version": 25,
+        "version": 26,
         "weekStart": "",
     }
 
@@ -3315,6 +3420,18 @@ def main():
             print(f"  - {issue}")
         raise SystemExit(1)
     print("Dashboard alignment check passed (single-account vs multi-account).")
+
+    row_layout_issues = []
+    for path, dashboard in paths.items():
+        row_layout_issues.extend(
+            validate_grafana_row_layout(dashboard["panels"], dashboard_name=path.name)
+        )
+    if row_layout_issues:
+        print("\nGrafana row layout check FAILED:")
+        for issue in row_layout_issues:
+            print(f"  - {issue}")
+        raise SystemExit(1)
+    print("Grafana row layout check passed (expanded rows use flat siblings).")
 
 
 if __name__ == "__main__":

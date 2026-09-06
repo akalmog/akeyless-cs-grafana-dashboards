@@ -1296,11 +1296,38 @@ def month_column_label(year, month):
 
 
 def utilization_display_sql(util_pct_expr, used_expr, purchased_expr):
-    """Format utilization as '176.0% (176/100)' for table cells."""
+    """Format utilization as '176.0% (176/100)' for table cells (non-breaking)."""
     return f"""CASE
         WHEN ({util_pct_expr}) IS NULL THEN NULL
-        ELSE printf('%.1f%% (%d/%d)', ({util_pct_expr}), ({used_expr}), ({purchased_expr}))
+        ELSE printf('%.1f%%\u00a0(%d/%d)', ({util_pct_expr}), ({used_expr}), ({purchased_expr}))
     END"""
+
+
+def utilization_string_threshold_mappings():
+    """Color utilization strings by leading percentage (matches SM_UTIL_THRESHOLDS)."""
+    return [
+        {
+            "type": "regex",
+            "options": {
+                "pattern": r"^([7-9]\d|[1-9]\d{2,})(\.\d+)?%",
+                "result": {"color": "super-light-green", "index": 0},
+            },
+        },
+        {
+            "type": "regex",
+            "options": {
+                "pattern": r"^([3-6]\d)(\.\d+)?%",
+                "result": {"color": "super-light-blue", "index": 1},
+            },
+        },
+        {
+            "type": "regex",
+            "options": {
+                "pattern": r"^(\d{1,2})(\.\d+)?%",
+                "result": {"color": "super-light-red", "index": 2},
+            },
+        },
+    ]
 
 
 def utilization_pivot_columns(months, util_pct="util_pct", used_total="used_total", purchased="clients_purchased"):
@@ -1319,7 +1346,7 @@ def utilization_avg_column_sql(avg_months_sql, util_pct="util_pct", used_total="
     avg_used = f"AVG(CASE WHEN report_month IN ({avg_months_sql}) THEN {used_total} END)"
     return f"""CASE
         WHEN {avg_util} IS NULL THEN NULL
-        ELSE printf('%.1f%% (%d/%d)',
+        ELSE printf('%.1f%%\u00a0(%d/%d)',
             ROUND({avg_util}, 1),
             CAST(ROUND({avg_used}) AS INTEGER),
             MAX({purchased}))
@@ -1638,17 +1665,16 @@ def product_utilization_table_panel(
             "cellHeight": "sm",
             "footer": {"countRows": False, "fields": "", "reducer": ["sum"], "show": False},
             "showHeader": True,
-            "sortBy": [{"desc": True, "displayName": "Avg (Last 3M)"}],
         },
         "fieldConfig": {
             "defaults": {
                 "color": {"mode": "fixed", "fixedColor": "text"},
                 "custom": {
                     "align": "center",
-                    "cellOptions": {"type": "auto", "applyToRow": False, "wrapText": True},
+                    "cellOptions": {"type": "auto", "applyToRow": False, "wrapText": False},
                     "inspect": False,
                     "filterable": False,
-                    "minWidth": 95,
+                    "minWidth": 80,
                 },
                 "mappings": [],
             },
@@ -1663,11 +1689,29 @@ def product_utilization_table_panel(
                     ],
                 },
                 {
-                    "matcher": {"id": "byRegexp", "options": "/^(Avg \\(Last 3M\\)|[A-Z][a-z]{2}-\\d{2})$/"},
+                    "matcher": {"id": "byName", "options": "Avg (Last 3M)"},
                     "properties": [
-                        {"id": "custom.width", "value": 115},
-                        {"id": "custom.cellOptions", "value": {"type": "auto", "wrapText": True}},
+                        {"id": "custom.width", "value": 130},
+                        {"id": "custom.minWidth", "value": 130},
+                        {
+                            "id": "custom.cellOptions",
+                            "value": {"mode": "gradient", "type": "color-background", "wrapText": False},
+                        },
                         {"id": "unit", "value": "string"},
+                        {"id": "mappings", "value": utilization_string_threshold_mappings()},
+                    ],
+                },
+                {
+                    "matcher": {"id": "byRegexp", "options": "/^[A-Z][a-z]{2}-\\d{2}$/"},
+                    "properties": [
+                        {"id": "custom.width", "value": 130},
+                        {"id": "custom.minWidth", "value": 130},
+                        {
+                            "id": "custom.cellOptions",
+                            "value": {"mode": "basic", "type": "color-background", "wrapText": False},
+                        },
+                        {"id": "unit", "value": "string"},
+                        {"id": "mappings", "value": utilization_string_threshold_mappings()},
                     ],
                 },
             ],

@@ -1295,6 +1295,39 @@ def month_column_label(year, month):
     return date(year, month, 1).strftime("%b-%y")
 
 
+def utilization_pivot_counts_columns(months, used_total="used_total", purchased="clients_purchased"):
+    return ", ".join([
+        (
+            f"MAX(CASE WHEN report_month = '{y:04d}-{m:02d}' THEN "
+            f'printf("(%d/%d)", {used_total}, {purchased}) END) '
+            f'AS "{month_column_label(y, m)}"'
+        )
+        for y, m in months
+    ])
+
+
+def utilization_avg_counts_sql(avg_months_sql, used_total="used_total", purchased="clients_purchased"):
+    avg_used = f"AVG(CASE WHEN report_month IN ({avg_months_sql}) THEN {used_total} END)"
+    return f"""CASE
+        WHEN {avg_used} IS NULL THEN NULL
+        ELSE printf('(%d/%d)', CAST(ROUND({avg_used}) AS INTEGER), MAX({purchased}))
+    END"""
+
+
+def utilization_month_counts_field_overrides():
+    cell_props = [
+        {"id": "custom.width", "value": 80},
+        {"id": "custom.minWidth", "value": 72},
+        {"id": "unit", "value": "string"},
+        {"id": "color", "value": {"mode": "fixed", "fixedColor": "text"}},
+        {"id": "custom.cellOptions", "value": {"type": "auto", "wrapText": False}},
+    ]
+    return [
+        {"matcher": {"id": "byName", "options": "Avg (Last 3M)"}, "properties": cell_props},
+        {"matcher": {"id": "byRegexp", "options": "/^[A-Z][a-z]{2}-\\d{2}$/"}, "properties": cell_props},
+    ]
+
+
 CLM_DAILY_CERTS_EXPR = """CASE
     WHEN (COALESCE(r.ca_self_signed, 0) - COALESCE(r.risk_expired, 0)) < 0 THEN 0
     ELSE (COALESCE(r.ca_self_signed, 0) - COALESCE(r.risk_expired, 0))
@@ -1302,7 +1335,7 @@ END"""
 
 
 def portfolio_clm_utilization_sql(
-    purchased_col, company_filter, range_start, range_end, avg_expr, pivot_cols, order_by
+    purchased_col, company_filter, range_start, range_end, avg_expr, pivot_cols, order_by, display="pct"
 ):
     """Multi-account CLM monthly heatmap — certificate_analysis reports (not ObjectsReport)."""
     return f"""
@@ -1349,6 +1382,8 @@ AggregatedByCompany AS (
 ),
 FinalData AS (
     SELECT company_name, report_month,
+        clients_purchased,
+        product_used_total AS used_total,
         CASE
             WHEN clients_purchased <= 0 THEN NULL
             WHEN clients_purchased IN (999, 99999) THEN NULL
@@ -1362,7 +1397,7 @@ SELECT
     {pivot_cols}
 FROM FinalData
 GROUP BY company_name
-HAVING COUNT(util_pct) > 0
+HAVING COUNT({"used_total" if display == "counts" else "util_pct"}) > 0
 ORDER BY {order_by}
 """
 
@@ -1374,6 +1409,7 @@ def product_utilization_sql(
     months_count=24,
     experimental=True,
     include_current_month=False,
+    display="pct",
 ):
     if include_current_month:
         months = rolling_months(months_count)
@@ -1383,13 +1419,17 @@ def product_utilization_sql(
         range_end = last_completed_month_end_sql()
     avg_months = completed_rolling_months(3) if experimental else rolling_months(3)
     avg_months_sql = ", ".join(f"'{y:04d}-{m:02d}'" for y, m in avg_months)
-    avg_expr = (
-        f'ROUND(AVG(CASE WHEN report_month IN ({avg_months_sql}) THEN util_pct END), 1)'
-    )
-    pivot_cols = ", ".join([
-        f"MAX(CASE WHEN report_month = '{y:04d}-{m:02d}' THEN util_pct END) AS \"{month_column_label(y, m)}\""
-        for y, m in months
-    ])
+    if display == "counts":
+        avg_expr = utilization_avg_counts_sql(avg_months_sql)
+        pivot_cols = utilization_pivot_counts_columns(months)
+    else:
+        avg_expr = (
+            f'ROUND(AVG(CASE WHEN report_month IN ({avg_months_sql}) THEN util_pct END), 1)'
+        )
+        pivot_cols = ", ".join([
+            f"MAX(CASE WHEN report_month = '{y:04d}-{m:02d}' THEN util_pct END) AS \"{month_column_label(y, m)}\""
+            for y, m in months
+        ])
     order_by = '"Avg (Last 3M)" DESC' if portfolio else "company_name ASC"
     company_filter = utilization_company_filter(portfolio, experimental=experimental)
 
@@ -1424,7 +1464,7 @@ def product_utilization_sql(
 
     if portfolio and product == "ca":
         return portfolio_clm_utilization_sql(
-            purchased_col, company_filter, range_start, range_end, avg_expr, pivot_cols, order_by
+            purchased_col, company_filter, range_start, range_end, avg_expr, pivot_cols, order_by, display
         )
 
     if portfolio:
@@ -1481,6 +1521,8 @@ AggregatedByCompany AS (
 ),
 FinalData AS (
     SELECT company_name, report_month,
+        clients_purchased,
+        (product_used_total + product_exceeded_total) AS used_total,
         CASE
             WHEN clients_purchased <= 0 THEN NULL
             WHEN clients_purchased IN (999, 99999) THEN NULL
@@ -1497,7 +1539,7 @@ SELECT
     {pivot_cols}
 FROM FinalData
 GROUP BY company_name
-HAVING COUNT(util_pct) > 0
+HAVING COUNT({"used_total" if display == "counts" else "util_pct"}) > 0
 ORDER BY {order_by}
 """
 
@@ -1554,6 +1596,8 @@ AggregatedByCompany AS (
 ),
 FinalData AS (
     SELECT abc.company_name, abc.report_month,
+        pbc.clients_purchased,
+        (abc.product_used_total + abc.product_exceeded_total) AS used_total,
         CASE
             WHEN pbc.clients_purchased <= 0 THEN NULL
             WHEN pbc.clients_purchased IN (999, 99999) THEN NULL
@@ -1587,6 +1631,7 @@ def product_utilization_table_panel(
     experimental=True,
     months_count=24,
     include_current_month=False,
+    display="pct",
 ):
     sql = product_utilization_sql(
         product,
@@ -1595,7 +1640,48 @@ def product_utilization_table_panel(
         experimental=experimental,
         months_count=months_count,
         include_current_month=include_current_month,
+        display=display,
     )
+    if display == "counts":
+        return {
+            "type": "table",
+            "title": title,
+            "description": "Monthly used clients vs purchased threshold (used/threshold). Includes exceeded clients in the used count.",
+            "gridPos": {"h": h, "w": w, "x": x, "y": y},
+            "id": next_id(),
+            "targets": [sql_target(sql, query_type="table")],
+            "options": {
+                "cellHeight": "sm",
+                "footer": {"countRows": False, "fields": "", "reducer": ["sum"], "show": False},
+                "showHeader": True,
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "color": {"mode": "fixed", "fixedColor": "text"},
+                    "custom": {
+                        "align": "center",
+                        "cellOptions": {"type": "auto", "applyToRow": False, "wrapText": False},
+                        "inspect": False,
+                        "filterable": False,
+                        "minWidth": 72,
+                    },
+                    "mappings": [],
+                },
+                "overrides": [
+                    {
+                        "matcher": {"id": "byName", "options": "Customer"},
+                        "properties": [
+                            {"id": "custom.cellOptions", "value": {"type": "auto", "wrapText": False}},
+                            {"id": "custom.width", "value": 200},
+                            {"id": "unit", "value": "string"},
+                            {"id": "color", "value": {"mode": "fixed", "fixedColor": "text"}},
+                        ],
+                    },
+                    *utilization_month_counts_field_overrides(),
+                ],
+            },
+            "datasource": DS,
+        }
     return {
         "type": "table",
         "title": title,
@@ -2560,6 +2646,30 @@ def product_section(label, product, purchased_col, y, portfolio=False, multi_acc
             include_current_month=True,
         )
     )
+    y += util_height
+
+    counts_title = (
+        f"{label} Monthly Used / Threshold by Customer"
+        if use_portfolio_sql
+        else f"{label} Monthly Used / Threshold"
+    )
+    panels.append(row_panel(counts_title, y))
+    y += 1
+    panels.append(
+        product_utilization_table_panel(
+            counts_title,
+            product,
+            purchased_col,
+            portfolio=use_portfolio_sql,
+            x=0,
+            y=y,
+            h=util_height,
+            experimental=experimental,
+            months_count=util_months,
+            include_current_month=True,
+            display="counts",
+        )
+    )
     return panels, y + util_height
 
 
@@ -3332,8 +3442,11 @@ def _find_panel_by_title(panels, title):
     return None
 
 
-def _find_utilization_panel(panels, product_prefix):
-    needle = f"{product_prefix} Monthly Utilization"
+def _find_utilization_panel(panels, product_prefix, display="pct"):
+    if display == "counts":
+        needle = f"{product_prefix} Monthly Used / Threshold"
+    else:
+        needle = f"{product_prefix} Monthly Utilization"
     matches = [
         p for p in panels
         if needle in p.get("title", "") and p.get("type") == "table"
@@ -3365,18 +3478,20 @@ def validate_single_multi_alignment(single_dashboard, multi_dashboard):
             )
 
     for prefix in PRODUCT_UTILIZATION_PREFIXES:
-        single_panel = _find_utilization_panel(single_panels, prefix)
-        multi_panel = _find_utilization_panel(multi_panels, prefix)
-        if single_panel is None or multi_panel is None:
-            issues.append(f"Missing {prefix} Monthly Utilization panel on one dashboard")
-            continue
-        single_norm = _normalize_panel_for_compare(single_panel)
-        multi_norm = _normalize_panel_for_compare(multi_panel)
-        if single_norm != multi_norm:
-            issues.append(
-                f"Display settings diverged for {prefix} Monthly Utilization. "
-                "Keep product_section() / product_utilization_table_panel() shared."
-            )
+        for display in ("pct", "counts"):
+            single_panel = _find_utilization_panel(single_panels, prefix, display=display)
+            multi_panel = _find_utilization_panel(multi_panels, prefix, display=display)
+            label = "Used / Threshold" if display == "counts" else "Utilization"
+            if single_panel is None or multi_panel is None:
+                issues.append(f"Missing {prefix} Monthly {label} panel on one dashboard")
+                continue
+            single_norm = _normalize_panel_for_compare(single_panel)
+            multi_norm = _normalize_panel_for_compare(multi_panel)
+            if single_norm != multi_norm:
+                issues.append(
+                    f"Display settings diverged for {prefix} Monthly {label}. "
+                    "Keep product_section() / product_utilization_table_panel() shared."
+                )
 
     return issues
 

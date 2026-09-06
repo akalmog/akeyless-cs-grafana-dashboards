@@ -19,7 +19,7 @@
         "y": 0
       },
       "id": 1,
-      "collapsed": true,
+      "collapsed": false,
       "panels": []
     },
     {
@@ -265,7 +265,7 @@
         "y": 25
       },
       "id": 4,
-      "collapsed": true,
+      "collapsed": false,
       "panels": []
     },
     {
@@ -511,7 +511,7 @@
         "y": 50
       },
       "id": 7,
-      "collapsed": true,
+      "collapsed": false,
       "panels": []
     },
     {
@@ -757,7 +757,7 @@
         "y": 75
       },
       "id": 10,
-      "collapsed": true,
+      "collapsed": false,
       "panels": []
     },
     {
@@ -1003,7 +1003,7 @@
         "y": 100
       },
       "id": 13,
-      "collapsed": true,
+      "collapsed": false,
       "panels": []
     },
     {
@@ -1068,7 +1068,7 @@
         "y": 111
       },
       "id": 15,
-      "collapsed": true,
+      "collapsed": false,
       "panels": []
     },
     {
@@ -1401,7 +1401,7 @@
         "y": 138
       },
       "id": 19,
-      "collapsed": true,
+      "collapsed": false,
       "panels": []
     },
     {
@@ -2002,7 +2002,7 @@
         "y": 155
       },
       "id": 23,
-      "collapsed": true,
+      "collapsed": false,
       "panels": []
     },
     {

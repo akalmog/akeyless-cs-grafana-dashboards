@@ -80,7 +80,6 @@ python3 generate_dashboards.py
 
 ### Performance
 
-- **Collapsed sections by default** — all dashboard rows start collapsed; Grafana runs panel SQL only when a section is expanded (Account Summary, SM, CLM, SRA, PWM, Objects, Trends, Best Practice, Risk).
 - **Utilization pivot columns** — heatmap tables generate `UTILIZATION_PIVOT_MONTHS` (12) month columns, matching the default Time Range. The SQL data window still follows `${period_months}` via `range_start`.
 
 

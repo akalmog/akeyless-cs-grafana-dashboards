@@ -591,7 +591,7 @@ def sql_target(raw_sql, query_type="table", ref="A", time_columns=None):
     }
 
 
-def row_panel(title, y, collapsed=True):
+def row_panel(title, y, collapsed=False):
     return {
         "type": "row",
         "title": title,
@@ -3098,13 +3098,9 @@ def build_dashboard(title, uid, portfolio=False, multi_account=False, experiment
     use_portfolio_sql = portfolio or multi_account
 
     if not portfolio and not multi_account and experimental:
-        panels.append(row_panel("Account Summary", y))
-        y += 1
         header_panels, y = original_account_header_panels(y)
         panels.extend(header_panels)
     elif portfolio and not multi_account:
-        panels.append(row_panel("Account Details", y))
-        y += 1
         detail_panels, y = account_details_panels(y, portfolio=True, experimental=experimental)
         panels.extend(detail_panels)
 

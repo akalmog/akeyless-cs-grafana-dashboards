@@ -1296,35 +1296,35 @@ def month_column_label(year, month):
 
 
 def utilization_display_sql(util_pct_expr, used_expr, purchased_expr):
-    """Format utilization as '176.0% (176/100)' for table cells (non-breaking)."""
+    """Format utilization as two lines: '176.0%' then '(176/100)' in the same cell."""
     return f"""CASE
         WHEN ({util_pct_expr}) IS NULL THEN NULL
-        ELSE printf('%.1f%%\u00a0(%d/%d)', ({util_pct_expr}), ({used_expr}), ({purchased_expr}))
+        ELSE printf('%.1f%%\n(%d/%d)', ({util_pct_expr}), ({used_expr}), ({purchased_expr}))
     END"""
 
 
 def utilization_string_threshold_mappings():
-    """Color utilization strings by leading percentage (matches SM_UTIL_THRESHOLDS)."""
+    """Color utilization strings by leading percentage (matches UTIL_THRESHOLDS)."""
     return [
         {
             "type": "regex",
             "options": {
                 "pattern": r"^([7-9]\d|[1-9]\d{2,})(\.\d+)?%",
-                "result": {"color": "super-light-green", "index": 0},
+                "result": {"color": "green", "index": 0},
             },
         },
         {
             "type": "regex",
             "options": {
                 "pattern": r"^([3-6]\d)(\.\d+)?%",
-                "result": {"color": "super-light-blue", "index": 1},
+                "result": {"color": "#5794F2", "index": 1},
             },
         },
         {
             "type": "regex",
             "options": {
                 "pattern": r"^(\d{1,2})(\.\d+)?%",
-                "result": {"color": "super-light-red", "index": 2},
+                "result": {"color": "red", "index": 2},
             },
         },
     ]
@@ -1341,12 +1341,46 @@ def utilization_pivot_columns(months, util_pct="util_pct", used_total="used_tota
     ])
 
 
+TABLE_UTIL_THRESHOLDS = {
+    "mode": "absolute",
+    "steps": [
+        {"color": "red", "value": None},
+        {"color": "#5794F2", "value": 30},
+        {"color": "green", "value": 70},
+    ],
+}
+
+
+def utilization_month_field_overrides():
+    """Colored backgrounds on month/avg cells (string values colored via regex mappings)."""
+    cell_props = [
+        {"id": "custom.width", "value": 88},
+        {"id": "custom.minWidth", "value": 88},
+        {
+            "id": "custom.cellOptions",
+            "value": {"mode": "gradient", "type": "color-background", "wrapText": True},
+        },
+        {"id": "unit", "value": "string"},
+        {"id": "mappings", "value": utilization_string_threshold_mappings()},
+    ]
+    return [
+        {
+            "matcher": {"id": "byName", "options": "Avg (Last 3M)"},
+            "properties": cell_props,
+        },
+        {
+            "matcher": {"id": "byRegexp", "options": "/^[A-Z][a-z]{2}-\\d{2}$/"},
+            "properties": cell_props,
+        },
+    ]
+
+
 def utilization_avg_column_sql(avg_months_sql, util_pct="util_pct", used_total="used_total", purchased="clients_purchased"):
     avg_util = f"AVG(CASE WHEN report_month IN ({avg_months_sql}) THEN {util_pct} END)"
     avg_used = f"AVG(CASE WHEN report_month IN ({avg_months_sql}) THEN {used_total} END)"
     return f"""CASE
         WHEN {avg_util} IS NULL THEN NULL
-        ELSE printf('%.1f%%\u00a0(%d/%d)',
+        ELSE printf('%.1f%%\n(%d/%d)',
             ROUND({avg_util}, 1),
             CAST(ROUND({avg_used}) AS INTEGER),
             MAX({purchased}))
@@ -1662,7 +1696,7 @@ def product_utilization_table_panel(
         "id": next_id(),
         "targets": [sql_target(sql, query_type="table")],
         "options": {
-            "cellHeight": "sm",
+            "cellHeight": "md",
             "footer": {"countRows": False, "fields": "", "reducer": ["sum"], "show": False},
             "showHeader": True,
         },
@@ -1671,7 +1705,7 @@ def product_utilization_table_panel(
                 "color": {"mode": "fixed", "fixedColor": "text"},
                 "custom": {
                     "align": "center",
-                    "cellOptions": {"type": "auto", "applyToRow": False, "wrapText": False},
+                    "cellOptions": {"type": "auto", "applyToRow": False, "wrapText": True},
                     "inspect": False,
                     "filterable": False,
                     "minWidth": 80,
@@ -1688,32 +1722,7 @@ def product_utilization_table_panel(
                         {"id": "color", "value": {"mode": "fixed", "fixedColor": "text"}},
                     ],
                 },
-                {
-                    "matcher": {"id": "byName", "options": "Avg (Last 3M)"},
-                    "properties": [
-                        {"id": "custom.width", "value": 130},
-                        {"id": "custom.minWidth", "value": 130},
-                        {
-                            "id": "custom.cellOptions",
-                            "value": {"mode": "gradient", "type": "color-background", "wrapText": False},
-                        },
-                        {"id": "unit", "value": "string"},
-                        {"id": "mappings", "value": utilization_string_threshold_mappings()},
-                    ],
-                },
-                {
-                    "matcher": {"id": "byRegexp", "options": "/^[A-Z][a-z]{2}-\\d{2}$/"},
-                    "properties": [
-                        {"id": "custom.width", "value": 130},
-                        {"id": "custom.minWidth", "value": 130},
-                        {
-                            "id": "custom.cellOptions",
-                            "value": {"mode": "basic", "type": "color-background", "wrapText": False},
-                        },
-                        {"id": "unit", "value": "string"},
-                        {"id": "mappings", "value": utilization_string_threshold_mappings()},
-                    ],
-                },
+                *utilization_month_field_overrides(),
             ],
         },
         "datasource": DS,

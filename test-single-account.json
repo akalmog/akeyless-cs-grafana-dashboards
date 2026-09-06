@@ -727,23 +727,36 @@
       "description": "Average of monthly Utilization % across all months in the selected Time Range filter (not the same as Avg (Last 3M) in the table below)."
     },
     {
+      "type": "row",
+      "title": "SM Monthly Utilization %",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 9
+      },
+      "id": 14,
+      "collapsed": false,
+      "panels": []
+    },
+    {
       "type": "table",
       "title": "SM Monthly Utilization %",
       "gridPos": {
         "h": 16,
         "w": 24,
         "x": 0,
-        "y": 9
+        "y": 10
       },
-      "id": 14,
+      "id": 15,
       "targets": [
         {
           "datasource": {
             "type": "frser-sqlite-datasource",
             "uid": null
           },
-          "queryText": "WITH CompanyData AS (\n    SELECT DISTINCT c.name AS company_name, LOWER(c.account_id) AS account_key\n    FROM companies c\n    WHERE c.account_id IS NOT NULL AND c.account_id != '' AND name = '${company_name}' AND ('${account_id:raw}' IN ('All', '%', '$__all') OR account_id = '${account_id}')\n),\nPurchasedByCompany AS (\n    SELECT c.name AS company_name,\n        CAST(COALESCE(\n            (\n                SELECT c2.clients_sm\n                FROM companies c2\n                WHERE c2.name = c.name\n                  AND c2.account_id IS NOT NULL\n                  AND c2.account_id != ''\n                  AND CAST(COALESCE(c2.clients_sm, '0') AS INTEGER) NOT IN (999, 99999)\n                ORDER BY c2.account_id\n                LIMIT 1\n            ),\n            '0'\n        ) AS INTEGER) AS clients_purchased\n    FROM companies c\n    WHERE c.account_id IS NOT NULL AND c.account_id != '' AND name = '${company_name}' AND ('${account_id:raw}' IN ('All', '%', '$__all') OR account_id = '${account_id}')\n    GROUP BY c.name\n),\nDateRange AS (\n    SELECT CASE\n        WHEN '${period_months}' = 'Current Month' THEN strftime('%Y-%m-%d', 'now', 'start of month')\n        WHEN '${period_months}' = 'Last 3 Months' OR '${period_months}' LIKE '3 Months' THEN strftime('%Y-%m-%d', 'now', '-3 months')\n        WHEN '${period_months}' = 'Last 6 Months' THEN strftime('%Y-%m-%d', 'now', '-6 months')\n        WHEN '${period_months}' = 'Last 9 Months' THEN strftime('%Y-%m-%d', 'now', '-9 months')\n        WHEN '${period_months}' = 'Last 12 Months' OR '${period_months}' LIKE '12 Months' THEN strftime('%Y-%m-%d', 'now', '-12 months')\n        WHEN '${period_months}' = 'Last 24 Months' THEN strftime('%Y-%m-%d', 'now', '-24 months')\n        WHEN '${period_months}' = 'From Contract Start' THEN\n            COALESCE((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), strftime('%Y-%m-%d', 'now', '-12 months'))\n        WHEN '${period_months}' = 'From Contract Start Last 12 Months' THEN\n            CASE WHEN (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) IS NOT NULL AND (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) != '' THEN\n                CASE WHEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10))) > date('now')\n                    THEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)), '-1 year')\n                    ELSE date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)))\n                END\n            ELSE strftime('%Y-%m-%d', 'now', 'start of month', '-11 months')\n            END\n        ELSE strftime('%Y-%m-%d', 'now', '-12 months')\n    END AS range_start\n),\nOneReportPerAccountDate AS (\n    SELECT cd.account_key, date(r.report_date) AS report_date, MAX(r.id) AS report_id\n    FROM reports r\n    INNER JOIN CompanyData cd ON cd.account_key = LOWER(r.account_id)\n    WHERE r.report_type = 'ObjectsReport'\n    GROUP BY cd.account_key, date(r.report_date)\n),\nMonthlyLatest AS (\n    SELECT cd.company_name, cd.account_key,\n        strftime('%Y-%m', orad.report_date) AS report_month,\n        MAX(orad.report_date) AS latest_report_date\n    FROM CompanyData cd\n    INNER JOIN OneReportPerAccountDate orad ON orad.account_key = cd.account_key\n    WHERE date(orad.report_date) >= (SELECT range_start FROM DateRange)\n      AND date(orad.report_date) <= date(strftime('%Y-%m-%d', 'now'))\n    GROUP BY cd.company_name, cd.account_key, strftime('%Y-%m', orad.report_date)\n),\nLatestReportId AS (\n    SELECT ml.company_name, ml.account_key, ml.report_month,\n        MAX(orad.report_id) AS report_id\n    FROM MonthlyLatest ml\n    INNER JOIN OneReportPerAccountDate orad\n        ON orad.account_key = ml.account_key AND orad.report_date = ml.latest_report_date\n    GROUP BY ml.company_name, ml.account_key, ml.report_month\n),\nMonthlyUsageByAccount AS (\n    SELECT lr.company_name, lr.account_key, lr.report_month,\n        COALESCE(SUM(CASE WHEN rcp.product = 'sm' THEN rcp.amount ELSE 0 END), 0) AS product_used,\n        COALESCE(SUM(CASE WHEN rcp.product = 'sm' THEN rcp.exceeded_amount ELSE 0 END), 0) AS product_exceeded\n    FROM LatestReportId lr\n    LEFT JOIN report_clients rc ON rc.report_id = lr.report_id\n    LEFT JOIN report_clients_product_info rcp ON rcp.report_client_id = rc.id\n    GROUP BY lr.company_name, lr.account_key, lr.report_month, lr.report_id\n),\nAggregatedByCompany AS (\n    SELECT company_name, report_month,\n        SUM(product_used) AS product_used_total,\n        SUM(product_exceeded) AS product_exceeded_total\n    FROM MonthlyUsageByAccount\n    GROUP BY company_name, report_month\n),\nFinalData AS (\n    SELECT abc.company_name, abc.report_month,\n        pbc.clients_purchased,\n        (abc.product_used_total + abc.product_exceeded_total) AS used_total,\n        CASE\n            WHEN pbc.clients_purchased <= 0 THEN NULL\n            WHEN pbc.clients_purchased IN (999, 99999) THEN NULL\n            ELSE ROUND(\n                (abc.product_used_total + abc.product_exceeded_total) * 100.0 / pbc.clients_purchased,\n                1\n            )\n        END AS util_pct\n    FROM AggregatedByCompany abc\n    INNER JOIN PurchasedByCompany pbc ON pbc.company_name = abc.company_name\n)\nSELECT\n    company_name AS \"Customer\",\n    ROUND(AVG(CASE WHEN report_month IN ('2026-06', '2026-07', '2026-08') THEN util_pct END), 1) AS \"Avg (Last 3M)\",\n    CASE\n        WHEN AVG(CASE WHEN report_month IN ('2026-06', '2026-07', '2026-08') THEN used_total END) IS NULL THEN NULL\n        ELSE printf('(%d/%d)', CAST(ROUND(AVG(CASE WHEN report_month IN ('2026-06', '2026-07', '2026-08') THEN used_total END)) AS INTEGER), MAX(clients_purchased))\n    END AS \"\u00b7Avg (Last 3M)\",\n    MAX(CASE WHEN report_month = '2025-10' THEN util_pct END) AS \"Oct-25\", MAX(CASE WHEN report_month = '2025-10' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Oct-25\", MAX(CASE WHEN report_month = '2025-11' THEN util_pct END) AS \"Nov-25\", MAX(CASE WHEN report_month = '2025-11' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Nov-25\", MAX(CASE WHEN report_month = '2025-12' THEN util_pct END) AS \"Dec-25\", MAX(CASE WHEN report_month = '2025-12' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Dec-25\", MAX(CASE WHEN report_month = '2026-01' THEN util_pct END) AS \"Jan-26\", MAX(CASE WHEN report_month = '2026-01' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Jan-26\", MAX(CASE WHEN report_month = '2026-02' THEN util_pct END) AS \"Feb-26\", MAX(CASE WHEN report_month = '2026-02' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Feb-26\", MAX(CASE WHEN report_month = '2026-03' THEN util_pct END) AS \"Mar-26\", MAX(CASE WHEN report_month = '2026-03' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Mar-26\", MAX(CASE WHEN report_month = '2026-04' THEN util_pct END) AS \"Apr-26\", MAX(CASE WHEN report_month = '2026-04' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Apr-26\", MAX(CASE WHEN report_month = '2026-05' THEN util_pct END) AS \"May-26\", MAX(CASE WHEN report_month = '2026-05' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7May-26\", MAX(CASE WHEN report_month = '2026-06' THEN util_pct END) AS \"Jun-26\", MAX(CASE WHEN report_month = '2026-06' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Jun-26\", MAX(CASE WHEN report_month = '2026-07' THEN util_pct END) AS \"Jul-26\", MAX(CASE WHEN report_month = '2026-07' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Jul-26\", MAX(CASE WHEN report_month = '2026-08' THEN util_pct END) AS \"Aug-26\", MAX(CASE WHEN report_month = '2026-08' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Aug-26\", MAX(CASE WHEN report_month = '2026-09' THEN util_pct END) AS \"Sep-26\", MAX(CASE WHEN report_month = '2026-09' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Sep-26\"\nFROM FinalData\nGROUP BY company_name\nORDER BY company_name ASC",
-          "rawQueryText": "WITH CompanyData AS (\n    SELECT DISTINCT c.name AS company_name, LOWER(c.account_id) AS account_key\n    FROM companies c\n    WHERE c.account_id IS NOT NULL AND c.account_id != '' AND name = '${company_name}' AND ('${account_id:raw}' IN ('All', '%', '$__all') OR account_id = '${account_id}')\n),\nPurchasedByCompany AS (\n    SELECT c.name AS company_name,\n        CAST(COALESCE(\n            (\n                SELECT c2.clients_sm\n                FROM companies c2\n                WHERE c2.name = c.name\n                  AND c2.account_id IS NOT NULL\n                  AND c2.account_id != ''\n                  AND CAST(COALESCE(c2.clients_sm, '0') AS INTEGER) NOT IN (999, 99999)\n                ORDER BY c2.account_id\n                LIMIT 1\n            ),\n            '0'\n        ) AS INTEGER) AS clients_purchased\n    FROM companies c\n    WHERE c.account_id IS NOT NULL AND c.account_id != '' AND name = '${company_name}' AND ('${account_id:raw}' IN ('All', '%', '$__all') OR account_id = '${account_id}')\n    GROUP BY c.name\n),\nDateRange AS (\n    SELECT CASE\n        WHEN '${period_months}' = 'Current Month' THEN strftime('%Y-%m-%d', 'now', 'start of month')\n        WHEN '${period_months}' = 'Last 3 Months' OR '${period_months}' LIKE '3 Months' THEN strftime('%Y-%m-%d', 'now', '-3 months')\n        WHEN '${period_months}' = 'Last 6 Months' THEN strftime('%Y-%m-%d', 'now', '-6 months')\n        WHEN '${period_months}' = 'Last 9 Months' THEN strftime('%Y-%m-%d', 'now', '-9 months')\n        WHEN '${period_months}' = 'Last 12 Months' OR '${period_months}' LIKE '12 Months' THEN strftime('%Y-%m-%d', 'now', '-12 months')\n        WHEN '${period_months}' = 'Last 24 Months' THEN strftime('%Y-%m-%d', 'now', '-24 months')\n        WHEN '${period_months}' = 'From Contract Start' THEN\n            COALESCE((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), strftime('%Y-%m-%d', 'now', '-12 months'))\n        WHEN '${period_months}' = 'From Contract Start Last 12 Months' THEN\n            CASE WHEN (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) IS NOT NULL AND (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) != '' THEN\n                CASE WHEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10))) > date('now')\n                    THEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)), '-1 year')\n                    ELSE date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)))\n                END\n            ELSE strftime('%Y-%m-%d', 'now', 'start of month', '-11 months')\n            END\n        ELSE strftime('%Y-%m-%d', 'now', '-12 months')\n    END AS range_start\n),\nOneReportPerAccountDate AS (\n    SELECT cd.account_key, date(r.report_date) AS report_date, MAX(r.id) AS report_id\n    FROM reports r\n    INNER JOIN CompanyData cd ON cd.account_key = LOWER(r.account_id)\n    WHERE r.report_type = 'ObjectsReport'\n    GROUP BY cd.account_key, date(r.report_date)\n),\nMonthlyLatest AS (\n    SELECT cd.company_name, cd.account_key,\n        strftime('%Y-%m', orad.report_date) AS report_month,\n        MAX(orad.report_date) AS latest_report_date\n    FROM CompanyData cd\n    INNER JOIN OneReportPerAccountDate orad ON orad.account_key = cd.account_key\n    WHERE date(orad.report_date) >= (SELECT range_start FROM DateRange)\n      AND date(orad.report_date) <= date(strftime('%Y-%m-%d', 'now'))\n    GROUP BY cd.company_name, cd.account_key, strftime('%Y-%m', orad.report_date)\n),\nLatestReportId AS (\n    SELECT ml.company_name, ml.account_key, ml.report_month,\n        MAX(orad.report_id) AS report_id\n    FROM MonthlyLatest ml\n    INNER JOIN OneReportPerAccountDate orad\n        ON orad.account_key = ml.account_key AND orad.report_date = ml.latest_report_date\n    GROUP BY ml.company_name, ml.account_key, ml.report_month\n),\nMonthlyUsageByAccount AS (\n    SELECT lr.company_name, lr.account_key, lr.report_month,\n        COALESCE(SUM(CASE WHEN rcp.product = 'sm' THEN rcp.amount ELSE 0 END), 0) AS product_used,\n        COALESCE(SUM(CASE WHEN rcp.product = 'sm' THEN rcp.exceeded_amount ELSE 0 END), 0) AS product_exceeded\n    FROM LatestReportId lr\n    LEFT JOIN report_clients rc ON rc.report_id = lr.report_id\n    LEFT JOIN report_clients_product_info rcp ON rcp.report_client_id = rc.id\n    GROUP BY lr.company_name, lr.account_key, lr.report_month, lr.report_id\n),\nAggregatedByCompany AS (\n    SELECT company_name, report_month,\n        SUM(product_used) AS product_used_total,\n        SUM(product_exceeded) AS product_exceeded_total\n    FROM MonthlyUsageByAccount\n    GROUP BY company_name, report_month\n),\nFinalData AS (\n    SELECT abc.company_name, abc.report_month,\n        pbc.clients_purchased,\n        (abc.product_used_total + abc.product_exceeded_total) AS used_total,\n        CASE\n            WHEN pbc.clients_purchased <= 0 THEN NULL\n            WHEN pbc.clients_purchased IN (999, 99999) THEN NULL\n            ELSE ROUND(\n                (abc.product_used_total + abc.product_exceeded_total) * 100.0 / pbc.clients_purchased,\n                1\n            )\n        END AS util_pct\n    FROM AggregatedByCompany abc\n    INNER JOIN PurchasedByCompany pbc ON pbc.company_name = abc.company_name\n)\nSELECT\n    company_name AS \"Customer\",\n    ROUND(AVG(CASE WHEN report_month IN ('2026-06', '2026-07', '2026-08') THEN util_pct END), 1) AS \"Avg (Last 3M)\",\n    CASE\n        WHEN AVG(CASE WHEN report_month IN ('2026-06', '2026-07', '2026-08') THEN used_total END) IS NULL THEN NULL\n        ELSE printf('(%d/%d)', CAST(ROUND(AVG(CASE WHEN report_month IN ('2026-06', '2026-07', '2026-08') THEN used_total END)) AS INTEGER), MAX(clients_purchased))\n    END AS \"\u00b7Avg (Last 3M)\",\n    MAX(CASE WHEN report_month = '2025-10' THEN util_pct END) AS \"Oct-25\", MAX(CASE WHEN report_month = '2025-10' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Oct-25\", MAX(CASE WHEN report_month = '2025-11' THEN util_pct END) AS \"Nov-25\", MAX(CASE WHEN report_month = '2025-11' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Nov-25\", MAX(CASE WHEN report_month = '2025-12' THEN util_pct END) AS \"Dec-25\", MAX(CASE WHEN report_month = '2025-12' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Dec-25\", MAX(CASE WHEN report_month = '2026-01' THEN util_pct END) AS \"Jan-26\", MAX(CASE WHEN report_month = '2026-01' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Jan-26\", MAX(CASE WHEN report_month = '2026-02' THEN util_pct END) AS \"Feb-26\", MAX(CASE WHEN report_month = '2026-02' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Feb-26\", MAX(CASE WHEN report_month = '2026-03' THEN util_pct END) AS \"Mar-26\", MAX(CASE WHEN report_month = '2026-03' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Mar-26\", MAX(CASE WHEN report_month = '2026-04' THEN util_pct END) AS \"Apr-26\", MAX(CASE WHEN report_month = '2026-04' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Apr-26\", MAX(CASE WHEN report_month = '2026-05' THEN util_pct END) AS \"May-26\", MAX(CASE WHEN report_month = '2026-05' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7May-26\", MAX(CASE WHEN report_month = '2026-06' THEN util_pct END) AS \"Jun-26\", MAX(CASE WHEN report_month = '2026-06' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Jun-26\", MAX(CASE WHEN report_month = '2026-07' THEN util_pct END) AS \"Jul-26\", MAX(CASE WHEN report_month = '2026-07' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Jul-26\", MAX(CASE WHEN report_month = '2026-08' THEN util_pct END) AS \"Aug-26\", MAX(CASE WHEN report_month = '2026-08' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Aug-26\", MAX(CASE WHEN report_month = '2026-09' THEN util_pct END) AS \"Sep-26\", MAX(CASE WHEN report_month = '2026-09' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Sep-26\"\nFROM FinalData\nGROUP BY company_name\nORDER BY company_name ASC",
+          "queryText": "WITH CompanyData AS (\n    SELECT DISTINCT c.name AS company_name, LOWER(c.account_id) AS account_key\n    FROM companies c\n    WHERE c.account_id IS NOT NULL AND c.account_id != '' AND name = '${company_name}' AND ('${account_id:raw}' IN ('All', '%', '$__all') OR account_id = '${account_id}')\n),\nPurchasedByCompany AS (\n    SELECT c.name AS company_name,\n        CAST(COALESCE(\n            (\n                SELECT c2.clients_sm\n                FROM companies c2\n                WHERE c2.name = c.name\n                  AND c2.account_id IS NOT NULL\n                  AND c2.account_id != ''\n                  AND CAST(COALESCE(c2.clients_sm, '0') AS INTEGER) NOT IN (999, 99999)\n                ORDER BY c2.account_id\n                LIMIT 1\n            ),\n            '0'\n        ) AS INTEGER) AS clients_purchased\n    FROM companies c\n    WHERE c.account_id IS NOT NULL AND c.account_id != '' AND name = '${company_name}' AND ('${account_id:raw}' IN ('All', '%', '$__all') OR account_id = '${account_id}')\n    GROUP BY c.name\n),\nDateRange AS (\n    SELECT CASE\n        WHEN '${period_months}' = 'Current Month' THEN strftime('%Y-%m-%d', 'now', 'start of month')\n        WHEN '${period_months}' = 'Last 3 Months' OR '${period_months}' LIKE '3 Months' THEN strftime('%Y-%m-%d', 'now', '-3 months')\n        WHEN '${period_months}' = 'Last 6 Months' THEN strftime('%Y-%m-%d', 'now', '-6 months')\n        WHEN '${period_months}' = 'Last 9 Months' THEN strftime('%Y-%m-%d', 'now', '-9 months')\n        WHEN '${period_months}' = 'Last 12 Months' OR '${period_months}' LIKE '12 Months' THEN strftime('%Y-%m-%d', 'now', '-12 months')\n        WHEN '${period_months}' = 'Last 24 Months' THEN strftime('%Y-%m-%d', 'now', '-24 months')\n        WHEN '${period_months}' = 'From Contract Start' THEN\n            COALESCE((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), strftime('%Y-%m-%d', 'now', '-12 months'))\n        WHEN '${period_months}' = 'From Contract Start Last 12 Months' THEN\n            CASE WHEN (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) IS NOT NULL AND (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) != '' THEN\n                CASE WHEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10))) > date('now')\n                    THEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)), '-1 year')\n                    ELSE date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)))\n                END\n            ELSE strftime('%Y-%m-%d', 'now', 'start of month', '-11 months')\n            END\n        ELSE strftime('%Y-%m-%d', 'now', '-12 months')\n    END AS range_start\n),\nOneReportPerAccountDate AS (\n    SELECT cd.account_key, date(r.report_date) AS report_date, MAX(r.id) AS report_id\n    FROM reports r\n    INNER JOIN CompanyData cd ON cd.account_key = LOWER(r.account_id)\n    WHERE r.report_type = 'ObjectsReport'\n    GROUP BY cd.account_key, date(r.report_date)\n),\nMonthlyLatest AS (\n    SELECT cd.company_name, cd.account_key,\n        strftime('%Y-%m', orad.report_date) AS report_month,\n        MAX(orad.report_date) AS latest_report_date\n    FROM CompanyData cd\n    INNER JOIN OneReportPerAccountDate orad ON orad.account_key = cd.account_key\n    WHERE date(orad.report_date) >= (SELECT range_start FROM DateRange)\n      AND date(orad.report_date) <= date(strftime('%Y-%m-%d', 'now'))\n    GROUP BY cd.company_name, cd.account_key, strftime('%Y-%m', orad.report_date)\n),\nLatestReportId AS (\n    SELECT ml.company_name, ml.account_key, ml.report_month,\n        MAX(orad.report_id) AS report_id\n    FROM MonthlyLatest ml\n    INNER JOIN OneReportPerAccountDate orad\n        ON orad.account_key = ml.account_key AND orad.report_date = ml.latest_report_date\n    GROUP BY ml.company_name, ml.account_key, ml.report_month\n),\nMonthlyUsageByAccount AS (\n    SELECT lr.company_name, lr.account_key, lr.report_month,\n        COALESCE(SUM(CASE WHEN rcp.product = 'sm' THEN rcp.amount ELSE 0 END), 0) AS product_used,\n        COALESCE(SUM(CASE WHEN rcp.product = 'sm' THEN rcp.exceeded_amount ELSE 0 END), 0) AS product_exceeded\n    FROM LatestReportId lr\n    LEFT JOIN report_clients rc ON rc.report_id = lr.report_id\n    LEFT JOIN report_clients_product_info rcp ON rcp.report_client_id = rc.id\n    GROUP BY lr.company_name, lr.account_key, lr.report_month, lr.report_id\n),\nAggregatedByCompany AS (\n    SELECT company_name, report_month,\n        SUM(product_used) AS product_used_total,\n        SUM(product_exceeded) AS product_exceeded_total\n    FROM MonthlyUsageByAccount\n    GROUP BY company_name, report_month\n),\nFinalData AS (\n    SELECT abc.company_name, abc.report_month,\n        CASE\n            WHEN pbc.clients_purchased <= 0 THEN NULL\n            WHEN pbc.clients_purchased IN (999, 99999) THEN NULL\n            ELSE ROUND(\n                (abc.product_used_total + abc.product_exceeded_total) * 100.0 / pbc.clients_purchased,\n                1\n            )\n        END AS util_pct\n    FROM AggregatedByCompany abc\n    INNER JOIN PurchasedByCompany pbc ON pbc.company_name = abc.company_name\n)\nSELECT\n    company_name AS \"Customer\",\n    ROUND(AVG(CASE WHEN report_month IN ('2026-06', '2026-07', '2026-08') THEN util_pct END), 1) AS \"Avg (Last 3M)\",\n    MAX(CASE WHEN report_month = '2025-10' THEN util_pct END) AS \"Oct-25\", MAX(CASE WHEN report_month = '2025-11' THEN util_pct END) AS \"Nov-25\", MAX(CASE WHEN report_month = '2025-12' THEN util_pct END) AS \"Dec-25\", MAX(CASE WHEN report_month = '2026-01' THEN util_pct END) AS \"Jan-26\", MAX(CASE WHEN report_month = '2026-02' THEN util_pct END) AS \"Feb-26\", MAX(CASE WHEN report_month = '2026-03' THEN util_pct END) AS \"Mar-26\", MAX(CASE WHEN report_month = '2026-04' THEN util_pct END) AS \"Apr-26\", MAX(CASE WHEN report_month = '2026-05' THEN util_pct END) AS \"May-26\", MAX(CASE WHEN report_month = '2026-06' THEN util_pct END) AS \"Jun-26\", MAX(CASE WHEN report_month = '2026-07' THEN util_pct END) AS \"Jul-26\", MAX(CASE WHEN report_month = '2026-08' THEN util_pct END) AS \"Aug-26\", MAX(CASE WHEN report_month = '2026-09' THEN util_pct END) AS \"Sep-26\"\nFROM FinalData\nGROUP BY company_name\nORDER BY company_name ASC",
+          "rawQueryText": "WITH CompanyData AS (\n    SELECT DISTINCT c.name AS company_name, LOWER(c.account_id) AS account_key\n    FROM companies c\n    WHERE c.account_id IS NOT NULL AND c.account_id != '' AND name = '${company_name}' AND ('${account_id:raw}' IN ('All', '%', '$__all') OR account_id = '${account_id}')\n),\nPurchasedByCompany AS (\n    SELECT c.name AS company_name,\n        CAST(COALESCE(\n            (\n                SELECT c2.clients_sm\n                FROM companies c2\n                WHERE c2.name = c.name\n                  AND c2.account_id IS NOT NULL\n                  AND c2.account_id != ''\n                  AND CAST(COALESCE(c2.clients_sm, '0') AS INTEGER) NOT IN (999, 99999)\n                ORDER BY c2.account_id\n                LIMIT 1\n            ),\n            '0'\n        ) AS INTEGER) AS clients_purchased\n    FROM companies c\n    WHERE c.account_id IS NOT NULL AND c.account_id != '' AND name = '${company_name}' AND ('${account_id:raw}' IN ('All', '%', '$__all') OR account_id = '${account_id}')\n    GROUP BY c.name\n),\nDateRange AS (\n    SELECT CASE\n        WHEN '${period_months}' = 'Current Month' THEN strftime('%Y-%m-%d', 'now', 'start of month')\n        WHEN '${period_months}' = 'Last 3 Months' OR '${period_months}' LIKE '3 Months' THEN strftime('%Y-%m-%d', 'now', '-3 months')\n        WHEN '${period_months}' = 'Last 6 Months' THEN strftime('%Y-%m-%d', 'now', '-6 months')\n        WHEN '${period_months}' = 'Last 9 Months' THEN strftime('%Y-%m-%d', 'now', '-9 months')\n        WHEN '${period_months}' = 'Last 12 Months' OR '${period_months}' LIKE '12 Months' THEN strftime('%Y-%m-%d', 'now', '-12 months')\n        WHEN '${period_months}' = 'Last 24 Months' THEN strftime('%Y-%m-%d', 'now', '-24 months')\n        WHEN '${period_months}' = 'From Contract Start' THEN\n            COALESCE((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), strftime('%Y-%m-%d', 'now', '-12 months'))\n        WHEN '${period_months}' = 'From Contract Start Last 12 Months' THEN\n            CASE WHEN (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) IS NOT NULL AND (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) != '' THEN\n                CASE WHEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10))) > date('now')\n                    THEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)), '-1 year')\n                    ELSE date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)))\n                END\n            ELSE strftime('%Y-%m-%d', 'now', 'start of month', '-11 months')\n            END\n        ELSE strftime('%Y-%m-%d', 'now', '-12 months')\n    END AS range_start\n),\nOneReportPerAccountDate AS (\n    SELECT cd.account_key, date(r.report_date) AS report_date, MAX(r.id) AS report_id\n    FROM reports r\n    INNER JOIN CompanyData cd ON cd.account_key = LOWER(r.account_id)\n    WHERE r.report_type = 'ObjectsReport'\n    GROUP BY cd.account_key, date(r.report_date)\n),\nMonthlyLatest AS (\n    SELECT cd.company_name, cd.account_key,\n        strftime('%Y-%m', orad.report_date) AS report_month,\n        MAX(orad.report_date) AS latest_report_date\n    FROM CompanyData cd\n    INNER JOIN OneReportPerAccountDate orad ON orad.account_key = cd.account_key\n    WHERE date(orad.report_date) >= (SELECT range_start FROM DateRange)\n      AND date(orad.report_date) <= date(strftime('%Y-%m-%d', 'now'))\n    GROUP BY cd.company_name, cd.account_key, strftime('%Y-%m', orad.report_date)\n),\nLatestReportId AS (\n    SELECT ml.company_name, ml.account_key, ml.report_month,\n        MAX(orad.report_id) AS report_id\n    FROM MonthlyLatest ml\n    INNER JOIN OneReportPerAccountDate orad\n        ON orad.account_key = ml.account_key AND orad.report_date = ml.latest_report_date\n    GROUP BY ml.company_name, ml.account_key, ml.report_month\n),\nMonthlyUsageByAccount AS (\n    SELECT lr.company_name, lr.account_key, lr.report_month,\n        COALESCE(SUM(CASE WHEN rcp.product = 'sm' THEN rcp.amount ELSE 0 END), 0) AS product_used,\n        COALESCE(SUM(CASE WHEN rcp.product = 'sm' THEN rcp.exceeded_amount ELSE 0 END), 0) AS product_exceeded\n    FROM LatestReportId lr\n    LEFT JOIN report_clients rc ON rc.report_id = lr.report_id\n    LEFT JOIN report_clients_product_info rcp ON rcp.report_client_id = rc.id\n    GROUP BY lr.company_name, lr.account_key, lr.report_month, lr.report_id\n),\nAggregatedByCompany AS (\n    SELECT company_name, report_month,\n        SUM(product_used) AS product_used_total,\n        SUM(product_exceeded) AS product_exceeded_total\n    FROM MonthlyUsageByAccount\n    GROUP BY company_name, report_month\n),\nFinalData AS (\n    SELECT abc.company_name, abc.report_month,\n        CASE\n            WHEN pbc.clients_purchased <= 0 THEN NULL\n            WHEN pbc.clients_purchased IN (999, 99999) THEN NULL\n            ELSE ROUND(\n                (abc.product_used_total + abc.product_exceeded_total) * 100.0 / pbc.clients_purchased,\n                1\n            )\n        END AS util_pct\n    FROM AggregatedByCompany abc\n    INNER JOIN PurchasedByCompany pbc ON pbc.company_name = abc.company_name\n)\nSELECT\n    company_name AS \"Customer\",\n    ROUND(AVG(CASE WHEN report_month IN ('2026-06', '2026-07', '2026-08') THEN util_pct END), 1) AS \"Avg (Last 3M)\",\n    MAX(CASE WHEN report_month = '2025-10' THEN util_pct END) AS \"Oct-25\", MAX(CASE WHEN report_month = '2025-11' THEN util_pct END) AS \"Nov-25\", MAX(CASE WHEN report_month = '2025-12' THEN util_pct END) AS \"Dec-25\", MAX(CASE WHEN report_month = '2026-01' THEN util_pct END) AS \"Jan-26\", MAX(CASE WHEN report_month = '2026-02' THEN util_pct END) AS \"Feb-26\", MAX(CASE WHEN report_month = '2026-03' THEN util_pct END) AS \"Mar-26\", MAX(CASE WHEN report_month = '2026-04' THEN util_pct END) AS \"Apr-26\", MAX(CASE WHEN report_month = '2026-05' THEN util_pct END) AS \"May-26\", MAX(CASE WHEN report_month = '2026-06' THEN util_pct END) AS \"Jun-26\", MAX(CASE WHEN report_month = '2026-07' THEN util_pct END) AS \"Jul-26\", MAX(CASE WHEN report_month = '2026-08' THEN util_pct END) AS \"Aug-26\", MAX(CASE WHEN report_month = '2026-09' THEN util_pct END) AS \"Sep-26\"\nFROM FinalData\nGROUP BY company_name\nORDER BY company_name ASC",
           "queryType": "table",
           "timeColumns": [],
           "refId": "A"
@@ -759,26 +772,50 @@
           ],
           "show": false
         },
-        "showHeader": true
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "Avg (Last 3M)"
+          }
+        ]
       },
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "fixed",
-            "fixedColor": "text"
+            "mode": "thresholds"
           },
           "custom": {
             "align": "center",
             "cellOptions": {
-              "type": "auto",
+              "type": "color-background",
               "applyToRow": false,
-              "wrapText": false
+              "wrapText": true
             },
             "inspect": false,
             "filterable": false,
             "minWidth": 80
           },
-          "mappings": []
+          "decimals": 1,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "super-light-red",
+                "value": null
+              },
+              {
+                "color": "super-light-blue",
+                "value": 30
+              },
+              {
+                "color": "super-light-green",
+                "value": 70
+              }
+            ]
+          },
+          "unit": "percent"
         },
         "overrides": [
           {
@@ -791,7 +828,7 @@
                 "id": "custom.cellOptions",
                 "value": {
                   "type": "auto",
-                  "wrapText": false
+                  "wrapText": true
                 }
               },
               {
@@ -819,178 +856,13 @@
             "properties": [
               {
                 "id": "custom.width",
-                "value": 72
-              },
-              {
-                "id": "custom.minWidth",
-                "value": 72
-              },
-              {
-                "id": "unit",
-                "value": "percent"
-              },
-              {
-                "id": "decimals",
-                "value": 1
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "red",
-                      "value": null
-                    },
-                    {
-                      "color": "#5794F2",
-                      "value": 30
-                    },
-                    {
-                      "color": "green",
-                      "value": 70
-                    }
-                  ]
-                }
-              },
-              {
-                "id": "color",
-                "value": {
-                  "mode": "thresholds"
-                }
+                "value": 110
               },
               {
                 "id": "custom.cellOptions",
                 "value": {
                   "mode": "gradient",
-                  "type": "color-background",
-                  "wrapText": false
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "\u00b7Avg (Last 3M)"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 58
-              },
-              {
-                "id": "custom.minWidth",
-                "value": 58
-              },
-              {
-                "id": "unit",
-                "value": "string"
-              },
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "text"
-                }
-              },
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "auto",
-                  "wrapText": false
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byRegexp",
-              "options": "/^[A-Z][a-z]{2}-\\d{2}$/"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 72
-              },
-              {
-                "id": "custom.minWidth",
-                "value": 72
-              },
-              {
-                "id": "unit",
-                "value": "percent"
-              },
-              {
-                "id": "decimals",
-                "value": 1
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "red",
-                      "value": null
-                    },
-                    {
-                      "color": "#5794F2",
-                      "value": 30
-                    },
-                    {
-                      "color": "green",
-                      "value": 70
-                    }
-                  ]
-                }
-              },
-              {
-                "id": "color",
-                "value": {
-                  "mode": "thresholds"
-                }
-              },
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "mode": "gradient",
-                  "type": "color-background",
-                  "wrapText": false
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byRegexp",
-              "options": "/^\u00b7[A-Z][a-z]{2}-\\d{2}$/"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 58
-              },
-              {
-                "id": "custom.minWidth",
-                "value": 58
-              },
-              {
-                "id": "unit",
-                "value": "string"
-              },
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "text"
-                }
-              },
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "auto",
-                  "wrapText": false
+                  "type": "color-background"
                 }
               }
             ]
@@ -1009,9 +881,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 25
+        "y": 26
       },
-      "id": 15,
+      "id": 16,
       "collapsed": false,
       "panels": []
     },
@@ -1022,9 +894,9 @@
         "h": 5,
         "w": 5,
         "x": 0,
-        "y": 26
+        "y": 27
       },
-      "id": 16,
+      "id": 17,
       "targets": [
         {
           "datasource": {
@@ -1094,9 +966,9 @@
         "h": 5,
         "w": 5,
         "x": 5,
-        "y": 26
+        "y": 27
       },
-      "id": 17,
+      "id": 18,
       "targets": [
         {
           "datasource": {
@@ -1146,9 +1018,9 @@
         "h": 5,
         "w": 5,
         "x": 10,
-        "y": 26
+        "y": 27
       },
-      "id": 18,
+      "id": 19,
       "targets": [
         {
           "datasource": {
@@ -1198,9 +1070,9 @@
         "h": 5,
         "w": 5,
         "x": 15,
-        "y": 26
+        "y": 27
       },
-      "id": 19,
+      "id": 20,
       "targets": [
         {
           "datasource": {
@@ -1265,23 +1137,36 @@
       "description": "Average of monthly Utilization % across all months in the selected Time Range filter (not the same as Avg (Last 3M) in the table below)."
     },
     {
+      "type": "row",
+      "title": "CLM Monthly Utilization %",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 32
+      },
+      "id": 21,
+      "collapsed": false,
+      "panels": []
+    },
+    {
       "type": "table",
       "title": "CLM Monthly Utilization %",
       "gridPos": {
         "h": 16,
         "w": 24,
         "x": 0,
-        "y": 31
+        "y": 33
       },
-      "id": 20,
+      "id": 22,
       "targets": [
         {
           "datasource": {
             "type": "frser-sqlite-datasource",
             "uid": null
           },
-          "queryText": "-- CLM monthly utilization from certificate_analysis reports (matches original CLM Usage chart).\nWITH CompanyData AS (\n    SELECT DISTINCT c.name AS company_name, LOWER(c.account_id) AS account_key\n    FROM companies c\n    WHERE c.account_id IS NOT NULL AND c.account_id != '' AND name = '${company_name}' AND ('${account_id:raw}' IN ('All', '%', '$__all') OR account_id = '${account_id}')\n),\nPurchasedByCompany AS (\n    SELECT c.name AS company_name,\n        CAST(COALESCE(\n            (\n                SELECT c2.clients_ca\n                FROM companies c2\n                WHERE c2.name = c.name\n                  AND c2.account_id IS NOT NULL\n                  AND c2.account_id != ''\n                  AND CAST(COALESCE(c2.clients_ca, '0') AS INTEGER) NOT IN (999, 99999)\n                ORDER BY c2.account_id\n                LIMIT 1\n            ),\n            '0'\n        ) AS INTEGER) AS clients_purchased\n    FROM companies c\n    WHERE c.account_id IS NOT NULL AND c.account_id != '' AND name = '${company_name}' AND ('${account_id:raw}' IN ('All', '%', '$__all') OR account_id = '${account_id}')\n    GROUP BY c.name\n),\nDateRange AS (\n    SELECT CASE\n        WHEN '${period_months}' = 'Current Month' THEN strftime('%Y-%m-%d', 'now', 'start of month')\n        WHEN '${period_months}' = 'Last 3 Months' OR '${period_months}' LIKE '3 Months' THEN strftime('%Y-%m-%d', 'now', '-3 months')\n        WHEN '${period_months}' = 'Last 6 Months' THEN strftime('%Y-%m-%d', 'now', '-6 months')\n        WHEN '${period_months}' = 'Last 9 Months' THEN strftime('%Y-%m-%d', 'now', '-9 months')\n        WHEN '${period_months}' = 'Last 12 Months' OR '${period_months}' LIKE '12 Months' THEN strftime('%Y-%m-%d', 'now', '-12 months')\n        WHEN '${period_months}' = 'Last 24 Months' THEN strftime('%Y-%m-%d', 'now', '-24 months')\n        WHEN '${period_months}' = 'From Contract Start' THEN\n            COALESCE((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), strftime('%Y-%m-%d', 'now', '-12 months'))\n        WHEN '${period_months}' = 'From Contract Start Last 12 Months' THEN\n            CASE WHEN (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) IS NOT NULL AND (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) != '' THEN\n                CASE WHEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10))) > date('now')\n                    THEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)), '-1 year')\n                    ELSE date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)))\n                END\n            ELSE strftime('%Y-%m-%d', 'now', 'start of month', '-11 months')\n            END\n        ELSE strftime('%Y-%m-%d', 'now', '-12 months')\n    END AS range_start\n),\nCertificateDaily AS (\n    SELECT\n        cd.company_name,\n        cd.account_key,\n        strftime('%Y-%m', r.report_date) AS report_month,\n        date(r.report_date) AS report_date,\n        CASE\n            WHEN (COALESCE(r.ca_self_signed, 0) - COALESCE(r.risk_expired, 0)) < 0 THEN 0\n            ELSE (COALESCE(r.ca_self_signed, 0) - COALESCE(r.risk_expired, 0))\n        END AS daily_certs\n    FROM CompanyData cd\n    INNER JOIN reports r ON LOWER(r.account_id) = cd.account_key\n    WHERE r.report_type = 'certificate_analysis'\n      AND date(r.report_date) >= (SELECT range_start FROM DateRange)\n),\nDailyMax AS (\n    SELECT company_name, account_key, report_month, report_date,\n        MAX(daily_certs) AS daily_max\n    FROM CertificateDaily\n    GROUP BY company_name, account_key, report_month, report_date\n),\nMonthlyMax AS (\n    SELECT company_name, account_key, report_month,\n        MAX(daily_max) AS product_used\n    FROM DailyMax\n    GROUP BY company_name, account_key, report_month\n),\nAggregatedByCompany AS (\n    SELECT company_name, report_month,\n        SUM(product_used) AS product_used_total\n    FROM MonthlyMax\n    GROUP BY company_name, report_month\n),\nFinalData AS (\n    SELECT abc.company_name, abc.report_month,\n        pbc.clients_purchased,\n        abc.product_used_total AS used_total,\n        CASE\n            WHEN pbc.clients_purchased <= 0 THEN NULL\n            WHEN pbc.clients_purchased IN (999, 99999) THEN NULL\n            ELSE ROUND(abc.product_used_total * 100.0 / pbc.clients_purchased, 1)\n        END AS util_pct\n    FROM AggregatedByCompany abc\n    INNER JOIN PurchasedByCompany pbc ON pbc.company_name = abc.company_name\n)\nSELECT\n    company_name AS \"Customer\",\n    ROUND(AVG(CASE WHEN report_month IN ('2026-06', '2026-07', '2026-08') THEN util_pct END), 1) AS \"Avg (Last 3M)\",\n    CASE\n        WHEN AVG(CASE WHEN report_month IN ('2026-06', '2026-07', '2026-08') THEN used_total END) IS NULL THEN NULL\n        ELSE printf('(%d/%d)', CAST(ROUND(AVG(CASE WHEN report_month IN ('2026-06', '2026-07', '2026-08') THEN used_total END)) AS INTEGER), MAX(clients_purchased))\n    END AS \"\u00b7Avg (Last 3M)\",\n    MAX(CASE WHEN report_month = '2025-10' THEN util_pct END) AS \"Oct-25\", MAX(CASE WHEN report_month = '2025-10' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Oct-25\", MAX(CASE WHEN report_month = '2025-11' THEN util_pct END) AS \"Nov-25\", MAX(CASE WHEN report_month = '2025-11' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Nov-25\", MAX(CASE WHEN report_month = '2025-12' THEN util_pct END) AS \"Dec-25\", MAX(CASE WHEN report_month = '2025-12' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Dec-25\", MAX(CASE WHEN report_month = '2026-01' THEN util_pct END) AS \"Jan-26\", MAX(CASE WHEN report_month = '2026-01' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Jan-26\", MAX(CASE WHEN report_month = '2026-02' THEN util_pct END) AS \"Feb-26\", MAX(CASE WHEN report_month = '2026-02' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Feb-26\", MAX(CASE WHEN report_month = '2026-03' THEN util_pct END) AS \"Mar-26\", MAX(CASE WHEN report_month = '2026-03' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Mar-26\", MAX(CASE WHEN report_month = '2026-04' THEN util_pct END) AS \"Apr-26\", MAX(CASE WHEN report_month = '2026-04' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Apr-26\", MAX(CASE WHEN report_month = '2026-05' THEN util_pct END) AS \"May-26\", MAX(CASE WHEN report_month = '2026-05' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7May-26\", MAX(CASE WHEN report_month = '2026-06' THEN util_pct END) AS \"Jun-26\", MAX(CASE WHEN report_month = '2026-06' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Jun-26\", MAX(CASE WHEN report_month = '2026-07' THEN util_pct END) AS \"Jul-26\", MAX(CASE WHEN report_month = '2026-07' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Jul-26\", MAX(CASE WHEN report_month = '2026-08' THEN util_pct END) AS \"Aug-26\", MAX(CASE WHEN report_month = '2026-08' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Aug-26\", MAX(CASE WHEN report_month = '2026-09' THEN util_pct END) AS \"Sep-26\", MAX(CASE WHEN report_month = '2026-09' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Sep-26\"\nFROM FinalData\nGROUP BY company_name\nORDER BY company_name ASC",
-          "rawQueryText": "-- CLM monthly utilization from certificate_analysis reports (matches original CLM Usage chart).\nWITH CompanyData AS (\n    SELECT DISTINCT c.name AS company_name, LOWER(c.account_id) AS account_key\n    FROM companies c\n    WHERE c.account_id IS NOT NULL AND c.account_id != '' AND name = '${company_name}' AND ('${account_id:raw}' IN ('All', '%', '$__all') OR account_id = '${account_id}')\n),\nPurchasedByCompany AS (\n    SELECT c.name AS company_name,\n        CAST(COALESCE(\n            (\n                SELECT c2.clients_ca\n                FROM companies c2\n                WHERE c2.name = c.name\n                  AND c2.account_id IS NOT NULL\n                  AND c2.account_id != ''\n                  AND CAST(COALESCE(c2.clients_ca, '0') AS INTEGER) NOT IN (999, 99999)\n                ORDER BY c2.account_id\n                LIMIT 1\n            ),\n            '0'\n        ) AS INTEGER) AS clients_purchased\n    FROM companies c\n    WHERE c.account_id IS NOT NULL AND c.account_id != '' AND name = '${company_name}' AND ('${account_id:raw}' IN ('All', '%', '$__all') OR account_id = '${account_id}')\n    GROUP BY c.name\n),\nDateRange AS (\n    SELECT CASE\n        WHEN '${period_months}' = 'Current Month' THEN strftime('%Y-%m-%d', 'now', 'start of month')\n        WHEN '${period_months}' = 'Last 3 Months' OR '${period_months}' LIKE '3 Months' THEN strftime('%Y-%m-%d', 'now', '-3 months')\n        WHEN '${period_months}' = 'Last 6 Months' THEN strftime('%Y-%m-%d', 'now', '-6 months')\n        WHEN '${period_months}' = 'Last 9 Months' THEN strftime('%Y-%m-%d', 'now', '-9 months')\n        WHEN '${period_months}' = 'Last 12 Months' OR '${period_months}' LIKE '12 Months' THEN strftime('%Y-%m-%d', 'now', '-12 months')\n        WHEN '${period_months}' = 'Last 24 Months' THEN strftime('%Y-%m-%d', 'now', '-24 months')\n        WHEN '${period_months}' = 'From Contract Start' THEN\n            COALESCE((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), strftime('%Y-%m-%d', 'now', '-12 months'))\n        WHEN '${period_months}' = 'From Contract Start Last 12 Months' THEN\n            CASE WHEN (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) IS NOT NULL AND (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) != '' THEN\n                CASE WHEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10))) > date('now')\n                    THEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)), '-1 year')\n                    ELSE date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)))\n                END\n            ELSE strftime('%Y-%m-%d', 'now', 'start of month', '-11 months')\n            END\n        ELSE strftime('%Y-%m-%d', 'now', '-12 months')\n    END AS range_start\n),\nCertificateDaily AS (\n    SELECT\n        cd.company_name,\n        cd.account_key,\n        strftime('%Y-%m', r.report_date) AS report_month,\n        date(r.report_date) AS report_date,\n        CASE\n            WHEN (COALESCE(r.ca_self_signed, 0) - COALESCE(r.risk_expired, 0)) < 0 THEN 0\n            ELSE (COALESCE(r.ca_self_signed, 0) - COALESCE(r.risk_expired, 0))\n        END AS daily_certs\n    FROM CompanyData cd\n    INNER JOIN reports r ON LOWER(r.account_id) = cd.account_key\n    WHERE r.report_type = 'certificate_analysis'\n      AND date(r.report_date) >= (SELECT range_start FROM DateRange)\n),\nDailyMax AS (\n    SELECT company_name, account_key, report_month, report_date,\n        MAX(daily_certs) AS daily_max\n    FROM CertificateDaily\n    GROUP BY company_name, account_key, report_month, report_date\n),\nMonthlyMax AS (\n    SELECT company_name, account_key, report_month,\n        MAX(daily_max) AS product_used\n    FROM DailyMax\n    GROUP BY company_name, account_key, report_month\n),\nAggregatedByCompany AS (\n    SELECT company_name, report_month,\n        SUM(product_used) AS product_used_total\n    FROM MonthlyMax\n    GROUP BY company_name, report_month\n),\nFinalData AS (\n    SELECT abc.company_name, abc.report_month,\n        pbc.clients_purchased,\n        abc.product_used_total AS used_total,\n        CASE\n            WHEN pbc.clients_purchased <= 0 THEN NULL\n            WHEN pbc.clients_purchased IN (999, 99999) THEN NULL\n            ELSE ROUND(abc.product_used_total * 100.0 / pbc.clients_purchased, 1)\n        END AS util_pct\n    FROM AggregatedByCompany abc\n    INNER JOIN PurchasedByCompany pbc ON pbc.company_name = abc.company_name\n)\nSELECT\n    company_name AS \"Customer\",\n    ROUND(AVG(CASE WHEN report_month IN ('2026-06', '2026-07', '2026-08') THEN util_pct END), 1) AS \"Avg (Last 3M)\",\n    CASE\n        WHEN AVG(CASE WHEN report_month IN ('2026-06', '2026-07', '2026-08') THEN used_total END) IS NULL THEN NULL\n        ELSE printf('(%d/%d)', CAST(ROUND(AVG(CASE WHEN report_month IN ('2026-06', '2026-07', '2026-08') THEN used_total END)) AS INTEGER), MAX(clients_purchased))\n    END AS \"\u00b7Avg (Last 3M)\",\n    MAX(CASE WHEN report_month = '2025-10' THEN util_pct END) AS \"Oct-25\", MAX(CASE WHEN report_month = '2025-10' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Oct-25\", MAX(CASE WHEN report_month = '2025-11' THEN util_pct END) AS \"Nov-25\", MAX(CASE WHEN report_month = '2025-11' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Nov-25\", MAX(CASE WHEN report_month = '2025-12' THEN util_pct END) AS \"Dec-25\", MAX(CASE WHEN report_month = '2025-12' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Dec-25\", MAX(CASE WHEN report_month = '2026-01' THEN util_pct END) AS \"Jan-26\", MAX(CASE WHEN report_month = '2026-01' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Jan-26\", MAX(CASE WHEN report_month = '2026-02' THEN util_pct END) AS \"Feb-26\", MAX(CASE WHEN report_month = '2026-02' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Feb-26\", MAX(CASE WHEN report_month = '2026-03' THEN util_pct END) AS \"Mar-26\", MAX(CASE WHEN report_month = '2026-03' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Mar-26\", MAX(CASE WHEN report_month = '2026-04' THEN util_pct END) AS \"Apr-26\", MAX(CASE WHEN report_month = '2026-04' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Apr-26\", MAX(CASE WHEN report_month = '2026-05' THEN util_pct END) AS \"May-26\", MAX(CASE WHEN report_month = '2026-05' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7May-26\", MAX(CASE WHEN report_month = '2026-06' THEN util_pct END) AS \"Jun-26\", MAX(CASE WHEN report_month = '2026-06' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Jun-26\", MAX(CASE WHEN report_month = '2026-07' THEN util_pct END) AS \"Jul-26\", MAX(CASE WHEN report_month = '2026-07' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Jul-26\", MAX(CASE WHEN report_month = '2026-08' THEN util_pct END) AS \"Aug-26\", MAX(CASE WHEN report_month = '2026-08' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Aug-26\", MAX(CASE WHEN report_month = '2026-09' THEN util_pct END) AS \"Sep-26\", MAX(CASE WHEN report_month = '2026-09' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Sep-26\"\nFROM FinalData\nGROUP BY company_name\nORDER BY company_name ASC",
+          "queryText": "-- CLM monthly utilization from certificate_analysis reports (matches original CLM Usage chart).\nWITH CompanyData AS (\n    SELECT DISTINCT c.name AS company_name, LOWER(c.account_id) AS account_key\n    FROM companies c\n    WHERE c.account_id IS NOT NULL AND c.account_id != '' AND name = '${company_name}' AND ('${account_id:raw}' IN ('All', '%', '$__all') OR account_id = '${account_id}')\n),\nPurchasedByCompany AS (\n    SELECT c.name AS company_name,\n        CAST(COALESCE(\n            (\n                SELECT c2.clients_ca\n                FROM companies c2\n                WHERE c2.name = c.name\n                  AND c2.account_id IS NOT NULL\n                  AND c2.account_id != ''\n                  AND CAST(COALESCE(c2.clients_ca, '0') AS INTEGER) NOT IN (999, 99999)\n                ORDER BY c2.account_id\n                LIMIT 1\n            ),\n            '0'\n        ) AS INTEGER) AS clients_purchased\n    FROM companies c\n    WHERE c.account_id IS NOT NULL AND c.account_id != '' AND name = '${company_name}' AND ('${account_id:raw}' IN ('All', '%', '$__all') OR account_id = '${account_id}')\n    GROUP BY c.name\n),\nDateRange AS (\n    SELECT CASE\n        WHEN '${period_months}' = 'Current Month' THEN strftime('%Y-%m-%d', 'now', 'start of month')\n        WHEN '${period_months}' = 'Last 3 Months' OR '${period_months}' LIKE '3 Months' THEN strftime('%Y-%m-%d', 'now', '-3 months')\n        WHEN '${period_months}' = 'Last 6 Months' THEN strftime('%Y-%m-%d', 'now', '-6 months')\n        WHEN '${period_months}' = 'Last 9 Months' THEN strftime('%Y-%m-%d', 'now', '-9 months')\n        WHEN '${period_months}' = 'Last 12 Months' OR '${period_months}' LIKE '12 Months' THEN strftime('%Y-%m-%d', 'now', '-12 months')\n        WHEN '${period_months}' = 'Last 24 Months' THEN strftime('%Y-%m-%d', 'now', '-24 months')\n        WHEN '${period_months}' = 'From Contract Start' THEN\n            COALESCE((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), strftime('%Y-%m-%d', 'now', '-12 months'))\n        WHEN '${period_months}' = 'From Contract Start Last 12 Months' THEN\n            CASE WHEN (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) IS NOT NULL AND (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) != '' THEN\n                CASE WHEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10))) > date('now')\n                    THEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)), '-1 year')\n                    ELSE date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)))\n                END\n            ELSE strftime('%Y-%m-%d', 'now', 'start of month', '-11 months')\n            END\n        ELSE strftime('%Y-%m-%d', 'now', '-12 months')\n    END AS range_start\n),\nCertificateDaily AS (\n    SELECT\n        cd.company_name,\n        cd.account_key,\n        strftime('%Y-%m', r.report_date) AS report_month,\n        date(r.report_date) AS report_date,\n        CASE\n            WHEN (COALESCE(r.ca_self_signed, 0) - COALESCE(r.risk_expired, 0)) < 0 THEN 0\n            ELSE (COALESCE(r.ca_self_signed, 0) - COALESCE(r.risk_expired, 0))\n        END AS daily_certs\n    FROM CompanyData cd\n    INNER JOIN reports r ON LOWER(r.account_id) = cd.account_key\n    WHERE r.report_type = 'certificate_analysis'\n      AND date(r.report_date) >= (SELECT range_start FROM DateRange)\n),\nDailyMax AS (\n    SELECT company_name, account_key, report_month, report_date,\n        MAX(daily_certs) AS daily_max\n    FROM CertificateDaily\n    GROUP BY company_name, account_key, report_month, report_date\n),\nMonthlyMax AS (\n    SELECT company_name, account_key, report_month,\n        MAX(daily_max) AS product_used\n    FROM DailyMax\n    GROUP BY company_name, account_key, report_month\n),\nAggregatedByCompany AS (\n    SELECT company_name, report_month,\n        SUM(product_used) AS product_used_total\n    FROM MonthlyMax\n    GROUP BY company_name, report_month\n),\nFinalData AS (\n    SELECT abc.company_name, abc.report_month,\n        CASE\n            WHEN pbc.clients_purchased <= 0 THEN NULL\n            WHEN pbc.clients_purchased IN (999, 99999) THEN NULL\n            ELSE ROUND(abc.product_used_total * 100.0 / pbc.clients_purchased, 1)\n        END AS util_pct\n    FROM AggregatedByCompany abc\n    INNER JOIN PurchasedByCompany pbc ON pbc.company_name = abc.company_name\n)\nSELECT\n    company_name AS \"Customer\",\n    ROUND(AVG(CASE WHEN report_month IN ('2026-06', '2026-07', '2026-08') THEN util_pct END), 1) AS \"Avg (Last 3M)\",\n    MAX(CASE WHEN report_month = '2025-10' THEN util_pct END) AS \"Oct-25\", MAX(CASE WHEN report_month = '2025-11' THEN util_pct END) AS \"Nov-25\", MAX(CASE WHEN report_month = '2025-12' THEN util_pct END) AS \"Dec-25\", MAX(CASE WHEN report_month = '2026-01' THEN util_pct END) AS \"Jan-26\", MAX(CASE WHEN report_month = '2026-02' THEN util_pct END) AS \"Feb-26\", MAX(CASE WHEN report_month = '2026-03' THEN util_pct END) AS \"Mar-26\", MAX(CASE WHEN report_month = '2026-04' THEN util_pct END) AS \"Apr-26\", MAX(CASE WHEN report_month = '2026-05' THEN util_pct END) AS \"May-26\", MAX(CASE WHEN report_month = '2026-06' THEN util_pct END) AS \"Jun-26\", MAX(CASE WHEN report_month = '2026-07' THEN util_pct END) AS \"Jul-26\", MAX(CASE WHEN report_month = '2026-08' THEN util_pct END) AS \"Aug-26\", MAX(CASE WHEN report_month = '2026-09' THEN util_pct END) AS \"Sep-26\"\nFROM FinalData\nGROUP BY company_name\nORDER BY company_name ASC",
+          "rawQueryText": "-- CLM monthly utilization from certificate_analysis reports (matches original CLM Usage chart).\nWITH CompanyData AS (\n    SELECT DISTINCT c.name AS company_name, LOWER(c.account_id) AS account_key\n    FROM companies c\n    WHERE c.account_id IS NOT NULL AND c.account_id != '' AND name = '${company_name}' AND ('${account_id:raw}' IN ('All', '%', '$__all') OR account_id = '${account_id}')\n),\nPurchasedByCompany AS (\n    SELECT c.name AS company_name,\n        CAST(COALESCE(\n            (\n                SELECT c2.clients_ca\n                FROM companies c2\n                WHERE c2.name = c.name\n                  AND c2.account_id IS NOT NULL\n                  AND c2.account_id != ''\n                  AND CAST(COALESCE(c2.clients_ca, '0') AS INTEGER) NOT IN (999, 99999)\n                ORDER BY c2.account_id\n                LIMIT 1\n            ),\n            '0'\n        ) AS INTEGER) AS clients_purchased\n    FROM companies c\n    WHERE c.account_id IS NOT NULL AND c.account_id != '' AND name = '${company_name}' AND ('${account_id:raw}' IN ('All', '%', '$__all') OR account_id = '${account_id}')\n    GROUP BY c.name\n),\nDateRange AS (\n    SELECT CASE\n        WHEN '${period_months}' = 'Current Month' THEN strftime('%Y-%m-%d', 'now', 'start of month')\n        WHEN '${period_months}' = 'Last 3 Months' OR '${period_months}' LIKE '3 Months' THEN strftime('%Y-%m-%d', 'now', '-3 months')\n        WHEN '${period_months}' = 'Last 6 Months' THEN strftime('%Y-%m-%d', 'now', '-6 months')\n        WHEN '${period_months}' = 'Last 9 Months' THEN strftime('%Y-%m-%d', 'now', '-9 months')\n        WHEN '${period_months}' = 'Last 12 Months' OR '${period_months}' LIKE '12 Months' THEN strftime('%Y-%m-%d', 'now', '-12 months')\n        WHEN '${period_months}' = 'Last 24 Months' THEN strftime('%Y-%m-%d', 'now', '-24 months')\n        WHEN '${period_months}' = 'From Contract Start' THEN\n            COALESCE((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), strftime('%Y-%m-%d', 'now', '-12 months'))\n        WHEN '${period_months}' = 'From Contract Start Last 12 Months' THEN\n            CASE WHEN (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) IS NOT NULL AND (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) != '' THEN\n                CASE WHEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10))) > date('now')\n                    THEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)), '-1 year')\n                    ELSE date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)))\n                END\n            ELSE strftime('%Y-%m-%d', 'now', 'start of month', '-11 months')\n            END\n        ELSE strftime('%Y-%m-%d', 'now', '-12 months')\n    END AS range_start\n),\nCertificateDaily AS (\n    SELECT\n        cd.company_name,\n        cd.account_key,\n        strftime('%Y-%m', r.report_date) AS report_month,\n        date(r.report_date) AS report_date,\n        CASE\n            WHEN (COALESCE(r.ca_self_signed, 0) - COALESCE(r.risk_expired, 0)) < 0 THEN 0\n            ELSE (COALESCE(r.ca_self_signed, 0) - COALESCE(r.risk_expired, 0))\n        END AS daily_certs\n    FROM CompanyData cd\n    INNER JOIN reports r ON LOWER(r.account_id) = cd.account_key\n    WHERE r.report_type = 'certificate_analysis'\n      AND date(r.report_date) >= (SELECT range_start FROM DateRange)\n),\nDailyMax AS (\n    SELECT company_name, account_key, report_month, report_date,\n        MAX(daily_certs) AS daily_max\n    FROM CertificateDaily\n    GROUP BY company_name, account_key, report_month, report_date\n),\nMonthlyMax AS (\n    SELECT company_name, account_key, report_month,\n        MAX(daily_max) AS product_used\n    FROM DailyMax\n    GROUP BY company_name, account_key, report_month\n),\nAggregatedByCompany AS (\n    SELECT company_name, report_month,\n        SUM(product_used) AS product_used_total\n    FROM MonthlyMax\n    GROUP BY company_name, report_month\n),\nFinalData AS (\n    SELECT abc.company_name, abc.report_month,\n        CASE\n            WHEN pbc.clients_purchased <= 0 THEN NULL\n            WHEN pbc.clients_purchased IN (999, 99999) THEN NULL\n            ELSE ROUND(abc.product_used_total * 100.0 / pbc.clients_purchased, 1)\n        END AS util_pct\n    FROM AggregatedByCompany abc\n    INNER JOIN PurchasedByCompany pbc ON pbc.company_name = abc.company_name\n)\nSELECT\n    company_name AS \"Customer\",\n    ROUND(AVG(CASE WHEN report_month IN ('2026-06', '2026-07', '2026-08') THEN util_pct END), 1) AS \"Avg (Last 3M)\",\n    MAX(CASE WHEN report_month = '2025-10' THEN util_pct END) AS \"Oct-25\", MAX(CASE WHEN report_month = '2025-11' THEN util_pct END) AS \"Nov-25\", MAX(CASE WHEN report_month = '2025-12' THEN util_pct END) AS \"Dec-25\", MAX(CASE WHEN report_month = '2026-01' THEN util_pct END) AS \"Jan-26\", MAX(CASE WHEN report_month = '2026-02' THEN util_pct END) AS \"Feb-26\", MAX(CASE WHEN report_month = '2026-03' THEN util_pct END) AS \"Mar-26\", MAX(CASE WHEN report_month = '2026-04' THEN util_pct END) AS \"Apr-26\", MAX(CASE WHEN report_month = '2026-05' THEN util_pct END) AS \"May-26\", MAX(CASE WHEN report_month = '2026-06' THEN util_pct END) AS \"Jun-26\", MAX(CASE WHEN report_month = '2026-07' THEN util_pct END) AS \"Jul-26\", MAX(CASE WHEN report_month = '2026-08' THEN util_pct END) AS \"Aug-26\", MAX(CASE WHEN report_month = '2026-09' THEN util_pct END) AS \"Sep-26\"\nFROM FinalData\nGROUP BY company_name\nORDER BY company_name ASC",
           "queryType": "table",
           "timeColumns": [],
           "refId": "A"
@@ -1297,26 +1182,50 @@
           ],
           "show": false
         },
-        "showHeader": true
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "Avg (Last 3M)"
+          }
+        ]
       },
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "fixed",
-            "fixedColor": "text"
+            "mode": "thresholds"
           },
           "custom": {
             "align": "center",
             "cellOptions": {
-              "type": "auto",
+              "type": "color-background",
               "applyToRow": false,
-              "wrapText": false
+              "wrapText": true
             },
             "inspect": false,
             "filterable": false,
             "minWidth": 80
           },
-          "mappings": []
+          "decimals": 1,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "super-light-red",
+                "value": null
+              },
+              {
+                "color": "super-light-blue",
+                "value": 30
+              },
+              {
+                "color": "super-light-green",
+                "value": 70
+              }
+            ]
+          },
+          "unit": "percent"
         },
         "overrides": [
           {
@@ -1329,7 +1238,7 @@
                 "id": "custom.cellOptions",
                 "value": {
                   "type": "auto",
-                  "wrapText": false
+                  "wrapText": true
                 }
               },
               {
@@ -1357,178 +1266,13 @@
             "properties": [
               {
                 "id": "custom.width",
-                "value": 72
-              },
-              {
-                "id": "custom.minWidth",
-                "value": 72
-              },
-              {
-                "id": "unit",
-                "value": "percent"
-              },
-              {
-                "id": "decimals",
-                "value": 1
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "red",
-                      "value": null
-                    },
-                    {
-                      "color": "#5794F2",
-                      "value": 30
-                    },
-                    {
-                      "color": "green",
-                      "value": 70
-                    }
-                  ]
-                }
-              },
-              {
-                "id": "color",
-                "value": {
-                  "mode": "thresholds"
-                }
+                "value": 110
               },
               {
                 "id": "custom.cellOptions",
                 "value": {
                   "mode": "gradient",
-                  "type": "color-background",
-                  "wrapText": false
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "\u00b7Avg (Last 3M)"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 58
-              },
-              {
-                "id": "custom.minWidth",
-                "value": 58
-              },
-              {
-                "id": "unit",
-                "value": "string"
-              },
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "text"
-                }
-              },
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "auto",
-                  "wrapText": false
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byRegexp",
-              "options": "/^[A-Z][a-z]{2}-\\d{2}$/"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 72
-              },
-              {
-                "id": "custom.minWidth",
-                "value": 72
-              },
-              {
-                "id": "unit",
-                "value": "percent"
-              },
-              {
-                "id": "decimals",
-                "value": 1
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "red",
-                      "value": null
-                    },
-                    {
-                      "color": "#5794F2",
-                      "value": 30
-                    },
-                    {
-                      "color": "green",
-                      "value": 70
-                    }
-                  ]
-                }
-              },
-              {
-                "id": "color",
-                "value": {
-                  "mode": "thresholds"
-                }
-              },
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "mode": "gradient",
-                  "type": "color-background",
-                  "wrapText": false
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byRegexp",
-              "options": "/^\u00b7[A-Z][a-z]{2}-\\d{2}$/"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 58
-              },
-              {
-                "id": "custom.minWidth",
-                "value": 58
-              },
-              {
-                "id": "unit",
-                "value": "string"
-              },
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "text"
-                }
-              },
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "auto",
-                  "wrapText": false
+                  "type": "color-background"
                 }
               }
             ]
@@ -1547,9 +1291,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 47
+        "y": 49
       },
-      "id": 21,
+      "id": 23,
       "collapsed": false,
       "panels": []
     },
@@ -1560,9 +1304,9 @@
         "h": 5,
         "w": 4,
         "x": 0,
-        "y": 48
+        "y": 50
       },
-      "id": 22,
+      "id": 24,
       "targets": [
         {
           "datasource": {
@@ -1632,9 +1376,9 @@
         "h": 5,
         "w": 4,
         "x": 4,
-        "y": 48
+        "y": 50
       },
-      "id": 23,
+      "id": 25,
       "targets": [
         {
           "datasource": {
@@ -1684,9 +1428,9 @@
         "h": 5,
         "w": 4,
         "x": 8,
-        "y": 48
+        "y": 50
       },
-      "id": 24,
+      "id": 26,
       "targets": [
         {
           "datasource": {
@@ -1736,9 +1480,9 @@
         "h": 5,
         "w": 3,
         "x": 12,
-        "y": 48
+        "y": 50
       },
-      "id": 25,
+      "id": 27,
       "targets": [
         {
           "datasource": {
@@ -1788,9 +1532,9 @@
         "h": 5,
         "w": 4,
         "x": 15,
-        "y": 48
+        "y": 50
       },
-      "id": 26,
+      "id": 28,
       "targets": [
         {
           "datasource": {
@@ -1840,9 +1584,9 @@
         "h": 5,
         "w": 5,
         "x": 19,
-        "y": 48
+        "y": 50
       },
-      "id": 27,
+      "id": 29,
       "targets": [
         {
           "datasource": {
@@ -1907,23 +1651,36 @@
       "description": "Average of monthly Utilization % across all months in the selected Time Range filter (not the same as Avg (Last 3M) in the table below)."
     },
     {
+      "type": "row",
+      "title": "SRA Monthly Utilization %",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 55
+      },
+      "id": 30,
+      "collapsed": false,
+      "panels": []
+    },
+    {
       "type": "table",
       "title": "SRA Monthly Utilization %",
       "gridPos": {
         "h": 16,
         "w": 24,
         "x": 0,
-        "y": 53
+        "y": 56
       },
-      "id": 28,
+      "id": 31,
       "targets": [
         {
           "datasource": {
             "type": "frser-sqlite-datasource",
             "uid": null
           },
-          "queryText": "WITH CompanyData AS (\n    SELECT DISTINCT c.name AS company_name, LOWER(c.account_id) AS account_key\n    FROM companies c\n    WHERE c.account_id IS NOT NULL AND c.account_id != '' AND name = '${company_name}' AND ('${account_id:raw}' IN ('All', '%', '$__all') OR account_id = '${account_id}')\n),\nPurchasedByCompany AS (\n    SELECT c.name AS company_name,\n        CAST(COALESCE(\n            (\n                SELECT c2.clients_sra\n                FROM companies c2\n                WHERE c2.name = c.name\n                  AND c2.account_id IS NOT NULL\n                  AND c2.account_id != ''\n                  AND CAST(COALESCE(c2.clients_sra, '0') AS INTEGER) NOT IN (999, 99999)\n                ORDER BY c2.account_id\n                LIMIT 1\n            ),\n            '0'\n        ) AS INTEGER) AS clients_purchased\n    FROM companies c\n    WHERE c.account_id IS NOT NULL AND c.account_id != '' AND name = '${company_name}' AND ('${account_id:raw}' IN ('All', '%', '$__all') OR account_id = '${account_id}')\n    GROUP BY c.name\n),\nDateRange AS (\n    SELECT CASE\n        WHEN '${period_months}' = 'Current Month' THEN strftime('%Y-%m-%d', 'now', 'start of month')\n        WHEN '${period_months}' = 'Last 3 Months' OR '${period_months}' LIKE '3 Months' THEN strftime('%Y-%m-%d', 'now', '-3 months')\n        WHEN '${period_months}' = 'Last 6 Months' THEN strftime('%Y-%m-%d', 'now', '-6 months')\n        WHEN '${period_months}' = 'Last 9 Months' THEN strftime('%Y-%m-%d', 'now', '-9 months')\n        WHEN '${period_months}' = 'Last 12 Months' OR '${period_months}' LIKE '12 Months' THEN strftime('%Y-%m-%d', 'now', '-12 months')\n        WHEN '${period_months}' = 'Last 24 Months' THEN strftime('%Y-%m-%d', 'now', '-24 months')\n        WHEN '${period_months}' = 'From Contract Start' THEN\n            COALESCE((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), strftime('%Y-%m-%d', 'now', '-12 months'))\n        WHEN '${period_months}' = 'From Contract Start Last 12 Months' THEN\n            CASE WHEN (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) IS NOT NULL AND (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) != '' THEN\n                CASE WHEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10))) > date('now')\n                    THEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)), '-1 year')\n                    ELSE date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)))\n                END\n            ELSE strftime('%Y-%m-%d', 'now', 'start of month', '-11 months')\n            END\n        ELSE strftime('%Y-%m-%d', 'now', '-12 months')\n    END AS range_start\n),\nOneReportPerAccountDate AS (\n    SELECT cd.account_key, date(r.report_date) AS report_date, MAX(r.id) AS report_id\n    FROM reports r\n    INNER JOIN CompanyData cd ON cd.account_key = LOWER(r.account_id)\n    WHERE r.report_type = 'ObjectsReport'\n    GROUP BY cd.account_key, date(r.report_date)\n),\nMonthlyLatest AS (\n    SELECT cd.company_name, cd.account_key,\n        strftime('%Y-%m', orad.report_date) AS report_month,\n        MAX(orad.report_date) AS latest_report_date\n    FROM CompanyData cd\n    INNER JOIN OneReportPerAccountDate orad ON orad.account_key = cd.account_key\n    WHERE date(orad.report_date) >= (SELECT range_start FROM DateRange)\n      AND date(orad.report_date) <= date(strftime('%Y-%m-%d', 'now'))\n    GROUP BY cd.company_name, cd.account_key, strftime('%Y-%m', orad.report_date)\n),\nLatestReportId AS (\n    SELECT ml.company_name, ml.account_key, ml.report_month,\n        MAX(orad.report_id) AS report_id\n    FROM MonthlyLatest ml\n    INNER JOIN OneReportPerAccountDate orad\n        ON orad.account_key = ml.account_key AND orad.report_date = ml.latest_report_date\n    GROUP BY ml.company_name, ml.account_key, ml.report_month\n),\nMonthlyUsageByAccount AS (\n    SELECT lr.company_name, lr.account_key, lr.report_month,\n        COALESCE(SUM(CASE WHEN rcp.product = 'sra' THEN rcp.amount ELSE 0 END), 0) AS product_used,\n        COALESCE(SUM(CASE WHEN rcp.product = 'sra' THEN rcp.exceeded_amount ELSE 0 END), 0) AS product_exceeded\n    FROM LatestReportId lr\n    LEFT JOIN report_clients rc ON rc.report_id = lr.report_id\n    LEFT JOIN report_clients_product_info rcp ON rcp.report_client_id = rc.id\n    GROUP BY lr.company_name, lr.account_key, lr.report_month, lr.report_id\n),\nAggregatedByCompany AS (\n    SELECT company_name, report_month,\n        SUM(product_used) AS product_used_total,\n        SUM(product_exceeded) AS product_exceeded_total\n    FROM MonthlyUsageByAccount\n    GROUP BY company_name, report_month\n),\nFinalData AS (\n    SELECT abc.company_name, abc.report_month,\n        pbc.clients_purchased,\n        (abc.product_used_total + abc.product_exceeded_total) AS used_total,\n        CASE\n            WHEN pbc.clients_purchased <= 0 THEN NULL\n            WHEN pbc.clients_purchased IN (999, 99999) THEN NULL\n            ELSE ROUND(\n                (abc.product_used_total + abc.product_exceeded_total) * 100.0 / pbc.clients_purchased,\n                1\n            )\n        END AS util_pct\n    FROM AggregatedByCompany abc\n    INNER JOIN PurchasedByCompany pbc ON pbc.company_name = abc.company_name\n)\nSELECT\n    company_name AS \"Customer\",\n    ROUND(AVG(CASE WHEN report_month IN ('2026-06', '2026-07', '2026-08') THEN util_pct END), 1) AS \"Avg (Last 3M)\",\n    CASE\n        WHEN AVG(CASE WHEN report_month IN ('2026-06', '2026-07', '2026-08') THEN used_total END) IS NULL THEN NULL\n        ELSE printf('(%d/%d)', CAST(ROUND(AVG(CASE WHEN report_month IN ('2026-06', '2026-07', '2026-08') THEN used_total END)) AS INTEGER), MAX(clients_purchased))\n    END AS \"\u00b7Avg (Last 3M)\",\n    MAX(CASE WHEN report_month = '2025-10' THEN util_pct END) AS \"Oct-25\", MAX(CASE WHEN report_month = '2025-10' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Oct-25\", MAX(CASE WHEN report_month = '2025-11' THEN util_pct END) AS \"Nov-25\", MAX(CASE WHEN report_month = '2025-11' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Nov-25\", MAX(CASE WHEN report_month = '2025-12' THEN util_pct END) AS \"Dec-25\", MAX(CASE WHEN report_month = '2025-12' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Dec-25\", MAX(CASE WHEN report_month = '2026-01' THEN util_pct END) AS \"Jan-26\", MAX(CASE WHEN report_month = '2026-01' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Jan-26\", MAX(CASE WHEN report_month = '2026-02' THEN util_pct END) AS \"Feb-26\", MAX(CASE WHEN report_month = '2026-02' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Feb-26\", MAX(CASE WHEN report_month = '2026-03' THEN util_pct END) AS \"Mar-26\", MAX(CASE WHEN report_month = '2026-03' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Mar-26\", MAX(CASE WHEN report_month = '2026-04' THEN util_pct END) AS \"Apr-26\", MAX(CASE WHEN report_month = '2026-04' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Apr-26\", MAX(CASE WHEN report_month = '2026-05' THEN util_pct END) AS \"May-26\", MAX(CASE WHEN report_month = '2026-05' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7May-26\", MAX(CASE WHEN report_month = '2026-06' THEN util_pct END) AS \"Jun-26\", MAX(CASE WHEN report_month = '2026-06' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Jun-26\", MAX(CASE WHEN report_month = '2026-07' THEN util_pct END) AS \"Jul-26\", MAX(CASE WHEN report_month = '2026-07' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Jul-26\", MAX(CASE WHEN report_month = '2026-08' THEN util_pct END) AS \"Aug-26\", MAX(CASE WHEN report_month = '2026-08' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Aug-26\", MAX(CASE WHEN report_month = '2026-09' THEN util_pct END) AS \"Sep-26\", MAX(CASE WHEN report_month = '2026-09' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Sep-26\"\nFROM FinalData\nGROUP BY company_name\nORDER BY company_name ASC",
-          "rawQueryText": "WITH CompanyData AS (\n    SELECT DISTINCT c.name AS company_name, LOWER(c.account_id) AS account_key\n    FROM companies c\n    WHERE c.account_id IS NOT NULL AND c.account_id != '' AND name = '${company_name}' AND ('${account_id:raw}' IN ('All', '%', '$__all') OR account_id = '${account_id}')\n),\nPurchasedByCompany AS (\n    SELECT c.name AS company_name,\n        CAST(COALESCE(\n            (\n                SELECT c2.clients_sra\n                FROM companies c2\n                WHERE c2.name = c.name\n                  AND c2.account_id IS NOT NULL\n                  AND c2.account_id != ''\n                  AND CAST(COALESCE(c2.clients_sra, '0') AS INTEGER) NOT IN (999, 99999)\n                ORDER BY c2.account_id\n                LIMIT 1\n            ),\n            '0'\n        ) AS INTEGER) AS clients_purchased\n    FROM companies c\n    WHERE c.account_id IS NOT NULL AND c.account_id != '' AND name = '${company_name}' AND ('${account_id:raw}' IN ('All', '%', '$__all') OR account_id = '${account_id}')\n    GROUP BY c.name\n),\nDateRange AS (\n    SELECT CASE\n        WHEN '${period_months}' = 'Current Month' THEN strftime('%Y-%m-%d', 'now', 'start of month')\n        WHEN '${period_months}' = 'Last 3 Months' OR '${period_months}' LIKE '3 Months' THEN strftime('%Y-%m-%d', 'now', '-3 months')\n        WHEN '${period_months}' = 'Last 6 Months' THEN strftime('%Y-%m-%d', 'now', '-6 months')\n        WHEN '${period_months}' = 'Last 9 Months' THEN strftime('%Y-%m-%d', 'now', '-9 months')\n        WHEN '${period_months}' = 'Last 12 Months' OR '${period_months}' LIKE '12 Months' THEN strftime('%Y-%m-%d', 'now', '-12 months')\n        WHEN '${period_months}' = 'Last 24 Months' THEN strftime('%Y-%m-%d', 'now', '-24 months')\n        WHEN '${period_months}' = 'From Contract Start' THEN\n            COALESCE((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), strftime('%Y-%m-%d', 'now', '-12 months'))\n        WHEN '${period_months}' = 'From Contract Start Last 12 Months' THEN\n            CASE WHEN (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) IS NOT NULL AND (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) != '' THEN\n                CASE WHEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10))) > date('now')\n                    THEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)), '-1 year')\n                    ELSE date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)))\n                END\n            ELSE strftime('%Y-%m-%d', 'now', 'start of month', '-11 months')\n            END\n        ELSE strftime('%Y-%m-%d', 'now', '-12 months')\n    END AS range_start\n),\nOneReportPerAccountDate AS (\n    SELECT cd.account_key, date(r.report_date) AS report_date, MAX(r.id) AS report_id\n    FROM reports r\n    INNER JOIN CompanyData cd ON cd.account_key = LOWER(r.account_id)\n    WHERE r.report_type = 'ObjectsReport'\n    GROUP BY cd.account_key, date(r.report_date)\n),\nMonthlyLatest AS (\n    SELECT cd.company_name, cd.account_key,\n        strftime('%Y-%m', orad.report_date) AS report_month,\n        MAX(orad.report_date) AS latest_report_date\n    FROM CompanyData cd\n    INNER JOIN OneReportPerAccountDate orad ON orad.account_key = cd.account_key\n    WHERE date(orad.report_date) >= (SELECT range_start FROM DateRange)\n      AND date(orad.report_date) <= date(strftime('%Y-%m-%d', 'now'))\n    GROUP BY cd.company_name, cd.account_key, strftime('%Y-%m', orad.report_date)\n),\nLatestReportId AS (\n    SELECT ml.company_name, ml.account_key, ml.report_month,\n        MAX(orad.report_id) AS report_id\n    FROM MonthlyLatest ml\n    INNER JOIN OneReportPerAccountDate orad\n        ON orad.account_key = ml.account_key AND orad.report_date = ml.latest_report_date\n    GROUP BY ml.company_name, ml.account_key, ml.report_month\n),\nMonthlyUsageByAccount AS (\n    SELECT lr.company_name, lr.account_key, lr.report_month,\n        COALESCE(SUM(CASE WHEN rcp.product = 'sra' THEN rcp.amount ELSE 0 END), 0) AS product_used,\n        COALESCE(SUM(CASE WHEN rcp.product = 'sra' THEN rcp.exceeded_amount ELSE 0 END), 0) AS product_exceeded\n    FROM LatestReportId lr\n    LEFT JOIN report_clients rc ON rc.report_id = lr.report_id\n    LEFT JOIN report_clients_product_info rcp ON rcp.report_client_id = rc.id\n    GROUP BY lr.company_name, lr.account_key, lr.report_month, lr.report_id\n),\nAggregatedByCompany AS (\n    SELECT company_name, report_month,\n        SUM(product_used) AS product_used_total,\n        SUM(product_exceeded) AS product_exceeded_total\n    FROM MonthlyUsageByAccount\n    GROUP BY company_name, report_month\n),\nFinalData AS (\n    SELECT abc.company_name, abc.report_month,\n        pbc.clients_purchased,\n        (abc.product_used_total + abc.product_exceeded_total) AS used_total,\n        CASE\n            WHEN pbc.clients_purchased <= 0 THEN NULL\n            WHEN pbc.clients_purchased IN (999, 99999) THEN NULL\n            ELSE ROUND(\n                (abc.product_used_total + abc.product_exceeded_total) * 100.0 / pbc.clients_purchased,\n                1\n            )\n        END AS util_pct\n    FROM AggregatedByCompany abc\n    INNER JOIN PurchasedByCompany pbc ON pbc.company_name = abc.company_name\n)\nSELECT\n    company_name AS \"Customer\",\n    ROUND(AVG(CASE WHEN report_month IN ('2026-06', '2026-07', '2026-08') THEN util_pct END), 1) AS \"Avg (Last 3M)\",\n    CASE\n        WHEN AVG(CASE WHEN report_month IN ('2026-06', '2026-07', '2026-08') THEN used_total END) IS NULL THEN NULL\n        ELSE printf('(%d/%d)', CAST(ROUND(AVG(CASE WHEN report_month IN ('2026-06', '2026-07', '2026-08') THEN used_total END)) AS INTEGER), MAX(clients_purchased))\n    END AS \"\u00b7Avg (Last 3M)\",\n    MAX(CASE WHEN report_month = '2025-10' THEN util_pct END) AS \"Oct-25\", MAX(CASE WHEN report_month = '2025-10' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Oct-25\", MAX(CASE WHEN report_month = '2025-11' THEN util_pct END) AS \"Nov-25\", MAX(CASE WHEN report_month = '2025-11' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Nov-25\", MAX(CASE WHEN report_month = '2025-12' THEN util_pct END) AS \"Dec-25\", MAX(CASE WHEN report_month = '2025-12' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Dec-25\", MAX(CASE WHEN report_month = '2026-01' THEN util_pct END) AS \"Jan-26\", MAX(CASE WHEN report_month = '2026-01' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Jan-26\", MAX(CASE WHEN report_month = '2026-02' THEN util_pct END) AS \"Feb-26\", MAX(CASE WHEN report_month = '2026-02' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Feb-26\", MAX(CASE WHEN report_month = '2026-03' THEN util_pct END) AS \"Mar-26\", MAX(CASE WHEN report_month = '2026-03' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Mar-26\", MAX(CASE WHEN report_month = '2026-04' THEN util_pct END) AS \"Apr-26\", MAX(CASE WHEN report_month = '2026-04' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Apr-26\", MAX(CASE WHEN report_month = '2026-05' THEN util_pct END) AS \"May-26\", MAX(CASE WHEN report_month = '2026-05' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7May-26\", MAX(CASE WHEN report_month = '2026-06' THEN util_pct END) AS \"Jun-26\", MAX(CASE WHEN report_month = '2026-06' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Jun-26\", MAX(CASE WHEN report_month = '2026-07' THEN util_pct END) AS \"Jul-26\", MAX(CASE WHEN report_month = '2026-07' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Jul-26\", MAX(CASE WHEN report_month = '2026-08' THEN util_pct END) AS \"Aug-26\", MAX(CASE WHEN report_month = '2026-08' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Aug-26\", MAX(CASE WHEN report_month = '2026-09' THEN util_pct END) AS \"Sep-26\", MAX(CASE WHEN report_month = '2026-09' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Sep-26\"\nFROM FinalData\nGROUP BY company_name\nORDER BY company_name ASC",
+          "queryText": "WITH CompanyData AS (\n    SELECT DISTINCT c.name AS company_name, LOWER(c.account_id) AS account_key\n    FROM companies c\n    WHERE c.account_id IS NOT NULL AND c.account_id != '' AND name = '${company_name}' AND ('${account_id:raw}' IN ('All', '%', '$__all') OR account_id = '${account_id}')\n),\nPurchasedByCompany AS (\n    SELECT c.name AS company_name,\n        CAST(COALESCE(\n            (\n                SELECT c2.clients_sra\n                FROM companies c2\n                WHERE c2.name = c.name\n                  AND c2.account_id IS NOT NULL\n                  AND c2.account_id != ''\n                  AND CAST(COALESCE(c2.clients_sra, '0') AS INTEGER) NOT IN (999, 99999)\n                ORDER BY c2.account_id\n                LIMIT 1\n            ),\n            '0'\n        ) AS INTEGER) AS clients_purchased\n    FROM companies c\n    WHERE c.account_id IS NOT NULL AND c.account_id != '' AND name = '${company_name}' AND ('${account_id:raw}' IN ('All', '%', '$__all') OR account_id = '${account_id}')\n    GROUP BY c.name\n),\nDateRange AS (\n    SELECT CASE\n        WHEN '${period_months}' = 'Current Month' THEN strftime('%Y-%m-%d', 'now', 'start of month')\n        WHEN '${period_months}' = 'Last 3 Months' OR '${period_months}' LIKE '3 Months' THEN strftime('%Y-%m-%d', 'now', '-3 months')\n        WHEN '${period_months}' = 'Last 6 Months' THEN strftime('%Y-%m-%d', 'now', '-6 months')\n        WHEN '${period_months}' = 'Last 9 Months' THEN strftime('%Y-%m-%d', 'now', '-9 months')\n        WHEN '${period_months}' = 'Last 12 Months' OR '${period_months}' LIKE '12 Months' THEN strftime('%Y-%m-%d', 'now', '-12 months')\n        WHEN '${period_months}' = 'Last 24 Months' THEN strftime('%Y-%m-%d', 'now', '-24 months')\n        WHEN '${period_months}' = 'From Contract Start' THEN\n            COALESCE((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), strftime('%Y-%m-%d', 'now', '-12 months'))\n        WHEN '${period_months}' = 'From Contract Start Last 12 Months' THEN\n            CASE WHEN (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) IS NOT NULL AND (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) != '' THEN\n                CASE WHEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10))) > date('now')\n                    THEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)), '-1 year')\n                    ELSE date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)))\n                END\n            ELSE strftime('%Y-%m-%d', 'now', 'start of month', '-11 months')\n            END\n        ELSE strftime('%Y-%m-%d', 'now', '-12 months')\n    END AS range_start\n),\nOneReportPerAccountDate AS (\n    SELECT cd.account_key, date(r.report_date) AS report_date, MAX(r.id) AS report_id\n    FROM reports r\n    INNER JOIN CompanyData cd ON cd.account_key = LOWER(r.account_id)\n    WHERE r.report_type = 'ObjectsReport'\n    GROUP BY cd.account_key, date(r.report_date)\n),\nMonthlyLatest AS (\n    SELECT cd.company_name, cd.account_key,\n        strftime('%Y-%m', orad.report_date) AS report_month,\n        MAX(orad.report_date) AS latest_report_date\n    FROM CompanyData cd\n    INNER JOIN OneReportPerAccountDate orad ON orad.account_key = cd.account_key\n    WHERE date(orad.report_date) >= (SELECT range_start FROM DateRange)\n      AND date(orad.report_date) <= date(strftime('%Y-%m-%d', 'now'))\n    GROUP BY cd.company_name, cd.account_key, strftime('%Y-%m', orad.report_date)\n),\nLatestReportId AS (\n    SELECT ml.company_name, ml.account_key, ml.report_month,\n        MAX(orad.report_id) AS report_id\n    FROM MonthlyLatest ml\n    INNER JOIN OneReportPerAccountDate orad\n        ON orad.account_key = ml.account_key AND orad.report_date = ml.latest_report_date\n    GROUP BY ml.company_name, ml.account_key, ml.report_month\n),\nMonthlyUsageByAccount AS (\n    SELECT lr.company_name, lr.account_key, lr.report_month,\n        COALESCE(SUM(CASE WHEN rcp.product = 'sra' THEN rcp.amount ELSE 0 END), 0) AS product_used,\n        COALESCE(SUM(CASE WHEN rcp.product = 'sra' THEN rcp.exceeded_amount ELSE 0 END), 0) AS product_exceeded\n    FROM LatestReportId lr\n    LEFT JOIN report_clients rc ON rc.report_id = lr.report_id\n    LEFT JOIN report_clients_product_info rcp ON rcp.report_client_id = rc.id\n    GROUP BY lr.company_name, lr.account_key, lr.report_month, lr.report_id\n),\nAggregatedByCompany AS (\n    SELECT company_name, report_month,\n        SUM(product_used) AS product_used_total,\n        SUM(product_exceeded) AS product_exceeded_total\n    FROM MonthlyUsageByAccount\n    GROUP BY company_name, report_month\n),\nFinalData AS (\n    SELECT abc.company_name, abc.report_month,\n        CASE\n            WHEN pbc.clients_purchased <= 0 THEN NULL\n            WHEN pbc.clients_purchased IN (999, 99999) THEN NULL\n            ELSE ROUND(\n                (abc.product_used_total + abc.product_exceeded_total) * 100.0 / pbc.clients_purchased,\n                1\n            )\n        END AS util_pct\n    FROM AggregatedByCompany abc\n    INNER JOIN PurchasedByCompany pbc ON pbc.company_name = abc.company_name\n)\nSELECT\n    company_name AS \"Customer\",\n    ROUND(AVG(CASE WHEN report_month IN ('2026-06', '2026-07', '2026-08') THEN util_pct END), 1) AS \"Avg (Last 3M)\",\n    MAX(CASE WHEN report_month = '2025-10' THEN util_pct END) AS \"Oct-25\", MAX(CASE WHEN report_month = '2025-11' THEN util_pct END) AS \"Nov-25\", MAX(CASE WHEN report_month = '2025-12' THEN util_pct END) AS \"Dec-25\", MAX(CASE WHEN report_month = '2026-01' THEN util_pct END) AS \"Jan-26\", MAX(CASE WHEN report_month = '2026-02' THEN util_pct END) AS \"Feb-26\", MAX(CASE WHEN report_month = '2026-03' THEN util_pct END) AS \"Mar-26\", MAX(CASE WHEN report_month = '2026-04' THEN util_pct END) AS \"Apr-26\", MAX(CASE WHEN report_month = '2026-05' THEN util_pct END) AS \"May-26\", MAX(CASE WHEN report_month = '2026-06' THEN util_pct END) AS \"Jun-26\", MAX(CASE WHEN report_month = '2026-07' THEN util_pct END) AS \"Jul-26\", MAX(CASE WHEN report_month = '2026-08' THEN util_pct END) AS \"Aug-26\", MAX(CASE WHEN report_month = '2026-09' THEN util_pct END) AS \"Sep-26\"\nFROM FinalData\nGROUP BY company_name\nORDER BY company_name ASC",
+          "rawQueryText": "WITH CompanyData AS (\n    SELECT DISTINCT c.name AS company_name, LOWER(c.account_id) AS account_key\n    FROM companies c\n    WHERE c.account_id IS NOT NULL AND c.account_id != '' AND name = '${company_name}' AND ('${account_id:raw}' IN ('All', '%', '$__all') OR account_id = '${account_id}')\n),\nPurchasedByCompany AS (\n    SELECT c.name AS company_name,\n        CAST(COALESCE(\n            (\n                SELECT c2.clients_sra\n                FROM companies c2\n                WHERE c2.name = c.name\n                  AND c2.account_id IS NOT NULL\n                  AND c2.account_id != ''\n                  AND CAST(COALESCE(c2.clients_sra, '0') AS INTEGER) NOT IN (999, 99999)\n                ORDER BY c2.account_id\n                LIMIT 1\n            ),\n            '0'\n        ) AS INTEGER) AS clients_purchased\n    FROM companies c\n    WHERE c.account_id IS NOT NULL AND c.account_id != '' AND name = '${company_name}' AND ('${account_id:raw}' IN ('All', '%', '$__all') OR account_id = '${account_id}')\n    GROUP BY c.name\n),\nDateRange AS (\n    SELECT CASE\n        WHEN '${period_months}' = 'Current Month' THEN strftime('%Y-%m-%d', 'now', 'start of month')\n        WHEN '${period_months}' = 'Last 3 Months' OR '${period_months}' LIKE '3 Months' THEN strftime('%Y-%m-%d', 'now', '-3 months')\n        WHEN '${period_months}' = 'Last 6 Months' THEN strftime('%Y-%m-%d', 'now', '-6 months')\n        WHEN '${period_months}' = 'Last 9 Months' THEN strftime('%Y-%m-%d', 'now', '-9 months')\n        WHEN '${period_months}' = 'Last 12 Months' OR '${period_months}' LIKE '12 Months' THEN strftime('%Y-%m-%d', 'now', '-12 months')\n        WHEN '${period_months}' = 'Last 24 Months' THEN strftime('%Y-%m-%d', 'now', '-24 months')\n        WHEN '${period_months}' = 'From Contract Start' THEN\n            COALESCE((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), strftime('%Y-%m-%d', 'now', '-12 months'))\n        WHEN '${period_months}' = 'From Contract Start Last 12 Months' THEN\n            CASE WHEN (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) IS NOT NULL AND (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) != '' THEN\n                CASE WHEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10))) > date('now')\n                    THEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)), '-1 year')\n                    ELSE date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)))\n                END\n            ELSE strftime('%Y-%m-%d', 'now', 'start of month', '-11 months')\n            END\n        ELSE strftime('%Y-%m-%d', 'now', '-12 months')\n    END AS range_start\n),\nOneReportPerAccountDate AS (\n    SELECT cd.account_key, date(r.report_date) AS report_date, MAX(r.id) AS report_id\n    FROM reports r\n    INNER JOIN CompanyData cd ON cd.account_key = LOWER(r.account_id)\n    WHERE r.report_type = 'ObjectsReport'\n    GROUP BY cd.account_key, date(r.report_date)\n),\nMonthlyLatest AS (\n    SELECT cd.company_name, cd.account_key,\n        strftime('%Y-%m', orad.report_date) AS report_month,\n        MAX(orad.report_date) AS latest_report_date\n    FROM CompanyData cd\n    INNER JOIN OneReportPerAccountDate orad ON orad.account_key = cd.account_key\n    WHERE date(orad.report_date) >= (SELECT range_start FROM DateRange)\n      AND date(orad.report_date) <= date(strftime('%Y-%m-%d', 'now'))\n    GROUP BY cd.company_name, cd.account_key, strftime('%Y-%m', orad.report_date)\n),\nLatestReportId AS (\n    SELECT ml.company_name, ml.account_key, ml.report_month,\n        MAX(orad.report_id) AS report_id\n    FROM MonthlyLatest ml\n    INNER JOIN OneReportPerAccountDate orad\n        ON orad.account_key = ml.account_key AND orad.report_date = ml.latest_report_date\n    GROUP BY ml.company_name, ml.account_key, ml.report_month\n),\nMonthlyUsageByAccount AS (\n    SELECT lr.company_name, lr.account_key, lr.report_month,\n        COALESCE(SUM(CASE WHEN rcp.product = 'sra' THEN rcp.amount ELSE 0 END), 0) AS product_used,\n        COALESCE(SUM(CASE WHEN rcp.product = 'sra' THEN rcp.exceeded_amount ELSE 0 END), 0) AS product_exceeded\n    FROM LatestReportId lr\n    LEFT JOIN report_clients rc ON rc.report_id = lr.report_id\n    LEFT JOIN report_clients_product_info rcp ON rcp.report_client_id = rc.id\n    GROUP BY lr.company_name, lr.account_key, lr.report_month, lr.report_id\n),\nAggregatedByCompany AS (\n    SELECT company_name, report_month,\n        SUM(product_used) AS product_used_total,\n        SUM(product_exceeded) AS product_exceeded_total\n    FROM MonthlyUsageByAccount\n    GROUP BY company_name, report_month\n),\nFinalData AS (\n    SELECT abc.company_name, abc.report_month,\n        CASE\n            WHEN pbc.clients_purchased <= 0 THEN NULL\n            WHEN pbc.clients_purchased IN (999, 99999) THEN NULL\n            ELSE ROUND(\n                (abc.product_used_total + abc.product_exceeded_total) * 100.0 / pbc.clients_purchased,\n                1\n            )\n        END AS util_pct\n    FROM AggregatedByCompany abc\n    INNER JOIN PurchasedByCompany pbc ON pbc.company_name = abc.company_name\n)\nSELECT\n    company_name AS \"Customer\",\n    ROUND(AVG(CASE WHEN report_month IN ('2026-06', '2026-07', '2026-08') THEN util_pct END), 1) AS \"Avg (Last 3M)\",\n    MAX(CASE WHEN report_month = '2025-10' THEN util_pct END) AS \"Oct-25\", MAX(CASE WHEN report_month = '2025-11' THEN util_pct END) AS \"Nov-25\", MAX(CASE WHEN report_month = '2025-12' THEN util_pct END) AS \"Dec-25\", MAX(CASE WHEN report_month = '2026-01' THEN util_pct END) AS \"Jan-26\", MAX(CASE WHEN report_month = '2026-02' THEN util_pct END) AS \"Feb-26\", MAX(CASE WHEN report_month = '2026-03' THEN util_pct END) AS \"Mar-26\", MAX(CASE WHEN report_month = '2026-04' THEN util_pct END) AS \"Apr-26\", MAX(CASE WHEN report_month = '2026-05' THEN util_pct END) AS \"May-26\", MAX(CASE WHEN report_month = '2026-06' THEN util_pct END) AS \"Jun-26\", MAX(CASE WHEN report_month = '2026-07' THEN util_pct END) AS \"Jul-26\", MAX(CASE WHEN report_month = '2026-08' THEN util_pct END) AS \"Aug-26\", MAX(CASE WHEN report_month = '2026-09' THEN util_pct END) AS \"Sep-26\"\nFROM FinalData\nGROUP BY company_name\nORDER BY company_name ASC",
           "queryType": "table",
           "timeColumns": [],
           "refId": "A"
@@ -1939,26 +1696,50 @@
           ],
           "show": false
         },
-        "showHeader": true
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "Avg (Last 3M)"
+          }
+        ]
       },
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "fixed",
-            "fixedColor": "text"
+            "mode": "thresholds"
           },
           "custom": {
             "align": "center",
             "cellOptions": {
-              "type": "auto",
+              "type": "color-background",
               "applyToRow": false,
-              "wrapText": false
+              "wrapText": true
             },
             "inspect": false,
             "filterable": false,
             "minWidth": 80
           },
-          "mappings": []
+          "decimals": 1,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "super-light-red",
+                "value": null
+              },
+              {
+                "color": "super-light-blue",
+                "value": 30
+              },
+              {
+                "color": "super-light-green",
+                "value": 70
+              }
+            ]
+          },
+          "unit": "percent"
         },
         "overrides": [
           {
@@ -1971,7 +1752,7 @@
                 "id": "custom.cellOptions",
                 "value": {
                   "type": "auto",
-                  "wrapText": false
+                  "wrapText": true
                 }
               },
               {
@@ -1999,178 +1780,13 @@
             "properties": [
               {
                 "id": "custom.width",
-                "value": 72
-              },
-              {
-                "id": "custom.minWidth",
-                "value": 72
-              },
-              {
-                "id": "unit",
-                "value": "percent"
-              },
-              {
-                "id": "decimals",
-                "value": 1
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "red",
-                      "value": null
-                    },
-                    {
-                      "color": "#5794F2",
-                      "value": 30
-                    },
-                    {
-                      "color": "green",
-                      "value": 70
-                    }
-                  ]
-                }
-              },
-              {
-                "id": "color",
-                "value": {
-                  "mode": "thresholds"
-                }
+                "value": 110
               },
               {
                 "id": "custom.cellOptions",
                 "value": {
                   "mode": "gradient",
-                  "type": "color-background",
-                  "wrapText": false
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "\u00b7Avg (Last 3M)"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 58
-              },
-              {
-                "id": "custom.minWidth",
-                "value": 58
-              },
-              {
-                "id": "unit",
-                "value": "string"
-              },
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "text"
-                }
-              },
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "auto",
-                  "wrapText": false
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byRegexp",
-              "options": "/^[A-Z][a-z]{2}-\\d{2}$/"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 72
-              },
-              {
-                "id": "custom.minWidth",
-                "value": 72
-              },
-              {
-                "id": "unit",
-                "value": "percent"
-              },
-              {
-                "id": "decimals",
-                "value": 1
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "red",
-                      "value": null
-                    },
-                    {
-                      "color": "#5794F2",
-                      "value": 30
-                    },
-                    {
-                      "color": "green",
-                      "value": 70
-                    }
-                  ]
-                }
-              },
-              {
-                "id": "color",
-                "value": {
-                  "mode": "thresholds"
-                }
-              },
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "mode": "gradient",
-                  "type": "color-background",
-                  "wrapText": false
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byRegexp",
-              "options": "/^\u00b7[A-Z][a-z]{2}-\\d{2}$/"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 58
-              },
-              {
-                "id": "custom.minWidth",
-                "value": 58
-              },
-              {
-                "id": "unit",
-                "value": "string"
-              },
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "text"
-                }
-              },
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "auto",
-                  "wrapText": false
+                  "type": "color-background"
                 }
               }
             ]
@@ -2189,9 +1805,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 69
+        "y": 72
       },
-      "id": 29,
+      "id": 32,
       "collapsed": false,
       "panels": []
     },
@@ -2202,9 +1818,9 @@
         "h": 5,
         "w": 4,
         "x": 0,
-        "y": 70
+        "y": 73
       },
-      "id": 30,
+      "id": 33,
       "targets": [
         {
           "datasource": {
@@ -2274,9 +1890,9 @@
         "h": 5,
         "w": 4,
         "x": 4,
-        "y": 70
+        "y": 73
       },
-      "id": 31,
+      "id": 34,
       "targets": [
         {
           "datasource": {
@@ -2326,9 +1942,9 @@
         "h": 5,
         "w": 4,
         "x": 8,
-        "y": 70
+        "y": 73
       },
-      "id": 32,
+      "id": 35,
       "targets": [
         {
           "datasource": {
@@ -2378,9 +1994,9 @@
         "h": 5,
         "w": 3,
         "x": 12,
-        "y": 70
+        "y": 73
       },
-      "id": 33,
+      "id": 36,
       "targets": [
         {
           "datasource": {
@@ -2430,9 +2046,9 @@
         "h": 5,
         "w": 4,
         "x": 15,
-        "y": 70
+        "y": 73
       },
-      "id": 34,
+      "id": 37,
       "targets": [
         {
           "datasource": {
@@ -2482,9 +2098,9 @@
         "h": 5,
         "w": 5,
         "x": 19,
-        "y": 70
+        "y": 73
       },
-      "id": 35,
+      "id": 38,
       "targets": [
         {
           "datasource": {
@@ -2549,23 +2165,36 @@
       "description": "Average of monthly Utilization % across all months in the selected Time Range filter (not the same as Avg (Last 3M) in the table below)."
     },
     {
+      "type": "row",
+      "title": "PWM Monthly Utilization %",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 78
+      },
+      "id": 39,
+      "collapsed": false,
+      "panels": []
+    },
+    {
       "type": "table",
       "title": "PWM Monthly Utilization %",
       "gridPos": {
         "h": 16,
         "w": 24,
         "x": 0,
-        "y": 75
+        "y": 79
       },
-      "id": 36,
+      "id": 40,
       "targets": [
         {
           "datasource": {
             "type": "frser-sqlite-datasource",
             "uid": null
           },
-          "queryText": "WITH CompanyData AS (\n    SELECT DISTINCT c.name AS company_name, LOWER(c.account_id) AS account_key\n    FROM companies c\n    WHERE c.account_id IS NOT NULL AND c.account_id != '' AND name = '${company_name}' AND ('${account_id:raw}' IN ('All', '%', '$__all') OR account_id = '${account_id}')\n),\nPurchasedByCompany AS (\n    SELECT c.name AS company_name,\n        CAST(COALESCE(\n            (\n                SELECT c2.clients_pm\n                FROM companies c2\n                WHERE c2.name = c.name\n                  AND c2.account_id IS NOT NULL\n                  AND c2.account_id != ''\n                  AND CAST(COALESCE(c2.clients_pm, '0') AS INTEGER) NOT IN (999, 99999)\n                ORDER BY c2.account_id\n                LIMIT 1\n            ),\n            '0'\n        ) AS INTEGER) AS clients_purchased\n    FROM companies c\n    WHERE c.account_id IS NOT NULL AND c.account_id != '' AND name = '${company_name}' AND ('${account_id:raw}' IN ('All', '%', '$__all') OR account_id = '${account_id}')\n    GROUP BY c.name\n),\nDateRange AS (\n    SELECT CASE\n        WHEN '${period_months}' = 'Current Month' THEN strftime('%Y-%m-%d', 'now', 'start of month')\n        WHEN '${period_months}' = 'Last 3 Months' OR '${period_months}' LIKE '3 Months' THEN strftime('%Y-%m-%d', 'now', '-3 months')\n        WHEN '${period_months}' = 'Last 6 Months' THEN strftime('%Y-%m-%d', 'now', '-6 months')\n        WHEN '${period_months}' = 'Last 9 Months' THEN strftime('%Y-%m-%d', 'now', '-9 months')\n        WHEN '${period_months}' = 'Last 12 Months' OR '${period_months}' LIKE '12 Months' THEN strftime('%Y-%m-%d', 'now', '-12 months')\n        WHEN '${period_months}' = 'Last 24 Months' THEN strftime('%Y-%m-%d', 'now', '-24 months')\n        WHEN '${period_months}' = 'From Contract Start' THEN\n            COALESCE((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), strftime('%Y-%m-%d', 'now', '-12 months'))\n        WHEN '${period_months}' = 'From Contract Start Last 12 Months' THEN\n            CASE WHEN (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) IS NOT NULL AND (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) != '' THEN\n                CASE WHEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10))) > date('now')\n                    THEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)), '-1 year')\n                    ELSE date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)))\n                END\n            ELSE strftime('%Y-%m-%d', 'now', 'start of month', '-11 months')\n            END\n        ELSE strftime('%Y-%m-%d', 'now', '-12 months')\n    END AS range_start\n),\nOneReportPerAccountDate AS (\n    SELECT cd.account_key, date(r.report_date) AS report_date, MAX(r.id) AS report_id\n    FROM reports r\n    INNER JOIN CompanyData cd ON cd.account_key = LOWER(r.account_id)\n    WHERE r.report_type = 'ObjectsReport'\n    GROUP BY cd.account_key, date(r.report_date)\n),\nMonthlyLatest AS (\n    SELECT cd.company_name, cd.account_key,\n        strftime('%Y-%m', orad.report_date) AS report_month,\n        MAX(orad.report_date) AS latest_report_date\n    FROM CompanyData cd\n    INNER JOIN OneReportPerAccountDate orad ON orad.account_key = cd.account_key\n    WHERE date(orad.report_date) >= (SELECT range_start FROM DateRange)\n      AND date(orad.report_date) <= date(strftime('%Y-%m-%d', 'now'))\n    GROUP BY cd.company_name, cd.account_key, strftime('%Y-%m', orad.report_date)\n),\nLatestReportId AS (\n    SELECT ml.company_name, ml.account_key, ml.report_month,\n        MAX(orad.report_id) AS report_id\n    FROM MonthlyLatest ml\n    INNER JOIN OneReportPerAccountDate orad\n        ON orad.account_key = ml.account_key AND orad.report_date = ml.latest_report_date\n    GROUP BY ml.company_name, ml.account_key, ml.report_month\n),\nMonthlyUsageByAccount AS (\n    SELECT lr.company_name, lr.account_key, lr.report_month,\n        COALESCE(SUM(CASE WHEN rcp.product = 'apm' THEN rcp.amount ELSE 0 END), 0) AS product_used,\n        COALESCE(SUM(CASE WHEN rcp.product = 'apm' THEN rcp.exceeded_amount ELSE 0 END), 0) AS product_exceeded\n    FROM LatestReportId lr\n    LEFT JOIN report_clients rc ON rc.report_id = lr.report_id\n    LEFT JOIN report_clients_product_info rcp ON rcp.report_client_id = rc.id\n    GROUP BY lr.company_name, lr.account_key, lr.report_month, lr.report_id\n),\nAggregatedByCompany AS (\n    SELECT company_name, report_month,\n        SUM(product_used) AS product_used_total,\n        SUM(product_exceeded) AS product_exceeded_total\n    FROM MonthlyUsageByAccount\n    GROUP BY company_name, report_month\n),\nFinalData AS (\n    SELECT abc.company_name, abc.report_month,\n        pbc.clients_purchased,\n        (abc.product_used_total + abc.product_exceeded_total) AS used_total,\n        CASE\n            WHEN pbc.clients_purchased <= 0 THEN NULL\n            WHEN pbc.clients_purchased IN (999, 99999) THEN NULL\n            ELSE ROUND(\n                (abc.product_used_total + abc.product_exceeded_total) * 100.0 / pbc.clients_purchased,\n                1\n            )\n        END AS util_pct\n    FROM AggregatedByCompany abc\n    INNER JOIN PurchasedByCompany pbc ON pbc.company_name = abc.company_name\n)\nSELECT\n    company_name AS \"Customer\",\n    ROUND(AVG(CASE WHEN report_month IN ('2026-06', '2026-07', '2026-08') THEN util_pct END), 1) AS \"Avg (Last 3M)\",\n    CASE\n        WHEN AVG(CASE WHEN report_month IN ('2026-06', '2026-07', '2026-08') THEN used_total END) IS NULL THEN NULL\n        ELSE printf('(%d/%d)', CAST(ROUND(AVG(CASE WHEN report_month IN ('2026-06', '2026-07', '2026-08') THEN used_total END)) AS INTEGER), MAX(clients_purchased))\n    END AS \"\u00b7Avg (Last 3M)\",\n    MAX(CASE WHEN report_month = '2025-10' THEN util_pct END) AS \"Oct-25\", MAX(CASE WHEN report_month = '2025-10' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Oct-25\", MAX(CASE WHEN report_month = '2025-11' THEN util_pct END) AS \"Nov-25\", MAX(CASE WHEN report_month = '2025-11' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Nov-25\", MAX(CASE WHEN report_month = '2025-12' THEN util_pct END) AS \"Dec-25\", MAX(CASE WHEN report_month = '2025-12' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Dec-25\", MAX(CASE WHEN report_month = '2026-01' THEN util_pct END) AS \"Jan-26\", MAX(CASE WHEN report_month = '2026-01' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Jan-26\", MAX(CASE WHEN report_month = '2026-02' THEN util_pct END) AS \"Feb-26\", MAX(CASE WHEN report_month = '2026-02' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Feb-26\", MAX(CASE WHEN report_month = '2026-03' THEN util_pct END) AS \"Mar-26\", MAX(CASE WHEN report_month = '2026-03' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Mar-26\", MAX(CASE WHEN report_month = '2026-04' THEN util_pct END) AS \"Apr-26\", MAX(CASE WHEN report_month = '2026-04' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Apr-26\", MAX(CASE WHEN report_month = '2026-05' THEN util_pct END) AS \"May-26\", MAX(CASE WHEN report_month = '2026-05' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7May-26\", MAX(CASE WHEN report_month = '2026-06' THEN util_pct END) AS \"Jun-26\", MAX(CASE WHEN report_month = '2026-06' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Jun-26\", MAX(CASE WHEN report_month = '2026-07' THEN util_pct END) AS \"Jul-26\", MAX(CASE WHEN report_month = '2026-07' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Jul-26\", MAX(CASE WHEN report_month = '2026-08' THEN util_pct END) AS \"Aug-26\", MAX(CASE WHEN report_month = '2026-08' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Aug-26\", MAX(CASE WHEN report_month = '2026-09' THEN util_pct END) AS \"Sep-26\", MAX(CASE WHEN report_month = '2026-09' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Sep-26\"\nFROM FinalData\nGROUP BY company_name\nORDER BY company_name ASC",
-          "rawQueryText": "WITH CompanyData AS (\n    SELECT DISTINCT c.name AS company_name, LOWER(c.account_id) AS account_key\n    FROM companies c\n    WHERE c.account_id IS NOT NULL AND c.account_id != '' AND name = '${company_name}' AND ('${account_id:raw}' IN ('All', '%', '$__all') OR account_id = '${account_id}')\n),\nPurchasedByCompany AS (\n    SELECT c.name AS company_name,\n        CAST(COALESCE(\n            (\n                SELECT c2.clients_pm\n                FROM companies c2\n                WHERE c2.name = c.name\n                  AND c2.account_id IS NOT NULL\n                  AND c2.account_id != ''\n                  AND CAST(COALESCE(c2.clients_pm, '0') AS INTEGER) NOT IN (999, 99999)\n                ORDER BY c2.account_id\n                LIMIT 1\n            ),\n            '0'\n        ) AS INTEGER) AS clients_purchased\n    FROM companies c\n    WHERE c.account_id IS NOT NULL AND c.account_id != '' AND name = '${company_name}' AND ('${account_id:raw}' IN ('All', '%', '$__all') OR account_id = '${account_id}')\n    GROUP BY c.name\n),\nDateRange AS (\n    SELECT CASE\n        WHEN '${period_months}' = 'Current Month' THEN strftime('%Y-%m-%d', 'now', 'start of month')\n        WHEN '${period_months}' = 'Last 3 Months' OR '${period_months}' LIKE '3 Months' THEN strftime('%Y-%m-%d', 'now', '-3 months')\n        WHEN '${period_months}' = 'Last 6 Months' THEN strftime('%Y-%m-%d', 'now', '-6 months')\n        WHEN '${period_months}' = 'Last 9 Months' THEN strftime('%Y-%m-%d', 'now', '-9 months')\n        WHEN '${period_months}' = 'Last 12 Months' OR '${period_months}' LIKE '12 Months' THEN strftime('%Y-%m-%d', 'now', '-12 months')\n        WHEN '${period_months}' = 'Last 24 Months' THEN strftime('%Y-%m-%d', 'now', '-24 months')\n        WHEN '${period_months}' = 'From Contract Start' THEN\n            COALESCE((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), strftime('%Y-%m-%d', 'now', '-12 months'))\n        WHEN '${period_months}' = 'From Contract Start Last 12 Months' THEN\n            CASE WHEN (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) IS NOT NULL AND (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) != '' THEN\n                CASE WHEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10))) > date('now')\n                    THEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)), '-1 year')\n                    ELSE date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)))\n                END\n            ELSE strftime('%Y-%m-%d', 'now', 'start of month', '-11 months')\n            END\n        ELSE strftime('%Y-%m-%d', 'now', '-12 months')\n    END AS range_start\n),\nOneReportPerAccountDate AS (\n    SELECT cd.account_key, date(r.report_date) AS report_date, MAX(r.id) AS report_id\n    FROM reports r\n    INNER JOIN CompanyData cd ON cd.account_key = LOWER(r.account_id)\n    WHERE r.report_type = 'ObjectsReport'\n    GROUP BY cd.account_key, date(r.report_date)\n),\nMonthlyLatest AS (\n    SELECT cd.company_name, cd.account_key,\n        strftime('%Y-%m', orad.report_date) AS report_month,\n        MAX(orad.report_date) AS latest_report_date\n    FROM CompanyData cd\n    INNER JOIN OneReportPerAccountDate orad ON orad.account_key = cd.account_key\n    WHERE date(orad.report_date) >= (SELECT range_start FROM DateRange)\n      AND date(orad.report_date) <= date(strftime('%Y-%m-%d', 'now'))\n    GROUP BY cd.company_name, cd.account_key, strftime('%Y-%m', orad.report_date)\n),\nLatestReportId AS (\n    SELECT ml.company_name, ml.account_key, ml.report_month,\n        MAX(orad.report_id) AS report_id\n    FROM MonthlyLatest ml\n    INNER JOIN OneReportPerAccountDate orad\n        ON orad.account_key = ml.account_key AND orad.report_date = ml.latest_report_date\n    GROUP BY ml.company_name, ml.account_key, ml.report_month\n),\nMonthlyUsageByAccount AS (\n    SELECT lr.company_name, lr.account_key, lr.report_month,\n        COALESCE(SUM(CASE WHEN rcp.product = 'apm' THEN rcp.amount ELSE 0 END), 0) AS product_used,\n        COALESCE(SUM(CASE WHEN rcp.product = 'apm' THEN rcp.exceeded_amount ELSE 0 END), 0) AS product_exceeded\n    FROM LatestReportId lr\n    LEFT JOIN report_clients rc ON rc.report_id = lr.report_id\n    LEFT JOIN report_clients_product_info rcp ON rcp.report_client_id = rc.id\n    GROUP BY lr.company_name, lr.account_key, lr.report_month, lr.report_id\n),\nAggregatedByCompany AS (\n    SELECT company_name, report_month,\n        SUM(product_used) AS product_used_total,\n        SUM(product_exceeded) AS product_exceeded_total\n    FROM MonthlyUsageByAccount\n    GROUP BY company_name, report_month\n),\nFinalData AS (\n    SELECT abc.company_name, abc.report_month,\n        pbc.clients_purchased,\n        (abc.product_used_total + abc.product_exceeded_total) AS used_total,\n        CASE\n            WHEN pbc.clients_purchased <= 0 THEN NULL\n            WHEN pbc.clients_purchased IN (999, 99999) THEN NULL\n            ELSE ROUND(\n                (abc.product_used_total + abc.product_exceeded_total) * 100.0 / pbc.clients_purchased,\n                1\n            )\n        END AS util_pct\n    FROM AggregatedByCompany abc\n    INNER JOIN PurchasedByCompany pbc ON pbc.company_name = abc.company_name\n)\nSELECT\n    company_name AS \"Customer\",\n    ROUND(AVG(CASE WHEN report_month IN ('2026-06', '2026-07', '2026-08') THEN util_pct END), 1) AS \"Avg (Last 3M)\",\n    CASE\n        WHEN AVG(CASE WHEN report_month IN ('2026-06', '2026-07', '2026-08') THEN used_total END) IS NULL THEN NULL\n        ELSE printf('(%d/%d)', CAST(ROUND(AVG(CASE WHEN report_month IN ('2026-06', '2026-07', '2026-08') THEN used_total END)) AS INTEGER), MAX(clients_purchased))\n    END AS \"\u00b7Avg (Last 3M)\",\n    MAX(CASE WHEN report_month = '2025-10' THEN util_pct END) AS \"Oct-25\", MAX(CASE WHEN report_month = '2025-10' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Oct-25\", MAX(CASE WHEN report_month = '2025-11' THEN util_pct END) AS \"Nov-25\", MAX(CASE WHEN report_month = '2025-11' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Nov-25\", MAX(CASE WHEN report_month = '2025-12' THEN util_pct END) AS \"Dec-25\", MAX(CASE WHEN report_month = '2025-12' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Dec-25\", MAX(CASE WHEN report_month = '2026-01' THEN util_pct END) AS \"Jan-26\", MAX(CASE WHEN report_month = '2026-01' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Jan-26\", MAX(CASE WHEN report_month = '2026-02' THEN util_pct END) AS \"Feb-26\", MAX(CASE WHEN report_month = '2026-02' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Feb-26\", MAX(CASE WHEN report_month = '2026-03' THEN util_pct END) AS \"Mar-26\", MAX(CASE WHEN report_month = '2026-03' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Mar-26\", MAX(CASE WHEN report_month = '2026-04' THEN util_pct END) AS \"Apr-26\", MAX(CASE WHEN report_month = '2026-04' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Apr-26\", MAX(CASE WHEN report_month = '2026-05' THEN util_pct END) AS \"May-26\", MAX(CASE WHEN report_month = '2026-05' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7May-26\", MAX(CASE WHEN report_month = '2026-06' THEN util_pct END) AS \"Jun-26\", MAX(CASE WHEN report_month = '2026-06' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Jun-26\", MAX(CASE WHEN report_month = '2026-07' THEN util_pct END) AS \"Jul-26\", MAX(CASE WHEN report_month = '2026-07' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Jul-26\", MAX(CASE WHEN report_month = '2026-08' THEN util_pct END) AS \"Aug-26\", MAX(CASE WHEN report_month = '2026-08' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Aug-26\", MAX(CASE WHEN report_month = '2026-09' THEN util_pct END) AS \"Sep-26\", MAX(CASE WHEN report_month = '2026-09' THEN printf(\"(%d/%d)\", used_total, clients_purchased) END) AS \"\u00b7Sep-26\"\nFROM FinalData\nGROUP BY company_name\nORDER BY company_name ASC",
+          "queryText": "WITH CompanyData AS (\n    SELECT DISTINCT c.name AS company_name, LOWER(c.account_id) AS account_key\n    FROM companies c\n    WHERE c.account_id IS NOT NULL AND c.account_id != '' AND name = '${company_name}' AND ('${account_id:raw}' IN ('All', '%', '$__all') OR account_id = '${account_id}')\n),\nPurchasedByCompany AS (\n    SELECT c.name AS company_name,\n        CAST(COALESCE(\n            (\n                SELECT c2.clients_pm\n                FROM companies c2\n                WHERE c2.name = c.name\n                  AND c2.account_id IS NOT NULL\n                  AND c2.account_id != ''\n                  AND CAST(COALESCE(c2.clients_pm, '0') AS INTEGER) NOT IN (999, 99999)\n                ORDER BY c2.account_id\n                LIMIT 1\n            ),\n            '0'\n        ) AS INTEGER) AS clients_purchased\n    FROM companies c\n    WHERE c.account_id IS NOT NULL AND c.account_id != '' AND name = '${company_name}' AND ('${account_id:raw}' IN ('All', '%', '$__all') OR account_id = '${account_id}')\n    GROUP BY c.name\n),\nDateRange AS (\n    SELECT CASE\n        WHEN '${period_months}' = 'Current Month' THEN strftime('%Y-%m-%d', 'now', 'start of month')\n        WHEN '${period_months}' = 'Last 3 Months' OR '${period_months}' LIKE '3 Months' THEN strftime('%Y-%m-%d', 'now', '-3 months')\n        WHEN '${period_months}' = 'Last 6 Months' THEN strftime('%Y-%m-%d', 'now', '-6 months')\n        WHEN '${period_months}' = 'Last 9 Months' THEN strftime('%Y-%m-%d', 'now', '-9 months')\n        WHEN '${period_months}' = 'Last 12 Months' OR '${period_months}' LIKE '12 Months' THEN strftime('%Y-%m-%d', 'now', '-12 months')\n        WHEN '${period_months}' = 'Last 24 Months' THEN strftime('%Y-%m-%d', 'now', '-24 months')\n        WHEN '${period_months}' = 'From Contract Start' THEN\n            COALESCE((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), strftime('%Y-%m-%d', 'now', '-12 months'))\n        WHEN '${period_months}' = 'From Contract Start Last 12 Months' THEN\n            CASE WHEN (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) IS NOT NULL AND (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) != '' THEN\n                CASE WHEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10))) > date('now')\n                    THEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)), '-1 year')\n                    ELSE date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)))\n                END\n            ELSE strftime('%Y-%m-%d', 'now', 'start of month', '-11 months')\n            END\n        ELSE strftime('%Y-%m-%d', 'now', '-12 months')\n    END AS range_start\n),\nOneReportPerAccountDate AS (\n    SELECT cd.account_key, date(r.report_date) AS report_date, MAX(r.id) AS report_id\n    FROM reports r\n    INNER JOIN CompanyData cd ON cd.account_key = LOWER(r.account_id)\n    WHERE r.report_type = 'ObjectsReport'\n    GROUP BY cd.account_key, date(r.report_date)\n),\nMonthlyLatest AS (\n    SELECT cd.company_name, cd.account_key,\n        strftime('%Y-%m', orad.report_date) AS report_month,\n        MAX(orad.report_date) AS latest_report_date\n    FROM CompanyData cd\n    INNER JOIN OneReportPerAccountDate orad ON orad.account_key = cd.account_key\n    WHERE date(orad.report_date) >= (SELECT range_start FROM DateRange)\n      AND date(orad.report_date) <= date(strftime('%Y-%m-%d', 'now'))\n    GROUP BY cd.company_name, cd.account_key, strftime('%Y-%m', orad.report_date)\n),\nLatestReportId AS (\n    SELECT ml.company_name, ml.account_key, ml.report_month,\n        MAX(orad.report_id) AS report_id\n    FROM MonthlyLatest ml\n    INNER JOIN OneReportPerAccountDate orad\n        ON orad.account_key = ml.account_key AND orad.report_date = ml.latest_report_date\n    GROUP BY ml.company_name, ml.account_key, ml.report_month\n),\nMonthlyUsageByAccount AS (\n    SELECT lr.company_name, lr.account_key, lr.report_month,\n        COALESCE(SUM(CASE WHEN rcp.product = 'apm' THEN rcp.amount ELSE 0 END), 0) AS product_used,\n        COALESCE(SUM(CASE WHEN rcp.product = 'apm' THEN rcp.exceeded_amount ELSE 0 END), 0) AS product_exceeded\n    FROM LatestReportId lr\n    LEFT JOIN report_clients rc ON rc.report_id = lr.report_id\n    LEFT JOIN report_clients_product_info rcp ON rcp.report_client_id = rc.id\n    GROUP BY lr.company_name, lr.account_key, lr.report_month, lr.report_id\n),\nAggregatedByCompany AS (\n    SELECT company_name, report_month,\n        SUM(product_used) AS product_used_total,\n        SUM(product_exceeded) AS product_exceeded_total\n    FROM MonthlyUsageByAccount\n    GROUP BY company_name, report_month\n),\nFinalData AS (\n    SELECT abc.company_name, abc.report_month,\n        CASE\n            WHEN pbc.clients_purchased <= 0 THEN NULL\n            WHEN pbc.clients_purchased IN (999, 99999) THEN NULL\n            ELSE ROUND(\n                (abc.product_used_total + abc.product_exceeded_total) * 100.0 / pbc.clients_purchased,\n                1\n            )\n        END AS util_pct\n    FROM AggregatedByCompany abc\n    INNER JOIN PurchasedByCompany pbc ON pbc.company_name = abc.company_name\n)\nSELECT\n    company_name AS \"Customer\",\n    ROUND(AVG(CASE WHEN report_month IN ('2026-06', '2026-07', '2026-08') THEN util_pct END), 1) AS \"Avg (Last 3M)\",\n    MAX(CASE WHEN report_month = '2025-10' THEN util_pct END) AS \"Oct-25\", MAX(CASE WHEN report_month = '2025-11' THEN util_pct END) AS \"Nov-25\", MAX(CASE WHEN report_month = '2025-12' THEN util_pct END) AS \"Dec-25\", MAX(CASE WHEN report_month = '2026-01' THEN util_pct END) AS \"Jan-26\", MAX(CASE WHEN report_month = '2026-02' THEN util_pct END) AS \"Feb-26\", MAX(CASE WHEN report_month = '2026-03' THEN util_pct END) AS \"Mar-26\", MAX(CASE WHEN report_month = '2026-04' THEN util_pct END) AS \"Apr-26\", MAX(CASE WHEN report_month = '2026-05' THEN util_pct END) AS \"May-26\", MAX(CASE WHEN report_month = '2026-06' THEN util_pct END) AS \"Jun-26\", MAX(CASE WHEN report_month = '2026-07' THEN util_pct END) AS \"Jul-26\", MAX(CASE WHEN report_month = '2026-08' THEN util_pct END) AS \"Aug-26\", MAX(CASE WHEN report_month = '2026-09' THEN util_pct END) AS \"Sep-26\"\nFROM FinalData\nGROUP BY company_name\nORDER BY company_name ASC",
+          "rawQueryText": "WITH CompanyData AS (\n    SELECT DISTINCT c.name AS company_name, LOWER(c.account_id) AS account_key\n    FROM companies c\n    WHERE c.account_id IS NOT NULL AND c.account_id != '' AND name = '${company_name}' AND ('${account_id:raw}' IN ('All', '%', '$__all') OR account_id = '${account_id}')\n),\nPurchasedByCompany AS (\n    SELECT c.name AS company_name,\n        CAST(COALESCE(\n            (\n                SELECT c2.clients_pm\n                FROM companies c2\n                WHERE c2.name = c.name\n                  AND c2.account_id IS NOT NULL\n                  AND c2.account_id != ''\n                  AND CAST(COALESCE(c2.clients_pm, '0') AS INTEGER) NOT IN (999, 99999)\n                ORDER BY c2.account_id\n                LIMIT 1\n            ),\n            '0'\n        ) AS INTEGER) AS clients_purchased\n    FROM companies c\n    WHERE c.account_id IS NOT NULL AND c.account_id != '' AND name = '${company_name}' AND ('${account_id:raw}' IN ('All', '%', '$__all') OR account_id = '${account_id}')\n    GROUP BY c.name\n),\nDateRange AS (\n    SELECT CASE\n        WHEN '${period_months}' = 'Current Month' THEN strftime('%Y-%m-%d', 'now', 'start of month')\n        WHEN '${period_months}' = 'Last 3 Months' OR '${period_months}' LIKE '3 Months' THEN strftime('%Y-%m-%d', 'now', '-3 months')\n        WHEN '${period_months}' = 'Last 6 Months' THEN strftime('%Y-%m-%d', 'now', '-6 months')\n        WHEN '${period_months}' = 'Last 9 Months' THEN strftime('%Y-%m-%d', 'now', '-9 months')\n        WHEN '${period_months}' = 'Last 12 Months' OR '${period_months}' LIKE '12 Months' THEN strftime('%Y-%m-%d', 'now', '-12 months')\n        WHEN '${period_months}' = 'Last 24 Months' THEN strftime('%Y-%m-%d', 'now', '-24 months')\n        WHEN '${period_months}' = 'From Contract Start' THEN\n            COALESCE((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), strftime('%Y-%m-%d', 'now', '-12 months'))\n        WHEN '${period_months}' = 'From Contract Start Last 12 Months' THEN\n            CASE WHEN (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) IS NOT NULL AND (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) != '' THEN\n                CASE WHEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10))) > date('now')\n                    THEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)), '-1 year')\n                    ELSE date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)))\n                END\n            ELSE strftime('%Y-%m-%d', 'now', 'start of month', '-11 months')\n            END\n        ELSE strftime('%Y-%m-%d', 'now', '-12 months')\n    END AS range_start\n),\nOneReportPerAccountDate AS (\n    SELECT cd.account_key, date(r.report_date) AS report_date, MAX(r.id) AS report_id\n    FROM reports r\n    INNER JOIN CompanyData cd ON cd.account_key = LOWER(r.account_id)\n    WHERE r.report_type = 'ObjectsReport'\n    GROUP BY cd.account_key, date(r.report_date)\n),\nMonthlyLatest AS (\n    SELECT cd.company_name, cd.account_key,\n        strftime('%Y-%m', orad.report_date) AS report_month,\n        MAX(orad.report_date) AS latest_report_date\n    FROM CompanyData cd\n    INNER JOIN OneReportPerAccountDate orad ON orad.account_key = cd.account_key\n    WHERE date(orad.report_date) >= (SELECT range_start FROM DateRange)\n      AND date(orad.report_date) <= date(strftime('%Y-%m-%d', 'now'))\n    GROUP BY cd.company_name, cd.account_key, strftime('%Y-%m', orad.report_date)\n),\nLatestReportId AS (\n    SELECT ml.company_name, ml.account_key, ml.report_month,\n        MAX(orad.report_id) AS report_id\n    FROM MonthlyLatest ml\n    INNER JOIN OneReportPerAccountDate orad\n        ON orad.account_key = ml.account_key AND orad.report_date = ml.latest_report_date\n    GROUP BY ml.company_name, ml.account_key, ml.report_month\n),\nMonthlyUsageByAccount AS (\n    SELECT lr.company_name, lr.account_key, lr.report_month,\n        COALESCE(SUM(CASE WHEN rcp.product = 'apm' THEN rcp.amount ELSE 0 END), 0) AS product_used,\n        COALESCE(SUM(CASE WHEN rcp.product = 'apm' THEN rcp.exceeded_amount ELSE 0 END), 0) AS product_exceeded\n    FROM LatestReportId lr\n    LEFT JOIN report_clients rc ON rc.report_id = lr.report_id\n    LEFT JOIN report_clients_product_info rcp ON rcp.report_client_id = rc.id\n    GROUP BY lr.company_name, lr.account_key, lr.report_month, lr.report_id\n),\nAggregatedByCompany AS (\n    SELECT company_name, report_month,\n        SUM(product_used) AS product_used_total,\n        SUM(product_exceeded) AS product_exceeded_total\n    FROM MonthlyUsageByAccount\n    GROUP BY company_name, report_month\n),\nFinalData AS (\n    SELECT abc.company_name, abc.report_month,\n        CASE\n            WHEN pbc.clients_purchased <= 0 THEN NULL\n            WHEN pbc.clients_purchased IN (999, 99999) THEN NULL\n            ELSE ROUND(\n                (abc.product_used_total + abc.product_exceeded_total) * 100.0 / pbc.clients_purchased,\n                1\n            )\n        END AS util_pct\n    FROM AggregatedByCompany abc\n    INNER JOIN PurchasedByCompany pbc ON pbc.company_name = abc.company_name\n)\nSELECT\n    company_name AS \"Customer\",\n    ROUND(AVG(CASE WHEN report_month IN ('2026-06', '2026-07', '2026-08') THEN util_pct END), 1) AS \"Avg (Last 3M)\",\n    MAX(CASE WHEN report_month = '2025-10' THEN util_pct END) AS \"Oct-25\", MAX(CASE WHEN report_month = '2025-11' THEN util_pct END) AS \"Nov-25\", MAX(CASE WHEN report_month = '2025-12' THEN util_pct END) AS \"Dec-25\", MAX(CASE WHEN report_month = '2026-01' THEN util_pct END) AS \"Jan-26\", MAX(CASE WHEN report_month = '2026-02' THEN util_pct END) AS \"Feb-26\", MAX(CASE WHEN report_month = '2026-03' THEN util_pct END) AS \"Mar-26\", MAX(CASE WHEN report_month = '2026-04' THEN util_pct END) AS \"Apr-26\", MAX(CASE WHEN report_month = '2026-05' THEN util_pct END) AS \"May-26\", MAX(CASE WHEN report_month = '2026-06' THEN util_pct END) AS \"Jun-26\", MAX(CASE WHEN report_month = '2026-07' THEN util_pct END) AS \"Jul-26\", MAX(CASE WHEN report_month = '2026-08' THEN util_pct END) AS \"Aug-26\", MAX(CASE WHEN report_month = '2026-09' THEN util_pct END) AS \"Sep-26\"\nFROM FinalData\nGROUP BY company_name\nORDER BY company_name ASC",
           "queryType": "table",
           "timeColumns": [],
           "refId": "A"
@@ -2581,26 +2210,50 @@
           ],
           "show": false
         },
-        "showHeader": true
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "Avg (Last 3M)"
+          }
+        ]
       },
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "fixed",
-            "fixedColor": "text"
+            "mode": "thresholds"
           },
           "custom": {
             "align": "center",
             "cellOptions": {
-              "type": "auto",
+              "type": "color-background",
               "applyToRow": false,
-              "wrapText": false
+              "wrapText": true
             },
             "inspect": false,
             "filterable": false,
             "minWidth": 80
           },
-          "mappings": []
+          "decimals": 1,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "super-light-red",
+                "value": null
+              },
+              {
+                "color": "super-light-blue",
+                "value": 30
+              },
+              {
+                "color": "super-light-green",
+                "value": 70
+              }
+            ]
+          },
+          "unit": "percent"
         },
         "overrides": [
           {
@@ -2613,7 +2266,7 @@
                 "id": "custom.cellOptions",
                 "value": {
                   "type": "auto",
-                  "wrapText": false
+                  "wrapText": true
                 }
               },
               {
@@ -2641,178 +2294,13 @@
             "properties": [
               {
                 "id": "custom.width",
-                "value": 72
-              },
-              {
-                "id": "custom.minWidth",
-                "value": 72
-              },
-              {
-                "id": "unit",
-                "value": "percent"
-              },
-              {
-                "id": "decimals",
-                "value": 1
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "red",
-                      "value": null
-                    },
-                    {
-                      "color": "#5794F2",
-                      "value": 30
-                    },
-                    {
-                      "color": "green",
-                      "value": 70
-                    }
-                  ]
-                }
-              },
-              {
-                "id": "color",
-                "value": {
-                  "mode": "thresholds"
-                }
+                "value": 110
               },
               {
                 "id": "custom.cellOptions",
                 "value": {
                   "mode": "gradient",
-                  "type": "color-background",
-                  "wrapText": false
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "\u00b7Avg (Last 3M)"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 58
-              },
-              {
-                "id": "custom.minWidth",
-                "value": 58
-              },
-              {
-                "id": "unit",
-                "value": "string"
-              },
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "text"
-                }
-              },
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "auto",
-                  "wrapText": false
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byRegexp",
-              "options": "/^[A-Z][a-z]{2}-\\d{2}$/"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 72
-              },
-              {
-                "id": "custom.minWidth",
-                "value": 72
-              },
-              {
-                "id": "unit",
-                "value": "percent"
-              },
-              {
-                "id": "decimals",
-                "value": 1
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "red",
-                      "value": null
-                    },
-                    {
-                      "color": "#5794F2",
-                      "value": 30
-                    },
-                    {
-                      "color": "green",
-                      "value": 70
-                    }
-                  ]
-                }
-              },
-              {
-                "id": "color",
-                "value": {
-                  "mode": "thresholds"
-                }
-              },
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "mode": "gradient",
-                  "type": "color-background",
-                  "wrapText": false
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byRegexp",
-              "options": "/^\u00b7[A-Z][a-z]{2}-\\d{2}$/"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 58
-              },
-              {
-                "id": "custom.minWidth",
-                "value": 58
-              },
-              {
-                "id": "unit",
-                "value": "string"
-              },
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "text"
-                }
-              },
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "auto",
-                  "wrapText": false
+                  "type": "color-background"
                 }
               }
             ]
@@ -2831,9 +2319,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 91
+        "y": 95
       },
-      "id": 37,
+      "id": 41,
       "collapsed": false,
       "panels": []
     },
@@ -2845,9 +2333,9 @@
         "h": 18,
         "w": 24,
         "x": 0,
-        "y": 92
+        "y": 96
       },
-      "id": 38,
+      "id": 42,
       "targets": [
         {
           "datasource": {
@@ -2974,9 +2462,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 110
+        "y": 114
       },
-      "id": 39,
+      "id": 43,
       "collapsed": false,
       "panels": []
     },
@@ -2987,9 +2475,9 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 111
+        "y": 115
       },
-      "id": 40,
+      "id": 44,
       "targets": [
         {
           "datasource": {
@@ -3040,9 +2528,9 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 119
+        "y": 123
       },
-      "id": 41,
+      "id": 45,
       "targets": [
         {
           "datasource": {
@@ -3203,9 +2691,9 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 127
+        "y": 131
       },
-      "id": 42,
+      "id": 46,
       "targets": [
         {
           "datasource": {
@@ -3307,9 +2795,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 137
+        "y": 141
       },
-      "id": 43,
+      "id": 47,
       "collapsed": false,
       "panels": []
     },
@@ -3320,9 +2808,9 @@
         "h": 6,
         "w": 8,
         "x": 0,
-        "y": 138
+        "y": 142
       },
-      "id": 44,
+      "id": 48,
       "targets": [
         {
           "datasource": {
@@ -3403,9 +2891,9 @@
         "h": 6,
         "w": 16,
         "x": 8,
-        "y": 138
+        "y": 142
       },
-      "id": 45,
+      "id": 49,
       "targets": [
         {
           "datasource": {
@@ -3486,9 +2974,9 @@
         "h": 5,
         "w": 24,
         "x": 0,
-        "y": 144
+        "y": 148
       },
-      "id": 46,
+      "id": 50,
       "targets": [
         {
           "datasource": {
@@ -3708,9 +3196,9 @@
         "h": 6,
         "w": 12,
         "x": 0,
-        "y": 149
+        "y": 153
       },
-      "id": 47,
+      "id": 51,
       "targets": [
         {
           "datasource": {
@@ -3944,9 +3432,9 @@
         "h": 6,
         "w": 12,
         "x": 12,
-        "y": 149
+        "y": 153
       },
-      "id": 48,
+      "id": 52,
       "targets": [
         {
           "datasource": {
@@ -4180,9 +3668,9 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 155
+        "y": 159
       },
-      "id": 49,
+      "id": 53,
       "targets": [
         {
           "datasource": {
@@ -4303,9 +3791,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 163
+        "y": 167
       },
-      "id": 50,
+      "id": 54,
       "collapsed": false,
       "panels": []
     },
@@ -4316,9 +3804,9 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 164
+        "y": 168
       },
-      "id": 51,
+      "id": 55,
       "targets": [
         {
           "datasource": {
@@ -4412,9 +3900,9 @@
         "h": 6,
         "w": 24,
         "x": 0,
-        "y": 172
+        "y": 176
       },
-      "id": 52,
+      "id": 56,
       "targets": [
         {
           "datasource": {
@@ -4561,9 +4049,9 @@
         "h": 6,
         "w": 24,
         "x": 0,
-        "y": 178
+        "y": 182
       },
-      "id": 53,
+      "id": 57,
       "targets": [
         {
           "datasource": {
@@ -4715,9 +4203,9 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 184
+        "y": 188
       },
-      "id": 54,
+      "id": 58,
       "targets": [
         {
           "datasource": {
@@ -4863,9 +4351,9 @@
         "h": 6,
         "w": 24,
         "x": 0,
-        "y": 192
+        "y": 196
       },
-      "id": 55,
+      "id": 59,
       "targets": [
         {
           "datasource": {

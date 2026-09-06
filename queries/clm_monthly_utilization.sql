@@ -43,8 +43,6 @@ AggregatedByCompany AS (
 ),
 FinalData AS (
     SELECT abc.company_name, abc.report_month,
-        pbc.clients_purchased,
-        abc.product_used_total AS used_total,
         CASE
             WHEN pbc.clients_purchased <= 0 THEN NULL
             WHEN pbc.clients_purchased IN (999, 99999) THEN NULL
@@ -56,7 +54,6 @@ FinalData AS (
 SELECT
     company_name AS "Customer",
     {avg_expr} AS "Avg (Last 3M)",
-    {avg_counts_expr} AS "·Avg (Last 3M)",
     {pivot_cols}
 FROM FinalData
 GROUP BY company_name

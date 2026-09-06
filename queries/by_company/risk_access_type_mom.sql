@@ -79,35 +79,62 @@ Combined AS (
     SELECT DISTINCT company_name, access_type
     FROM AccessTypeUsage
     WHERE COALESCE(used_in_limit, 0) > 0 OR COALESCE(total_clients, 0) > 0
+),
+DetailRows AS (
+    SELECT
+        cb.company_name AS company_name,
+        CASE cb.access_type
+            WHEN 'api_key' THEN 'API Key'
+            WHEN 'aws_iam' THEN 'AWS IAM'
+            WHEN 'saml2' THEN 'SAML'
+            WHEN 'universal_identity' THEN 'Universal Identity'
+            WHEN 'k8s' THEN 'K8s'
+            WHEN 'ldap' THEN 'LDAP'
+            WHEN 'oidc' THEN 'OIDC'
+            WHEN 'jwt' THEN 'JWT'
+            WHEN 'azure_ad' THEN 'Azure AD'
+            WHEN 'gcp' THEN 'GCP'
+            ELSE COALESCE(cb.access_type, 'Unknown')
+        END AS access_type_label,
+        (SELECT start_month FROM WindowBounds) || ' → ' || (SELECT end_month FROM WindowBounds) AS period_label,
+        COALESCE(start_u.used_in_limit, 0) AS start_used,
+        COALESCE(end_u.used_in_limit, 0) AS end_used,
+        COALESCE(start_u.total_clients, 0) AS start_total,
+        COALESCE(end_u.total_clients, 0) AS end_total
+    FROM Combined cb
+    LEFT JOIN StartMonthUsage start_u
+        ON start_u.company_name = cb.company_name
+        AND start_u.access_type = cb.access_type
+    LEFT JOIN EndMonthUsage end_u
+        ON end_u.company_name = cb.company_name
+        AND end_u.access_type = cb.access_type
 )
 SELECT
-    cb.company_name AS "Customer",
+    company_name AS "Customer",
     (SELECT GROUP_CONCAT(DISTINCT account_id)
      FROM CompanyAccounts ca_ids
-     WHERE ca_ids.company_name = cb.company_name) AS "Account IDs",
-    CASE cb.access_type
-        WHEN 'api_key' THEN 'API Key'
-        WHEN 'aws_iam' THEN 'AWS IAM'
-        WHEN 'saml2' THEN 'SAML'
-        WHEN 'universal_identity' THEN 'Universal Identity'
-        WHEN 'k8s' THEN 'K8s'
-        WHEN 'ldap' THEN 'LDAP'
-        WHEN 'oidc' THEN 'OIDC'
-        WHEN 'jwt' THEN 'JWT'
-        WHEN 'azure_ad' THEN 'Azure AD'
-        WHEN 'gcp' THEN 'GCP'
-        ELSE COALESCE(cb.access_type, 'Unknown')
-    END AS "Access Type",
-    (SELECT start_month FROM WindowBounds) || ' → ' || (SELECT end_month FROM WindowBounds) AS "Period",
-    CAST(COALESCE(start_u.used_in_limit, 0) AS TEXT) || ' → ' || CAST(COALESCE(end_u.used_in_limit, 0) AS TEXT) AS "Used Clients",
-    CAST(COALESCE(start_u.total_clients, 0) AS TEXT) || ' → ' || CAST(COALESCE(end_u.total_clients, 0) AS TEXT) AS "Total Clients including Exceeding",
-    COALESCE(end_u.total_clients, 0) AS "End Total",
-    COALESCE(end_u.total_clients, 0) - COALESCE(start_u.total_clients, 0) AS "Change"
-FROM Combined cb
-LEFT JOIN StartMonthUsage start_u
-    ON start_u.company_name = cb.company_name
-    AND start_u.access_type = cb.access_type
-LEFT JOIN EndMonthUsage end_u
-    ON end_u.company_name = cb.company_name
-    AND end_u.access_type = cb.access_type
-ORDER BY cb.company_name, COALESCE(end_u.total_clients, 0) DESC, "Access Type"
+     WHERE ca_ids.company_name = dr.company_name) AS "Account IDs",
+    access_type_label AS "Access Type",
+    period_label AS "Period",
+    CAST(start_used AS TEXT) || ' → ' || CAST(end_used AS TEXT) AS "Used Clients",
+    CAST(start_total AS TEXT) || ' → ' || CAST(end_total AS TEXT) AS "Total Clients including Exceeding",
+    end_total AS "End Total",
+    end_total - start_total AS "Change",
+    0 AS "Row Order"
+FROM DetailRows dr
+UNION ALL
+SELECT
+    company_name AS "Customer",
+    (SELECT GROUP_CONCAT(DISTINCT account_id)
+     FROM CompanyAccounts ca_ids
+     WHERE ca_ids.company_name = dr.company_name) AS "Account IDs",
+    'Total Used Clients' AS "Access Type",
+    period_label AS "Period",
+    CAST(SUM(start_used) AS TEXT) || ' → ' || CAST(SUM(end_used) AS TEXT) AS "Used Clients",
+    CAST(SUM(start_total) AS TEXT) || ' → ' || CAST(SUM(end_total) AS TEXT) AS "Total Clients including Exceeding",
+    SUM(end_total) AS "End Total",
+    SUM(end_total) - SUM(start_total) AS "Change",
+    1 AS "Row Order"
+FROM DetailRows dr
+GROUP BY company_name, period_label
+ORDER BY "Customer", "Row Order", "End Total" DESC

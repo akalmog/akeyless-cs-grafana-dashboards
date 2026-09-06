@@ -591,7 +591,7 @@ def sql_target(raw_sql, query_type="table", ref="A", time_columns=None):
     }
 
 
-def row_panel(title, y, collapsed=False):
+def row_panel(title, y, collapsed=True):
     return {
         "type": "row",
         "title": title,
@@ -916,6 +916,11 @@ def rolling_months(count=24):
             month = 12
             year -= 1
     return list(reversed(months))
+
+
+# Default monthly utilization pivot columns — matches default Time Range (Last 12 Months).
+# SQL data window still follows ${period_months} at runtime via range_start.
+UTILIZATION_PIVOT_MONTHS = 12
 
 
 def completed_rolling_months(count=3):
@@ -2428,7 +2433,7 @@ def product_section(label, product, purchased_col, y, portfolio=False, multi_acc
         y += metric_h
 
     util_height = 16
-    util_months = 24
+    util_months = UTILIZATION_PIVOT_MONTHS
     util_title = (
         f"{label} Monthly Utilization % by Customer"
         if use_portfolio_sql
@@ -3093,9 +3098,13 @@ def build_dashboard(title, uid, portfolio=False, multi_account=False, experiment
     use_portfolio_sql = portfolio or multi_account
 
     if not portfolio and not multi_account and experimental:
+        panels.append(row_panel("Account Summary", y))
+        y += 1
         header_panels, y = original_account_header_panels(y)
         panels.extend(header_panels)
     elif portfolio and not multi_account:
+        panels.append(row_panel("Account Details", y))
+        y += 1
         detail_panels, y = account_details_panels(y, portfolio=True, experimental=experimental)
         panels.extend(detail_panels)
 

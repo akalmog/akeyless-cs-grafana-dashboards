@@ -705,6 +705,20 @@ def validate_grafana_row_layout(panels, dashboard_name="dashboard"):
     return issues
 
 
+def access_type_mom_stat_sql(value_expr, legacy=True):
+    """Single-value stat query from the Access Type MoM summary logic."""
+    summary = load_query("risk_access_type_mom_summary.sql", legacy=legacy)
+    multi_select = (
+        "SELECT\n"
+        "    CAST(SUM(start_total) AS TEXT) || ' → ' || CAST(SUM(end_total) AS TEXT) AS \"Total Clients including Exceeding\",\n"
+        "    CAST(SUM(start_used) AS TEXT) || ' → ' || CAST(SUM(end_used) AS TEXT) AS \"Used Clients\",\n"
+        "    SUM(end_total) - SUM(start_total) AS \"Change\"\n"
+        "FROM DetailRows"
+    )
+    single_select = f"SELECT\n    {value_expr} AS value\nFROM DetailRows"
+    return summary.replace(multi_select, single_select)
+
+
 def stat_panel(title, sql, x, y, w=4, h=4, unit=None, thresholds=None, color_mode="value", field=None):
     fc = {
         "defaults": {
@@ -2994,44 +3008,53 @@ def access_type_mom_section(y, multi_account=False, legacy=True):
     detail_sql = load_query("risk_access_type_mom.sql", group_by_company=multi_account, legacy=legacy)
 
     if not multi_account:
-        summary_sql = load_query("risk_access_type_mom_summary.sql", legacy=legacy)
+        totals_description = (
+            "Aggregated across all access types. "
+            "Period is the last 3 completed calendar months (excludes the current incomplete month)."
+        )
         panels.append(
             stat_panel(
                 "Total Clients (incl. exceeding)",
-                summary_sql,
+                access_type_mom_stat_sql(
+                    "CAST(SUM(start_total) AS TEXT) || ' → ' || CAST(SUM(end_total) AS TEXT)",
+                    legacy=legacy,
+                ),
                 0,
                 y,
                 w=8,
                 h=4,
-                field="Total Clients including Exceeding",
                 unit="string",
             )
         )
+        panels[-1]["description"] = totals_description
         panels.append(
             stat_panel(
                 "Used Clients",
-                summary_sql,
+                access_type_mom_stat_sql(
+                    "CAST(SUM(start_used) AS TEXT) || ' → ' || CAST(SUM(end_used) AS TEXT)",
+                    legacy=legacy,
+                ),
                 8,
                 y,
                 w=8,
                 h=4,
-                field="Used Clients",
                 unit="string",
             )
         )
+        panels[-1]["description"] = totals_description
         panels.append(
             stat_panel(
                 "Change",
-                summary_sql,
+                access_type_mom_stat_sql("SUM(end_total) - SUM(start_total)", legacy=legacy),
                 16,
                 y,
                 w=8,
                 h=4,
                 unit="none",
                 thresholds=CHANGE_THRESHOLDS,
-                field="Change",
             )
         )
+        panels[-1]["description"] = totals_description
         y += 4
         panels.append(
             piechart_panel(

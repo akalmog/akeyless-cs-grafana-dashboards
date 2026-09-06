@@ -1296,10 +1296,13 @@ def month_column_label(year, month):
 
 
 def utilization_pivot_counts_columns(months, used_total="used_total", purchased="clients_purchased"):
+    util_pct = "util_pct"
     return ", ".join([
         (
             f"MAX(CASE WHEN report_month = '{y:04d}-{m:02d}' THEN "
-            f'printf("(%d/%d)", {used_total}, {purchased}) END) '
+            f"CASE WHEN {util_pct} IS NULL THEN NULL "
+            f"ELSE printf('%d|(%d/%d)', CAST(ROUND({util_pct}) AS INTEGER), "
+            f"{used_total}, {purchased}) END END) "
             f'AS "{month_column_label(y, m)}"'
         )
         for y, m in months
@@ -1307,24 +1310,60 @@ def utilization_pivot_counts_columns(months, used_total="used_total", purchased=
 
 
 def utilization_avg_counts_sql(avg_months_sql, used_total="used_total", purchased="clients_purchased"):
+    avg_util = f"AVG(CASE WHEN report_month IN ({avg_months_sql}) THEN util_pct END)"
     avg_used = f"AVG(CASE WHEN report_month IN ({avg_months_sql}) THEN {used_total} END)"
     return f"""CASE
-        WHEN {avg_used} IS NULL THEN NULL
-        ELSE printf('(%d/%d)', CAST(ROUND({avg_used}) AS INTEGER), MAX({purchased}))
+        WHEN {avg_util} IS NULL THEN NULL
+        ELSE printf('%d|(%d/%d)', CAST(ROUND({avg_util}) AS INTEGER),
+            CAST(ROUND({avg_used}) AS INTEGER), MAX({purchased}))
     END"""
 
 
+def utilization_counts_string_mappings():
+    """Map encoded 'pct|(used/threshold)' strings to display text + threshold colors."""
+    display = r"(\(\d+/\d+\))"
+    return [
+        {
+            "type": "regex",
+            "options": {
+                "pattern": rf"^([7-9]\d|[1-9]\d{{2,}})\|{display}$",
+                "result": {"text": "$2", "color": "super-light-green", "index": 0},
+            },
+        },
+        {
+            "type": "regex",
+            "options": {
+                "pattern": rf"^([3-6]\d)\|{display}$",
+                "result": {"text": "$2", "color": "super-light-blue", "index": 1},
+            },
+        },
+        {
+            "type": "regex",
+            "options": {
+                "pattern": rf"^(\d{{1,2}})\|{display}$",
+                "result": {"text": "$2", "color": "super-light-red", "index": 2},
+            },
+        },
+    ]
+
+
 def utilization_month_counts_field_overrides():
-    cell_props = [
+    count_cell_props = [
         {"id": "custom.width", "value": 80},
         {"id": "custom.minWidth", "value": 72},
         {"id": "unit", "value": "string"},
-        {"id": "color", "value": {"mode": "fixed", "fixedColor": "text"}},
-        {"id": "custom.cellOptions", "value": {"type": "auto", "wrapText": False}},
+        {"id": "mappings", "value": utilization_counts_string_mappings()},
+        {
+            "id": "custom.cellOptions",
+            "value": {"mode": "gradient", "type": "color-background", "wrapText": False},
+        },
     ]
     return [
-        {"matcher": {"id": "byName", "options": "Avg (Last 3M)"}, "properties": cell_props},
-        {"matcher": {"id": "byRegexp", "options": "/^[A-Z][a-z]{2}-\\d{2}$/"}, "properties": cell_props},
+        {"matcher": {"id": "byName", "options": "Avg (Last 3M)"}, "properties": [
+            *count_cell_props,
+            {"id": "custom.width", "value": 110},
+        ]},
+        {"matcher": {"id": "byRegexp", "options": "/^[A-Z][a-z]{2}-\\d{2}$/"}, "properties": count_cell_props},
     ]
 
 
@@ -1660,12 +1699,17 @@ def product_utilization_table_panel(
                     "color": {"mode": "fixed", "fixedColor": "text"},
                     "custom": {
                         "align": "center",
-                        "cellOptions": {"type": "auto", "applyToRow": False, "wrapText": False},
+                        "cellOptions": {
+                            "type": "color-background",
+                            "mode": "gradient",
+                            "applyToRow": False,
+                            "wrapText": False,
+                        },
                         "inspect": False,
                         "filterable": False,
-                        "minWidth": 72,
+                        "minWidth": 80,
                     },
-                    "mappings": [],
+                    "mappings": utilization_counts_string_mappings(),
                 },
                 "overrides": [
                     {
@@ -1675,6 +1719,7 @@ def product_utilization_table_panel(
                             {"id": "custom.width", "value": 200},
                             {"id": "unit", "value": "string"},
                             {"id": "color", "value": {"mode": "fixed", "fixedColor": "text"}},
+                            {"id": "mappings", "value": []},
                         ],
                     },
                     *utilization_month_counts_field_overrides(),

@@ -2950,7 +2950,7 @@
     },
     {
       "type": "table",
-      "title": "Access Type \u2014 Used Clients (Last 3 Months)",
+      "title": "Access Type - Clients Usage (Last 3 Months)",
       "gridPos": {
         "h": 8,
         "w": 24,

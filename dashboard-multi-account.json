@@ -121,28 +121,15 @@
       }
     },
     {
-      "type": "row",
-      "title": "SM Monthly Utilization % by Customer",
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 9
-      },
-      "id": 3,
-      "collapsed": false,
-      "panels": []
-    },
-    {
       "type": "table",
       "title": "SM Monthly Utilization % by Customer",
       "gridPos": {
         "h": 16,
         "w": 24,
         "x": 0,
-        "y": 10
+        "y": 9
       },
-      "id": 4,
+      "id": 3,
       "targets": [
         {
           "datasource": {
@@ -269,19 +256,6 @@
       }
     },
     {
-      "type": "row",
-      "title": "SM Monthly Used / Threshold by Customer",
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 26
-      },
-      "id": 5,
-      "collapsed": false,
-      "panels": []
-    },
-    {
       "type": "table",
       "title": "SM Monthly Used / Threshold by Customer",
       "description": "Monthly used clients vs purchased threshold (used/threshold). Includes exceeded clients in the used count.",
@@ -289,9 +263,9 @@
         "h": 16,
         "w": 24,
         "x": 0,
-        "y": 27
+        "y": 25
       },
-      "id": 6,
+      "id": 4,
       "targets": [
         {
           "datasource": {
@@ -449,9 +423,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 43
+        "y": 41
       },
-      "id": 7,
+      "id": 5,
       "collapsed": false,
       "panels": []
     },
@@ -462,9 +436,9 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 44
+        "y": 42
       },
-      "id": 8,
+      "id": 6,
       "targets": [
         {
           "datasource": {
@@ -554,28 +528,15 @@
       }
     },
     {
-      "type": "row",
-      "title": "CLM Monthly Utilization % by Customer",
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 52
-      },
-      "id": 9,
-      "collapsed": false,
-      "panels": []
-    },
-    {
       "type": "table",
       "title": "CLM Monthly Utilization % by Customer",
       "gridPos": {
         "h": 16,
         "w": 24,
         "x": 0,
-        "y": 53
+        "y": 50
       },
-      "id": 10,
+      "id": 7,
       "targets": [
         {
           "datasource": {
@@ -702,19 +663,6 @@
       }
     },
     {
-      "type": "row",
-      "title": "CLM Monthly Used / Threshold by Customer",
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 69
-      },
-      "id": 11,
-      "collapsed": false,
-      "panels": []
-    },
-    {
       "type": "table",
       "title": "CLM Monthly Used / Threshold by Customer",
       "description": "Monthly used clients vs purchased threshold (used/threshold). Includes exceeded clients in the used count.",
@@ -722,9 +670,9 @@
         "h": 16,
         "w": 24,
         "x": 0,
-        "y": 70
+        "y": 66
       },
-      "id": 12,
+      "id": 8,
       "targets": [
         {
           "datasource": {
@@ -882,9 +830,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 86
+        "y": 82
       },
-      "id": 13,
+      "id": 9,
       "collapsed": false,
       "panels": []
     },
@@ -895,9 +843,9 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 87
+        "y": 83
       },
-      "id": 14,
+      "id": 10,
       "targets": [
         {
           "datasource": {
@@ -987,28 +935,15 @@
       }
     },
     {
-      "type": "row",
-      "title": "SRA Monthly Utilization % by Customer",
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 95
-      },
-      "id": 15,
-      "collapsed": false,
-      "panels": []
-    },
-    {
       "type": "table",
       "title": "SRA Monthly Utilization % by Customer",
       "gridPos": {
         "h": 16,
         "w": 24,
         "x": 0,
-        "y": 96
+        "y": 91
       },
-      "id": 16,
+      "id": 11,
       "targets": [
         {
           "datasource": {
@@ -1135,19 +1070,6 @@
       }
     },
     {
-      "type": "row",
-      "title": "SRA Monthly Used / Threshold by Customer",
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 112
-      },
-      "id": 17,
-      "collapsed": false,
-      "panels": []
-    },
-    {
       "type": "table",
       "title": "SRA Monthly Used / Threshold by Customer",
       "description": "Monthly used clients vs purchased threshold (used/threshold). Includes exceeded clients in the used count.",
@@ -1155,9 +1077,9 @@
         "h": 16,
         "w": 24,
         "x": 0,
-        "y": 113
+        "y": 107
       },
-      "id": 18,
+      "id": 12,
       "targets": [
         {
           "datasource": {
@@ -1315,9 +1237,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 129
+        "y": 123
       },
-      "id": 19,
+      "id": 13,
       "collapsed": false,
       "panels": []
     },
@@ -1328,9 +1250,9 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 130
+        "y": 124
       },
-      "id": 20,
+      "id": 14,
       "targets": [
         {
           "datasource": {
@@ -1420,28 +1342,15 @@
       }
     },
     {
-      "type": "row",
-      "title": "PWM Monthly Utilization % by Customer",
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 138
-      },
-      "id": 21,
-      "collapsed": false,
-      "panels": []
-    },
-    {
       "type": "table",
       "title": "PWM Monthly Utilization % by Customer",
       "gridPos": {
         "h": 16,
         "w": 24,
         "x": 0,
-        "y": 139
+        "y": 132
       },
-      "id": 22,
+      "id": 15,
       "targets": [
         {
           "datasource": {
@@ -1568,19 +1477,6 @@
       }
     },
     {
-      "type": "row",
-      "title": "PWM Monthly Used / Threshold by Customer",
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 155
-      },
-      "id": 23,
-      "collapsed": false,
-      "panels": []
-    },
-    {
       "type": "table",
       "title": "PWM Monthly Used / Threshold by Customer",
       "description": "Monthly used clients vs purchased threshold (used/threshold). Includes exceeded clients in the used count.",
@@ -1588,9 +1484,9 @@
         "h": 16,
         "w": 24,
         "x": 0,
-        "y": 156
+        "y": 148
       },
-      "id": 24,
+      "id": 16,
       "targets": [
         {
           "datasource": {
@@ -1748,9 +1644,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 172
+        "y": 164
       },
-      "id": 25,
+      "id": 17,
       "collapsed": false,
       "panels": []
     },
@@ -1761,9 +1657,9 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 173
+        "y": 165
       },
-      "id": 26,
+      "id": 18,
       "targets": [
         {
           "datasource": {
@@ -1813,9 +1709,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 183
+        "y": 175
       },
-      "id": 27,
+      "id": 19,
       "collapsed": false,
       "panels": []
     },
@@ -1826,9 +1722,9 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 184
+        "y": 176
       },
-      "id": 28,
+      "id": 20,
       "targets": [
         {
           "datasource": {
@@ -1879,9 +1775,9 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 192
+        "y": 184
       },
-      "id": 29,
+      "id": 21,
       "targets": [
         {
           "datasource": {
@@ -2042,9 +1938,9 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 200
+        "y": 192
       },
-      "id": 30,
+      "id": 22,
       "targets": [
         {
           "datasource": {
@@ -2146,9 +2042,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 210
+        "y": 202
       },
-      "id": 31,
+      "id": 23,
       "collapsed": false,
       "panels": []
     },
@@ -2159,9 +2055,9 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 211
+        "y": 203
       },
-      "id": 32,
+      "id": 24,
       "targets": [
         {
           "datasource": {
@@ -2395,9 +2291,9 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 211
+        "y": 203
       },
-      "id": 33,
+      "id": 25,
       "targets": [
         {
           "datasource": {
@@ -2631,9 +2527,9 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 219
+        "y": 211
       },
-      "id": 34,
+      "id": 26,
       "targets": [
         {
           "datasource": {
@@ -2754,9 +2650,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 227
+        "y": 219
       },
-      "id": 35,
+      "id": 27,
       "collapsed": false,
       "panels": []
     },
@@ -2767,9 +2663,9 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 228
+        "y": 220
       },
-      "id": 36,
+      "id": 28,
       "targets": [
         {
           "datasource": {
@@ -2863,9 +2759,9 @@
         "h": 6,
         "w": 24,
         "x": 0,
-        "y": 236
+        "y": 228
       },
-      "id": 37,
+      "id": 29,
       "targets": [
         {
           "datasource": {
@@ -3012,9 +2908,9 @@
         "h": 6,
         "w": 24,
         "x": 0,
-        "y": 242
+        "y": 234
       },
-      "id": 38,
+      "id": 30,
       "targets": [
         {
           "datasource": {
@@ -3166,9 +3062,9 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 248
+        "y": 240
       },
-      "id": 39,
+      "id": 31,
       "targets": [
         {
           "datasource": {
@@ -3314,9 +3210,9 @@
         "h": 6,
         "w": 24,
         "x": 0,
-        "y": 256
+        "y": 248
       },
-      "id": 40,
+      "id": 32,
       "targets": [
         {
           "datasource": {

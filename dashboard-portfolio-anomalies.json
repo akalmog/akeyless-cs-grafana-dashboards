@@ -740,28 +740,15 @@
       "description": "Average of monthly Utilization % across all months in the selected Time Range filter (not the same as Avg (Last 3M) in the table below)."
     },
     {
-      "type": "row",
-      "title": "SM Monthly Utilization % by Customer",
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 14
-      },
-      "id": 15,
-      "collapsed": false,
-      "panels": []
-    },
-    {
       "type": "table",
       "title": "SM Monthly Utilization % by Customer",
       "gridPos": {
         "h": 16,
         "w": 24,
         "x": 0,
-        "y": 15
+        "y": 14
       },
-      "id": 16,
+      "id": 15,
       "targets": [
         {
           "datasource": {
@@ -888,19 +875,6 @@
       }
     },
     {
-      "type": "row",
-      "title": "SM Monthly Used / Threshold by Customer",
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 31
-      },
-      "id": 17,
-      "collapsed": false,
-      "panels": []
-    },
-    {
       "type": "table",
       "title": "SM Monthly Used / Threshold by Customer",
       "description": "Monthly used clients vs purchased threshold (used/threshold). Includes exceeded clients in the used count.",
@@ -908,9 +882,9 @@
         "h": 16,
         "w": 24,
         "x": 0,
-        "y": 32
+        "y": 30
       },
-      "id": 18,
+      "id": 16,
       "targets": [
         {
           "datasource": {
@@ -1068,9 +1042,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 48
+        "y": 46
       },
-      "id": 19,
+      "id": 17,
       "collapsed": false,
       "panels": []
     },
@@ -1081,9 +1055,9 @@
         "h": 5,
         "w": 4,
         "x": 0,
-        "y": 49
+        "y": 47
       },
-      "id": 20,
+      "id": 18,
       "targets": [
         {
           "datasource": {
@@ -1153,9 +1127,9 @@
         "h": 5,
         "w": 4,
         "x": 4,
-        "y": 49
+        "y": 47
       },
-      "id": 21,
+      "id": 19,
       "targets": [
         {
           "datasource": {
@@ -1205,9 +1179,9 @@
         "h": 5,
         "w": 4,
         "x": 8,
-        "y": 49
+        "y": 47
       },
-      "id": 22,
+      "id": 20,
       "targets": [
         {
           "datasource": {
@@ -1257,9 +1231,9 @@
         "h": 5,
         "w": 4,
         "x": 12,
-        "y": 49
+        "y": 47
       },
-      "id": 23,
+      "id": 21,
       "targets": [
         {
           "datasource": {
@@ -1324,28 +1298,15 @@
       "description": "Average of monthly Utilization % across all months in the selected Time Range filter (not the same as Avg (Last 3M) in the table below)."
     },
     {
-      "type": "row",
-      "title": "CLM Monthly Utilization % by Customer",
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 54
-      },
-      "id": 24,
-      "collapsed": false,
-      "panels": []
-    },
-    {
       "type": "table",
       "title": "CLM Monthly Utilization % by Customer",
       "gridPos": {
         "h": 16,
         "w": 24,
         "x": 0,
-        "y": 55
+        "y": 52
       },
-      "id": 25,
+      "id": 22,
       "targets": [
         {
           "datasource": {
@@ -1472,19 +1433,6 @@
       }
     },
     {
-      "type": "row",
-      "title": "CLM Monthly Used / Threshold by Customer",
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 71
-      },
-      "id": 26,
-      "collapsed": false,
-      "panels": []
-    },
-    {
       "type": "table",
       "title": "CLM Monthly Used / Threshold by Customer",
       "description": "Monthly used clients vs purchased threshold (used/threshold). Includes exceeded clients in the used count.",
@@ -1492,9 +1440,9 @@
         "h": 16,
         "w": 24,
         "x": 0,
-        "y": 72
+        "y": 68
       },
-      "id": 27,
+      "id": 23,
       "targets": [
         {
           "datasource": {
@@ -1652,9 +1600,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 88
+        "y": 84
       },
-      "id": 28,
+      "id": 24,
       "collapsed": false,
       "panels": []
     },
@@ -1665,9 +1613,9 @@
         "h": 5,
         "w": 4,
         "x": 0,
-        "y": 89
+        "y": 85
       },
-      "id": 29,
+      "id": 25,
       "targets": [
         {
           "datasource": {
@@ -1737,9 +1685,9 @@
         "h": 5,
         "w": 4,
         "x": 4,
-        "y": 89
+        "y": 85
       },
-      "id": 30,
+      "id": 26,
       "targets": [
         {
           "datasource": {
@@ -1789,9 +1737,9 @@
         "h": 5,
         "w": 4,
         "x": 8,
-        "y": 89
+        "y": 85
       },
-      "id": 31,
+      "id": 27,
       "targets": [
         {
           "datasource": {
@@ -1841,9 +1789,9 @@
         "h": 5,
         "w": 4,
         "x": 12,
-        "y": 89
+        "y": 85
       },
-      "id": 32,
+      "id": 28,
       "targets": [
         {
           "datasource": {
@@ -1908,28 +1856,15 @@
       "description": "Average of monthly Utilization % across all months in the selected Time Range filter (not the same as Avg (Last 3M) in the table below)."
     },
     {
-      "type": "row",
-      "title": "SRA Monthly Utilization % by Customer",
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 94
-      },
-      "id": 33,
-      "collapsed": false,
-      "panels": []
-    },
-    {
       "type": "table",
       "title": "SRA Monthly Utilization % by Customer",
       "gridPos": {
         "h": 16,
         "w": 24,
         "x": 0,
-        "y": 95
+        "y": 90
       },
-      "id": 34,
+      "id": 29,
       "targets": [
         {
           "datasource": {
@@ -2056,19 +1991,6 @@
       }
     },
     {
-      "type": "row",
-      "title": "SRA Monthly Used / Threshold by Customer",
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 111
-      },
-      "id": 35,
-      "collapsed": false,
-      "panels": []
-    },
-    {
       "type": "table",
       "title": "SRA Monthly Used / Threshold by Customer",
       "description": "Monthly used clients vs purchased threshold (used/threshold). Includes exceeded clients in the used count.",
@@ -2076,9 +1998,9 @@
         "h": 16,
         "w": 24,
         "x": 0,
-        "y": 112
+        "y": 106
       },
-      "id": 36,
+      "id": 30,
       "targets": [
         {
           "datasource": {
@@ -2236,9 +2158,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 128
+        "y": 122
       },
-      "id": 37,
+      "id": 31,
       "collapsed": false,
       "panels": []
     },
@@ -2249,9 +2171,9 @@
         "h": 5,
         "w": 4,
         "x": 0,
-        "y": 129
+        "y": 123
       },
-      "id": 38,
+      "id": 32,
       "targets": [
         {
           "datasource": {
@@ -2321,9 +2243,9 @@
         "h": 5,
         "w": 4,
         "x": 4,
-        "y": 129
+        "y": 123
       },
-      "id": 39,
+      "id": 33,
       "targets": [
         {
           "datasource": {
@@ -2373,9 +2295,9 @@
         "h": 5,
         "w": 4,
         "x": 8,
-        "y": 129
+        "y": 123
       },
-      "id": 40,
+      "id": 34,
       "targets": [
         {
           "datasource": {
@@ -2425,9 +2347,9 @@
         "h": 5,
         "w": 4,
         "x": 12,
-        "y": 129
+        "y": 123
       },
-      "id": 41,
+      "id": 35,
       "targets": [
         {
           "datasource": {
@@ -2492,28 +2414,15 @@
       "description": "Average of monthly Utilization % across all months in the selected Time Range filter (not the same as Avg (Last 3M) in the table below)."
     },
     {
-      "type": "row",
-      "title": "PWM Monthly Utilization % by Customer",
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 134
-      },
-      "id": 42,
-      "collapsed": false,
-      "panels": []
-    },
-    {
       "type": "table",
       "title": "PWM Monthly Utilization % by Customer",
       "gridPos": {
         "h": 16,
         "w": 24,
         "x": 0,
-        "y": 135
+        "y": 128
       },
-      "id": 43,
+      "id": 36,
       "targets": [
         {
           "datasource": {
@@ -2640,19 +2549,6 @@
       }
     },
     {
-      "type": "row",
-      "title": "PWM Monthly Used / Threshold by Customer",
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 151
-      },
-      "id": 44,
-      "collapsed": false,
-      "panels": []
-    },
-    {
       "type": "table",
       "title": "PWM Monthly Used / Threshold by Customer",
       "description": "Monthly used clients vs purchased threshold (used/threshold). Includes exceeded clients in the used count.",
@@ -2660,9 +2556,9 @@
         "h": 16,
         "w": 24,
         "x": 0,
-        "y": 152
+        "y": 144
       },
-      "id": 45,
+      "id": 37,
       "targets": [
         {
           "datasource": {
@@ -2820,9 +2716,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 168
+        "y": 160
       },
-      "id": 46,
+      "id": 38,
       "collapsed": false,
       "panels": []
     },
@@ -2834,9 +2730,9 @@
         "h": 18,
         "w": 24,
         "x": 0,
-        "y": 169
+        "y": 161
       },
-      "id": 47,
+      "id": 39,
       "targets": [
         {
           "datasource": {
@@ -2963,9 +2859,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 187
+        "y": 179
       },
-      "id": 48,
+      "id": 40,
       "collapsed": false,
       "panels": []
     },
@@ -2976,9 +2872,9 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 188
+        "y": 180
       },
-      "id": 49,
+      "id": 41,
       "targets": [
         {
           "datasource": {
@@ -3028,9 +2924,9 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 196
+        "y": 188
       },
-      "id": 50,
+      "id": 42,
       "targets": [
         {
           "datasource": {

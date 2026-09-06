@@ -727,28 +727,15 @@
       "description": "Average of monthly Utilization % across all months in the selected Time Range filter (not the same as Avg (Last 3M) in the table below)."
     },
     {
-      "type": "row",
+      "type": "table",
       "title": "SM Monthly Utilization %",
       "gridPos": {
-        "h": 1,
+        "h": 5,
         "w": 24,
         "x": 0,
         "y": 9
       },
       "id": 14,
-      "collapsed": false,
-      "panels": []
-    },
-    {
-      "type": "table",
-      "title": "SM Monthly Utilization %",
-      "gridPos": {
-        "h": 16,
-        "w": 24,
-        "x": 0,
-        "y": 10
-      },
-      "id": 15,
       "targets": [
         {
           "datasource": {
@@ -875,29 +862,16 @@
       }
     },
     {
-      "type": "row",
-      "title": "SM Monthly Used / Threshold",
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 26
-      },
-      "id": 16,
-      "collapsed": false,
-      "panels": []
-    },
-    {
       "type": "table",
       "title": "SM Monthly Used / Threshold",
       "description": "Monthly used clients vs purchased threshold (used/threshold). Includes exceeded clients in the used count.",
       "gridPos": {
-        "h": 16,
+        "h": 5,
         "w": 24,
         "x": 0,
-        "y": 27
+        "y": 14
       },
-      "id": 17,
+      "id": 15,
       "targets": [
         {
           "datasource": {
@@ -1055,9 +1029,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 43
+        "y": 19
       },
-      "id": 18,
+      "id": 16,
       "collapsed": false,
       "panels": []
     },
@@ -1068,9 +1042,9 @@
         "h": 5,
         "w": 5,
         "x": 0,
-        "y": 44
+        "y": 20
       },
-      "id": 19,
+      "id": 17,
       "targets": [
         {
           "datasource": {
@@ -1140,9 +1114,9 @@
         "h": 5,
         "w": 5,
         "x": 5,
-        "y": 44
+        "y": 20
       },
-      "id": 20,
+      "id": 18,
       "targets": [
         {
           "datasource": {
@@ -1192,9 +1166,9 @@
         "h": 5,
         "w": 5,
         "x": 10,
-        "y": 44
+        "y": 20
       },
-      "id": 21,
+      "id": 19,
       "targets": [
         {
           "datasource": {
@@ -1244,9 +1218,9 @@
         "h": 5,
         "w": 5,
         "x": 15,
-        "y": 44
+        "y": 20
       },
-      "id": 22,
+      "id": 20,
       "targets": [
         {
           "datasource": {
@@ -1311,28 +1285,15 @@
       "description": "Average of monthly Utilization % across all months in the selected Time Range filter (not the same as Avg (Last 3M) in the table below)."
     },
     {
-      "type": "row",
-      "title": "CLM Monthly Utilization %",
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 49
-      },
-      "id": 23,
-      "collapsed": false,
-      "panels": []
-    },
-    {
       "type": "table",
       "title": "CLM Monthly Utilization %",
       "gridPos": {
-        "h": 16,
+        "h": 5,
         "w": 24,
         "x": 0,
-        "y": 50
+        "y": 25
       },
-      "id": 24,
+      "id": 21,
       "targets": [
         {
           "datasource": {
@@ -1459,29 +1420,16 @@
       }
     },
     {
-      "type": "row",
-      "title": "CLM Monthly Used / Threshold",
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 66
-      },
-      "id": 25,
-      "collapsed": false,
-      "panels": []
-    },
-    {
       "type": "table",
       "title": "CLM Monthly Used / Threshold",
       "description": "Monthly used clients vs purchased threshold (used/threshold). Includes exceeded clients in the used count.",
       "gridPos": {
-        "h": 16,
+        "h": 5,
         "w": 24,
         "x": 0,
-        "y": 67
+        "y": 30
       },
-      "id": 26,
+      "id": 22,
       "targets": [
         {
           "datasource": {
@@ -1639,9 +1587,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 83
+        "y": 35
       },
-      "id": 27,
+      "id": 23,
       "collapsed": false,
       "panels": []
     },
@@ -1652,9 +1600,9 @@
         "h": 5,
         "w": 4,
         "x": 0,
-        "y": 84
+        "y": 36
       },
-      "id": 28,
+      "id": 24,
       "targets": [
         {
           "datasource": {
@@ -1724,9 +1672,9 @@
         "h": 5,
         "w": 4,
         "x": 4,
-        "y": 84
+        "y": 36
       },
-      "id": 29,
+      "id": 25,
       "targets": [
         {
           "datasource": {
@@ -1776,9 +1724,9 @@
         "h": 5,
         "w": 4,
         "x": 8,
-        "y": 84
+        "y": 36
       },
-      "id": 30,
+      "id": 26,
       "targets": [
         {
           "datasource": {
@@ -1828,9 +1776,9 @@
         "h": 5,
         "w": 3,
         "x": 12,
-        "y": 84
+        "y": 36
       },
-      "id": 31,
+      "id": 27,
       "targets": [
         {
           "datasource": {
@@ -1880,9 +1828,9 @@
         "h": 5,
         "w": 4,
         "x": 15,
-        "y": 84
+        "y": 36
       },
-      "id": 32,
+      "id": 28,
       "targets": [
         {
           "datasource": {
@@ -1932,9 +1880,9 @@
         "h": 5,
         "w": 5,
         "x": 19,
-        "y": 84
+        "y": 36
       },
-      "id": 33,
+      "id": 29,
       "targets": [
         {
           "datasource": {
@@ -1999,28 +1947,15 @@
       "description": "Average of monthly Utilization % across all months in the selected Time Range filter (not the same as Avg (Last 3M) in the table below)."
     },
     {
-      "type": "row",
-      "title": "SRA Monthly Utilization %",
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 89
-      },
-      "id": 34,
-      "collapsed": false,
-      "panels": []
-    },
-    {
       "type": "table",
       "title": "SRA Monthly Utilization %",
       "gridPos": {
-        "h": 16,
+        "h": 5,
         "w": 24,
         "x": 0,
-        "y": 90
+        "y": 41
       },
-      "id": 35,
+      "id": 30,
       "targets": [
         {
           "datasource": {
@@ -2147,29 +2082,16 @@
       }
     },
     {
-      "type": "row",
-      "title": "SRA Monthly Used / Threshold",
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 106
-      },
-      "id": 36,
-      "collapsed": false,
-      "panels": []
-    },
-    {
       "type": "table",
       "title": "SRA Monthly Used / Threshold",
       "description": "Monthly used clients vs purchased threshold (used/threshold). Includes exceeded clients in the used count.",
       "gridPos": {
-        "h": 16,
+        "h": 5,
         "w": 24,
         "x": 0,
-        "y": 107
+        "y": 46
       },
-      "id": 37,
+      "id": 31,
       "targets": [
         {
           "datasource": {
@@ -2327,9 +2249,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 123
+        "y": 51
       },
-      "id": 38,
+      "id": 32,
       "collapsed": false,
       "panels": []
     },
@@ -2340,9 +2262,9 @@
         "h": 5,
         "w": 4,
         "x": 0,
-        "y": 124
+        "y": 52
       },
-      "id": 39,
+      "id": 33,
       "targets": [
         {
           "datasource": {
@@ -2412,9 +2334,9 @@
         "h": 5,
         "w": 4,
         "x": 4,
-        "y": 124
+        "y": 52
       },
-      "id": 40,
+      "id": 34,
       "targets": [
         {
           "datasource": {
@@ -2464,9 +2386,9 @@
         "h": 5,
         "w": 4,
         "x": 8,
-        "y": 124
+        "y": 52
       },
-      "id": 41,
+      "id": 35,
       "targets": [
         {
           "datasource": {
@@ -2516,9 +2438,9 @@
         "h": 5,
         "w": 3,
         "x": 12,
-        "y": 124
+        "y": 52
       },
-      "id": 42,
+      "id": 36,
       "targets": [
         {
           "datasource": {
@@ -2568,9 +2490,9 @@
         "h": 5,
         "w": 4,
         "x": 15,
-        "y": 124
+        "y": 52
       },
-      "id": 43,
+      "id": 37,
       "targets": [
         {
           "datasource": {
@@ -2620,9 +2542,9 @@
         "h": 5,
         "w": 5,
         "x": 19,
-        "y": 124
+        "y": 52
       },
-      "id": 44,
+      "id": 38,
       "targets": [
         {
           "datasource": {
@@ -2687,28 +2609,15 @@
       "description": "Average of monthly Utilization % across all months in the selected Time Range filter (not the same as Avg (Last 3M) in the table below)."
     },
     {
-      "type": "row",
-      "title": "PWM Monthly Utilization %",
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 129
-      },
-      "id": 45,
-      "collapsed": false,
-      "panels": []
-    },
-    {
       "type": "table",
       "title": "PWM Monthly Utilization %",
       "gridPos": {
-        "h": 16,
+        "h": 5,
         "w": 24,
         "x": 0,
-        "y": 130
+        "y": 57
       },
-      "id": 46,
+      "id": 39,
       "targets": [
         {
           "datasource": {
@@ -2835,29 +2744,16 @@
       }
     },
     {
-      "type": "row",
-      "title": "PWM Monthly Used / Threshold",
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 146
-      },
-      "id": 47,
-      "collapsed": false,
-      "panels": []
-    },
-    {
       "type": "table",
       "title": "PWM Monthly Used / Threshold",
       "description": "Monthly used clients vs purchased threshold (used/threshold). Includes exceeded clients in the used count.",
       "gridPos": {
-        "h": 16,
+        "h": 5,
         "w": 24,
         "x": 0,
-        "y": 147
+        "y": 62
       },
-      "id": 48,
+      "id": 40,
       "targets": [
         {
           "datasource": {
@@ -3015,9 +2911,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 163
+        "y": 67
       },
-      "id": 49,
+      "id": 41,
       "collapsed": false,
       "panels": []
     },
@@ -3029,9 +2925,9 @@
         "h": 18,
         "w": 24,
         "x": 0,
-        "y": 164
+        "y": 68
       },
-      "id": 50,
+      "id": 42,
       "targets": [
         {
           "datasource": {
@@ -3158,9 +3054,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 182
+        "y": 86
       },
-      "id": 51,
+      "id": 43,
       "collapsed": false,
       "panels": []
     },
@@ -3171,9 +3067,9 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 183
+        "y": 87
       },
-      "id": 52,
+      "id": 44,
       "targets": [
         {
           "datasource": {
@@ -3224,9 +3120,9 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 191
+        "y": 95
       },
-      "id": 53,
+      "id": 45,
       "targets": [
         {
           "datasource": {
@@ -3387,9 +3283,9 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 199
+        "y": 103
       },
-      "id": 54,
+      "id": 46,
       "targets": [
         {
           "datasource": {
@@ -3491,9 +3387,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 209
+        "y": 113
       },
-      "id": 55,
+      "id": 47,
       "collapsed": false,
       "panels": []
     },
@@ -3504,9 +3400,9 @@
         "h": 6,
         "w": 8,
         "x": 0,
-        "y": 210
+        "y": 114
       },
-      "id": 56,
+      "id": 48,
       "targets": [
         {
           "datasource": {
@@ -3587,9 +3483,9 @@
         "h": 6,
         "w": 16,
         "x": 8,
-        "y": 210
+        "y": 114
       },
-      "id": 57,
+      "id": 49,
       "targets": [
         {
           "datasource": {
@@ -3670,9 +3566,9 @@
         "h": 5,
         "w": 24,
         "x": 0,
-        "y": 216
+        "y": 120
       },
-      "id": 58,
+      "id": 50,
       "targets": [
         {
           "datasource": {
@@ -3892,9 +3788,9 @@
         "h": 6,
         "w": 12,
         "x": 0,
-        "y": 221
+        "y": 125
       },
-      "id": 59,
+      "id": 51,
       "targets": [
         {
           "datasource": {
@@ -4128,9 +4024,9 @@
         "h": 6,
         "w": 12,
         "x": 12,
-        "y": 221
+        "y": 125
       },
-      "id": 60,
+      "id": 52,
       "targets": [
         {
           "datasource": {
@@ -4364,9 +4260,9 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 227
+        "y": 131
       },
-      "id": 61,
+      "id": 53,
       "targets": [
         {
           "datasource": {
@@ -4487,9 +4383,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 235
+        "y": 139
       },
-      "id": 62,
+      "id": 54,
       "collapsed": false,
       "panels": []
     },
@@ -4500,9 +4396,9 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 236
+        "y": 140
       },
-      "id": 63,
+      "id": 55,
       "targets": [
         {
           "datasource": {
@@ -4596,9 +4492,9 @@
         "h": 6,
         "w": 24,
         "x": 0,
-        "y": 244
+        "y": 148
       },
-      "id": 64,
+      "id": 56,
       "targets": [
         {
           "datasource": {
@@ -4745,9 +4641,9 @@
         "h": 6,
         "w": 24,
         "x": 0,
-        "y": 250
+        "y": 154
       },
-      "id": 65,
+      "id": 57,
       "targets": [
         {
           "datasource": {
@@ -4899,9 +4795,9 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 256
+        "y": 160
       },
-      "id": 66,
+      "id": 58,
       "targets": [
         {
           "datasource": {
@@ -5047,9 +4943,9 @@
         "h": 6,
         "w": 24,
         "x": 0,
-        "y": 264
+        "y": 168
       },
-      "id": 67,
+      "id": 59,
       "targets": [
         {
           "datasource": {

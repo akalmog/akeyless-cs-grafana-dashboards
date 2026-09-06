@@ -1295,96 +1295,6 @@ def month_column_label(year, month):
     return date(year, month, 1).strftime("%b-%y")
 
 
-def utilization_pivot_numeric_columns(months, util_pct="util_pct"):
-    return ", ".join([
-        (
-            f"MAX(CASE WHEN report_month = '{y:04d}-{m:02d}' THEN {util_pct} END) "
-            f'AS "{month_column_label(y, m)}"'
-        )
-        for y, m in months
-    ])
-
-
-def utilization_pivot_counts_columns(months, used_total="used_total", purchased="clients_purchased"):
-    return ", ".join([
-        (
-            f"MAX(CASE WHEN report_month = '{y:04d}-{m:02d}' THEN "
-            f'printf("(%d/%d)", {used_total}, {purchased}) END) '
-            f'AS "\u00b7{month_column_label(y, m)}"'
-        )
-        for y, m in months
-    ])
-
-
-def utilization_pivot_column_pairs(months, util_pct="util_pct", used_total="used_total", purchased="clients_purchased"):
-    pairs = []
-    for y, m in months:
-        month_key = f"{y:04d}-{m:02d}"
-        label = month_column_label(y, m)
-        pairs.append(
-            f"MAX(CASE WHEN report_month = '{month_key}' THEN {util_pct} END) AS \"{label}\""
-        )
-        pairs.append(
-            f"MAX(CASE WHEN report_month = '{month_key}' THEN "
-            f'printf("(%d/%d)", {used_total}, {purchased}) END) AS "\u00b7{label}"'
-        )
-    return ", ".join(pairs)
-
-
-TABLE_UTIL_THRESHOLDS = {
-    "mode": "absolute",
-    "steps": [
-        {"color": "red", "value": None},
-        {"color": "#5794F2", "value": 30},
-        {"color": "green", "value": 70},
-    ],
-}
-
-
-def utilization_avg_numeric_sql(avg_months_sql, util_pct="util_pct"):
-    return f'ROUND(AVG(CASE WHEN report_month IN ({avg_months_sql}) THEN {util_pct} END), 1)'
-
-
-def utilization_avg_counts_sql(avg_months_sql, used_total="used_total", purchased="clients_purchased"):
-    avg_used = f"AVG(CASE WHEN report_month IN ({avg_months_sql}) THEN {used_total} END)"
-    return f"""CASE
-        WHEN {avg_used} IS NULL THEN NULL
-        ELSE printf('(%d/%d)', CAST(ROUND({avg_used}) AS INTEGER), MAX({purchased}))
-    END"""
-
-
-def utilization_month_field_overrides():
-    """Grafana 11.x: numeric thresholds for % cells; adjacent count sub-columns."""
-    pct_props = [
-        {"id": "custom.width", "value": 72},
-        {"id": "custom.minWidth", "value": 72},
-        {"id": "unit", "value": "percent"},
-        {"id": "decimals", "value": 1},
-        {"id": "thresholds", "value": TABLE_UTIL_THRESHOLDS},
-        {"id": "color", "value": {"mode": "thresholds"}},
-        {
-            "id": "custom.cellOptions",
-            "value": {"mode": "gradient", "type": "color-background", "wrapText": False},
-        },
-    ]
-    count_props = [
-        {"id": "custom.width", "value": 58},
-        {"id": "custom.minWidth", "value": 58},
-        {"id": "unit", "value": "string"},
-        {"id": "color", "value": {"mode": "fixed", "fixedColor": "text"}},
-        {
-            "id": "custom.cellOptions",
-            "value": {"type": "auto", "wrapText": False},
-        },
-    ]
-    return [
-        {"matcher": {"id": "byName", "options": "Avg (Last 3M)"}, "properties": pct_props},
-        {"matcher": {"id": "byName", "options": "\u00b7Avg (Last 3M)"}, "properties": count_props},
-        {"matcher": {"id": "byRegexp", "options": "/^[A-Z][a-z]{2}-\\d{2}$/"}, "properties": pct_props},
-        {"matcher": {"id": "byRegexp", "options": "/^\u00b7[A-Z][a-z]{2}-\\d{2}$/"}, "properties": count_props},
-    ]
-
-
 CLM_DAILY_CERTS_EXPR = """CASE
     WHEN (COALESCE(r.ca_self_signed, 0) - COALESCE(r.risk_expired, 0)) < 0 THEN 0
     ELSE (COALESCE(r.ca_self_signed, 0) - COALESCE(r.risk_expired, 0))
@@ -1392,7 +1302,7 @@ END"""
 
 
 def portfolio_clm_utilization_sql(
-    purchased_col, company_filter, range_start, range_end, avg_expr, avg_counts_expr, pivot_cols, order_by
+    purchased_col, company_filter, range_start, range_end, avg_expr, pivot_cols, order_by
 ):
     """Multi-account CLM monthly heatmap — certificate_analysis reports (not ObjectsReport)."""
     return f"""
@@ -1439,8 +1349,6 @@ AggregatedByCompany AS (
 ),
 FinalData AS (
     SELECT company_name, report_month,
-        clients_purchased,
-        product_used_total AS used_total,
         CASE
             WHEN clients_purchased <= 0 THEN NULL
             WHEN clients_purchased IN (999, 99999) THEN NULL
@@ -1451,7 +1359,6 @@ FinalData AS (
 SELECT
     company_name AS "Customer",
     {avg_expr} AS "Avg (Last 3M)",
-    {avg_counts_expr} AS "·Avg (Last 3M)",
     {pivot_cols}
 FROM FinalData
 GROUP BY company_name
@@ -1476,9 +1383,13 @@ def product_utilization_sql(
         range_end = last_completed_month_end_sql()
     avg_months = completed_rolling_months(3) if experimental else rolling_months(3)
     avg_months_sql = ", ".join(f"'{y:04d}-{m:02d}'" for y, m in avg_months)
-    avg_expr = utilization_avg_numeric_sql(avg_months_sql)
-    avg_counts_expr = utilization_avg_counts_sql(avg_months_sql)
-    pivot_cols = utilization_pivot_column_pairs(months)
+    avg_expr = (
+        f'ROUND(AVG(CASE WHEN report_month IN ({avg_months_sql}) THEN util_pct END), 1)'
+    )
+    pivot_cols = ", ".join([
+        f"MAX(CASE WHEN report_month = '{y:04d}-{m:02d}' THEN util_pct END) AS \"{month_column_label(y, m)}\""
+        for y, m in months
+    ])
     order_by = '"Avg (Last 3M)" DESC' if portfolio else "company_name ASC"
     company_filter = utilization_company_filter(portfolio, experimental=experimental)
 
@@ -1489,7 +1400,6 @@ def product_utilization_sql(
             company_filter=company_filter,
             purchased_by_company=purchased_by_company_cte(purchased_col, company_filter) + ",",
             avg_expr=avg_expr,
-            avg_counts_expr=avg_counts_expr,
             pivot_cols=pivot_cols,
             order_by=order_by,
             time_range_contract_col="",
@@ -1514,7 +1424,7 @@ def product_utilization_sql(
 
     if portfolio and product == "ca":
         return portfolio_clm_utilization_sql(
-            purchased_col, company_filter, range_start, range_end, avg_expr, avg_counts_expr, pivot_cols, order_by
+            purchased_col, company_filter, range_start, range_end, avg_expr, pivot_cols, order_by
         )
 
     if portfolio:
@@ -1571,8 +1481,6 @@ AggregatedByCompany AS (
 ),
 FinalData AS (
     SELECT company_name, report_month,
-        clients_purchased,
-        (product_used_total + product_exceeded_total) AS used_total,
         CASE
             WHEN clients_purchased <= 0 THEN NULL
             WHEN clients_purchased IN (999, 99999) THEN NULL
@@ -1586,7 +1494,6 @@ FinalData AS (
 SELECT
     company_name AS "Customer",
     {avg_expr} AS "Avg (Last 3M)",
-    {avg_counts_expr} AS "·Avg (Last 3M)",
     {pivot_cols}
 FROM FinalData
 GROUP BY company_name
@@ -1647,8 +1554,6 @@ AggregatedByCompany AS (
 ),
 FinalData AS (
     SELECT abc.company_name, abc.report_month,
-        pbc.clients_purchased,
-        (abc.product_used_total + abc.product_exceeded_total) AS used_total,
         CASE
             WHEN pbc.clients_purchased <= 0 THEN NULL
             WHEN pbc.clients_purchased IN (999, 99999) THEN NULL
@@ -1663,7 +1568,6 @@ FinalData AS (
 SELECT
     company_name AS "Customer",
     {avg_expr} AS "Avg (Last 3M)",
-    {avg_counts_expr} AS "·Avg (Last 3M)",
     {pivot_cols}
 FROM FinalData
 GROUP BY company_name
@@ -1702,34 +1606,46 @@ def product_utilization_table_panel(
             "cellHeight": "sm",
             "footer": {"countRows": False, "fields": "", "reducer": ["sum"], "show": False},
             "showHeader": True,
+            "sortBy": [{"desc": True, "displayName": "Avg (Last 3M)"}],
         },
         "fieldConfig": {
             "defaults": {
-                "color": {"mode": "fixed", "fixedColor": "text"},
+                "color": {"mode": "thresholds"},
                 "custom": {
                     "align": "center",
-                    "cellOptions": {"type": "auto", "applyToRow": False, "wrapText": False},
+                    "cellOptions": {"type": "color-background", "applyToRow": False, "wrapText": True},
                     "inspect": False,
                     "filterable": False,
                     "minWidth": 80,
                 },
+                "decimals": 1,
                 "mappings": [],
+                "thresholds": SM_UTIL_THRESHOLDS,
+                "unit": "percent",
             },
             "overrides": [
                 {
                     "matcher": {"id": "byName", "options": "Customer"},
                     "properties": [
-                        {"id": "custom.cellOptions", "value": {"type": "auto", "wrapText": False}},
+                        {"id": "custom.cellOptions", "value": {"type": "auto", "wrapText": True}},
                         {"id": "custom.width", "value": 200},
                         {"id": "unit", "value": "string"},
                         {"id": "color", "value": {"mode": "fixed", "fixedColor": "text"}},
                     ],
                 },
-                *utilization_month_field_overrides(),
+                {
+                    "matcher": {"id": "byName", "options": "Avg (Last 3M)"},
+                    "properties": [
+                        {"id": "custom.width", "value": 110},
+                        {"id": "custom.cellOptions", "value": {"mode": "gradient", "type": "color-background"}},
+                    ],
+                },
             ],
         },
         "datasource": DS,
     }
+
+
 
 
 def sm_utilization_sql(portfolio=False, months_count=24):
@@ -2529,9 +2445,9 @@ SELECT CAST(julianday('now') - julianday(current_contract_start_date) AS INTEGER
 
 
 def product_section(label, product, purchased_col, y, portfolio=False, multi_account=False, experimental=True):
+    use_portfolio_sql = portfolio or multi_account
     panels = [row_panel(f"{label} — {product_label_full(label)}", y)]
     y += 1
-    use_portfolio_sql = portfolio or multi_account
 
     if multi_account:
         panels.append(
@@ -2628,6 +2544,8 @@ def product_section(label, product, purchased_col, y, portfolio=False, multi_acc
         if use_portfolio_sql
         else f"{label} Monthly Utilization %"
     )
+    panels.append(row_panel(util_title, y))
+    y += 1
     panels.append(
         product_utilization_table_panel(
             util_title,
@@ -3416,7 +3334,10 @@ def _find_panel_by_title(panels, title):
 
 def _find_utilization_panel(panels, product_prefix):
     needle = f"{product_prefix} Monthly Utilization"
-    matches = [p for p in panels if needle in p.get("title", "")]
+    matches = [
+        p for p in panels
+        if needle in p.get("title", "") and p.get("type") == "table"
+    ]
     return matches[0] if len(matches) == 1 else None
 
 

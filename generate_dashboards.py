@@ -740,22 +740,31 @@ def stat_panel(title, sql, x, y, w=4, h=4, unit=None, thresholds=None, color_mod
     }
 
 
-def access_type_mom_totals_panel(title, sql, x, y, w=24, h=3, description=None):
+def access_type_mom_totals_panel(title, sql, x, y, w=24, h=4, description=None):
     """Single stat panel showing Total Clients, Used Clients, and Change horizontally."""
     overrides = [
         {
             "matcher": {"id": "byName", "options": "Total Clients including Exceeding"},
             "properties": [
+                {"id": "unit", "value": "string"},
                 {"id": "color", "value": {"mode": "fixed", "fixedColor": "text"}},
             ],
         },
         {
             "matcher": {"id": "byName", "options": "Used Clients"},
             "properties": [
+                {"id": "unit", "value": "string"},
                 {"id": "color", "value": {"mode": "fixed", "fixedColor": "text"}},
             ],
         },
-        pct_field_override("Change", CHANGE_THRESHOLDS, unit="none"),
+        {
+            "matcher": {"id": "byName", "options": "Change"},
+            "properties": [
+                {"id": "unit", "value": "none"},
+                {"id": "thresholds", "value": CHANGE_THRESHOLDS},
+                {"id": "color", "value": {"mode": "thresholds"}},
+            ],
+        },
     ]
     panel = {
         "type": "stat",
@@ -764,11 +773,11 @@ def access_type_mom_totals_panel(title, sql, x, y, w=24, h=3, description=None):
         "id": next_id(),
         "targets": [sql_target(sql)],
         "options": {
-            "colorMode": "background",
+            "colorMode": "value",
             "graphMode": "none",
             "justifyMode": "center",
             "orientation": "horizontal",
-            "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": False},
+            "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": True},
             "textMode": "value_and_name",
         },
         "fieldConfig": {
@@ -3047,14 +3056,14 @@ def access_type_mom_section(y, multi_account=False, legacy=True):
                 0,
                 y,
                 w=24,
-                h=3,
+                h=4,
                 description=(
                     "Aggregated across all access types. "
                     "Period is the last 3 completed calendar months (excludes the current incomplete month)."
                 ),
             )
         )
-        y += 3
+        y += 4
         panels.append(
             piechart_panel(
                 "Access Type Mix — Last 3 Months",

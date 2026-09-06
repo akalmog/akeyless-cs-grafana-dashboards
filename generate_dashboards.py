@@ -2625,27 +2625,6 @@ def product_section(label, product, purchased_col, y, portfolio=False, multi_acc
 
     util_height = 5 if not use_portfolio_sql else 16
     util_months = UTILIZATION_PIVOT_MONTHS
-    util_title = (
-        f"{label} Monthly Utilization % by Customer"
-        if use_portfolio_sql
-        else f"{label} Monthly Utilization %"
-    )
-    panels.append(
-        product_utilization_table_panel(
-            util_title,
-            product,
-            purchased_col,
-            portfolio=use_portfolio_sql,
-            x=0,
-            y=y,
-            h=util_height,
-            experimental=experimental,
-            months_count=util_months,
-            include_current_month=True,
-        )
-    )
-    y += util_height
-
     counts_title = (
         f"{label} Monthly Used / Threshold by Customer"
         if use_portfolio_sql
@@ -2664,6 +2643,27 @@ def product_section(label, product, purchased_col, y, portfolio=False, multi_acc
             months_count=util_months,
             include_current_month=True,
             display="counts",
+        )
+    )
+    y += util_height
+
+    util_title = (
+        f"{label} Monthly Utilization % by Customer"
+        if use_portfolio_sql
+        else f"{label} Monthly Utilization %"
+    )
+    panels.append(
+        product_utilization_table_panel(
+            util_title,
+            product,
+            purchased_col,
+            portfolio=use_portfolio_sql,
+            x=0,
+            y=y,
+            h=util_height,
+            experimental=experimental,
+            months_count=util_months,
+            include_current_month=True,
         )
     )
     return panels, y + util_height

@@ -705,7 +705,7 @@ def validate_grafana_row_layout(panels, dashboard_name="dashboard"):
     return issues
 
 
-def stat_panel(title, sql, x, y, w=4, h=4, unit=None, thresholds=None, color_mode="value"):
+def stat_panel(title, sql, x, y, w=4, h=4, unit=None, thresholds=None, color_mode="value", field=None):
     fc = {
         "defaults": {
             "color": {"mode": color_mode if thresholds else "fixed", "fixedColor": "text"},
@@ -719,6 +719,8 @@ def stat_panel(title, sql, x, y, w=4, h=4, unit=None, thresholds=None, color_mod
         fc["defaults"]["thresholds"] = thresholds
         fc["defaults"]["color"] = {"mode": "thresholds"}
 
+    reduce_fields = field if field else "/.*/"
+
     return {
         "type": "stat",
         "title": title,
@@ -730,7 +732,7 @@ def stat_panel(title, sql, x, y, w=4, h=4, unit=None, thresholds=None, color_mod
             "graphMode": "none",
             "justifyMode": "center",
             "orientation": "auto",
-            "reduceOptions": {"calcs": ["lastNotNull"], "fields": "/.*/", "values": True},
+            "reduceOptions": {"calcs": ["lastNotNull"], "fields": reduce_fields, "values": False},
             "textMode": "auto",
         },
         "fieldConfig": fc,
@@ -2960,6 +2962,135 @@ def single_account_anomaly_panels(y, multi_account=False, experimental=True):
     return panels, y + 10
 
 
+def access_type_mom_section(y, multi_account=False, legacy=True):
+    """Access Type MoM: stat row + donut (single) or customer summary table (multi) + detail table."""
+    panels = []
+    access_type_mom_overrides = [
+        pct_field_override("Change", CHANGE_THRESHOLDS, unit="none"),
+        {
+            "matcher": {"id": "byName", "options": "End Total"},
+            "properties": [
+                {"id": "custom.hidden", "value": True},
+            ],
+        },
+    ]
+    detail_description = (
+        (
+            "Complete access-type inventory per customer: one row per auth method, "
+            if multi_account
+            else "Complete access-type inventory for the account: one row per auth method, "
+        )
+        + "totals aggregated across SM, SRA, and PWM. "
+        + "Period is the last 3 completed calendar months (excludes the current incomplete month). "
+        + (
+            "Customer totals are shown in the summary table above."
+            if multi_account
+            else "Account totals are shown in the stat row above."
+        )
+    )
+    detail_sql = load_query("risk_access_type_mom.sql", group_by_company=multi_account, legacy=legacy)
+
+    if not multi_account:
+        summary_sql = load_query("risk_access_type_mom_summary.sql", legacy=legacy)
+        panels.append(
+            stat_panel(
+                "Total Clients (incl. exceeding)",
+                summary_sql,
+                0,
+                y,
+                w=8,
+                h=4,
+                field="Total Clients including Exceeding",
+            )
+        )
+        panels.append(
+            stat_panel(
+                "Used Clients",
+                summary_sql,
+                8,
+                y,
+                w=8,
+                h=4,
+                field="Used Clients",
+            )
+        )
+        panels.append(
+            stat_panel(
+                "Change",
+                summary_sql,
+                16,
+                y,
+                w=8,
+                h=4,
+                unit="none",
+                thresholds=CHANGE_THRESHOLDS,
+                field="Change",
+            )
+        )
+        y += 4
+        panels.append(
+            piechart_panel(
+                "Access Type Mix — End of Period",
+                load_query("risk_access_type_mom_pie.sql", legacy=legacy),
+                0,
+                y,
+                w=8,
+                h=8,
+                label_field="Access Type",
+                value_field="Count",
+            )
+        )
+        panels.append(
+            table_panel(
+                "Access Type — Used Clients (Last 3 Months)",
+                detail_sql,
+                8,
+                y,
+                w=16,
+                h=8,
+                overrides=access_type_mom_overrides,
+                description=detail_description,
+                sort_by=("End Total", True),
+            )
+        )
+        return panels, y + 8
+
+    summary_overrides = [
+        pct_field_override("Change", CHANGE_THRESHOLDS, unit="none"),
+    ]
+    panels.append(
+        table_panel(
+            "Access Type — Customer Totals (Last 3 Months)",
+            load_query("risk_access_type_mom_summary.sql", group_by_company=True, legacy=legacy),
+            0,
+            y,
+            w=24,
+            h=5,
+            overrides=summary_overrides,
+            description=(
+                "One row per customer: aggregated Used Clients and Total Clients including Exceeding "
+                "across all access types for the last 3 completed calendar months."
+            ),
+            sort_by=("Change", True),
+        )
+    )
+    y += 5
+    panels.append(
+        table_panel(
+            "Access Type — Used Clients (Last 3 Months)",
+            detail_sql,
+            0,
+            y,
+            w=24,
+            h=8,
+            overrides=access_type_mom_overrides,
+            description=detail_description,
+            sort_by=("End Total", True),
+        )
+    )
+    return panels, y + 8
+
+
 def best_practice_section(y, multi_account=False, experimental=True):
     panels = [row_panel("Best Practice — Secrets & Authentication", y)]
     y += 1
@@ -3073,43 +3204,9 @@ def best_practice_section(y, multi_account=False, experimental=True):
         )
         y += 8
 
-    access_type_mom_overrides = [
-        pct_field_override("Change", CHANGE_THRESHOLDS, unit="none"),
-        {
-            "matcher": {"id": "byName", "options": "End Total"},
-            "properties": [
-                {"id": "custom.hidden", "value": True},
-            ],
-        },
-        {
-            "matcher": {"id": "byName", "options": "Row Order"},
-            "properties": [
-                {"id": "custom.hidden", "value": True},
-            ],
-        },
-    ]
-    panels.append(
-        table_panel(
-            "Access Type — Used Clients (Last 3 Months)",
-            load_query("risk_access_type_mom.sql", group_by_company=multi_account, legacy=legacy),
-            0,
-            y,
-            w=24,
-            h=8,
-            overrides=access_type_mom_overrides,
-            description=(
-                (
-                    "Complete access-type inventory per customer: one row per auth method, "
-                    if multi_account
-                    else "Complete access-type inventory for the account: one row per auth method, "
-                )
-                + "totals aggregated across SM, SRA, and PWM. "
-                + "Period is the last 3 completed calendar months (excludes the current incomplete month). "
-                + "Total Used Clients sums Total Clients including Exceeding across all access types."
-            ),
-        )
-    )
-    return panels, y + 8
+    mom_panels, y = access_type_mom_section(y, multi_account=multi_account, legacy=legacy)
+    panels.extend(mom_panels)
+    return panels, y
 
 
 def risk_section(y, group_by_company=False, experimental=True):
@@ -3448,7 +3545,6 @@ SHARED_PANEL_TITLES = (
     "Top Object Growth (Last 3 Months)",
     "Objects Trend - All Growth & Reduction Indications",
     "New Use Cases — Secrets & Authentication (Adoption Signals)",
-    "Access Type — Used Clients (Last 3 Months)",
     "Access Type Breakdown",
     "Last Full Month Status — Usage vs Purchased Limit",
     "Client Usage Change (Last 3 Months)",

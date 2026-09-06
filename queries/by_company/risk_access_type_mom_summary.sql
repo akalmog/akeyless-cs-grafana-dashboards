@@ -1,4 +1,4 @@
--- Access type inventory per customer: one row per auth method, aggregated across SM/SRA/PWM.
+-- Per-customer aggregate totals for Access Type MoM (summary table, multi-account).
 -- Net change across the last 3 completed calendar months (excludes current incomplete month).
 WITH CompanyAccounts AS (
     SELECT DISTINCT account_id, name AS company_name
@@ -114,11 +114,10 @@ SELECT
     (SELECT GROUP_CONCAT(DISTINCT account_id)
      FROM CompanyAccounts ca_ids
      WHERE ca_ids.company_name = dr.company_name) AS "Account IDs",
-    access_type_label AS "Access Type",
     period_label AS "Period",
-    CAST(start_used AS TEXT) || ' → ' || CAST(end_used AS TEXT) AS "Used Clients",
-    CAST(start_total AS TEXT) || ' → ' || CAST(end_total AS TEXT) AS "Total Clients including Exceeding",
-    end_total AS "End Total",
-    end_total - start_total AS "Change"
+    CAST(SUM(start_used) AS TEXT) || ' → ' || CAST(SUM(end_used) AS TEXT) AS "Used Clients",
+    CAST(SUM(start_total) AS TEXT) || ' → ' || CAST(SUM(end_total) AS TEXT) AS "Total Clients including Exceeding",
+    SUM(end_total) - SUM(start_total) AS "Change"
 FROM DetailRows dr
-ORDER BY "Customer", "End Total" DESC
+GROUP BY company_name, period_label
+ORDER BY SUM(end_total) DESC

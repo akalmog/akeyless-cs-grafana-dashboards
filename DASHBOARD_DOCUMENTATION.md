@@ -173,7 +173,7 @@ Usage % = (Used + Exceeded) / Purchased × 100
 ```
 
 - **Used / Exceeded:** sum of monthly `ObjectsReport` usage within Time Range (one report per account per day, latest per month).
-- **Purchased:** HubSpot monthly limit × months in Time Range. Multiple accounts → first non-unlimited account limit (`LIMIT 1`).
+- **Purchased:** HubSpot monthly limit × months in Time Range. Multiple accounts → first account with a positive limit (`LIMIT 1`), skipping `0` and unlimited placeholders (`999` / `99999`). A zero row must not hide the limit stored on another account of the same company.
 - **Unlimited purchased** → blank %.
 
 ### Summary by Customer (multi-account)
@@ -197,7 +197,7 @@ Utilization % = (Used + Exceeded) / Purchased × 100   [per month]
 ```
 
 - Latest `ObjectsReport` **per account per calendar month** within Time Range.
-- **Single-account:** one purchased limit (first account).
+- **Single-account:** one purchased limit (first account with a positive limit; `0` and `999`/`99999` are skipped).
 - **Multi-account:** `Purchased = SUM` of limits across accounts; `Used + Exceeded = SUM` across accounts.
 - Months with no report → empty cell.
 

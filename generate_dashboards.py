@@ -1145,7 +1145,7 @@ CROSS JOIN PeriodCapacity pc
         final = """
 SELECT CASE
     WHEN pc.is_unlimited = 1 THEN NULL
-    ELSE pc.purchased_monthly_total
+    ELSE COALESCE(pc.purchased_monthly_total, 0)
 END AS value
 FROM PeriodCapacity pc
 """
@@ -1288,7 +1288,12 @@ def account_used_subquery(product, account_id_expr, field="amount"):
 
 
 def purchased_by_company_cte(purchased_col, company_filter_sql):
-    """One purchased limit per company (first account_id), matching single-account dashboard logic."""
+    """One purchased limit per company.
+
+    HubSpot copies the company limit onto each account row. Some rows are 0
+    (limit not filled in) or 999/99999 (unlimited placeholder). Take the first
+    account_id with a real positive limit so a zero row cannot hide it.
+    """
     return f"""PurchasedByCompany AS (
     SELECT c.name AS company_name,
         CAST(COALESCE(
@@ -1298,6 +1303,7 @@ def purchased_by_company_cte(purchased_col, company_filter_sql):
                 WHERE c2.name = c.name
                   AND c2.account_id IS NOT NULL
                   AND c2.account_id != ''
+                  AND CAST(COALESCE(c2.{purchased_col}, '0') AS INTEGER) > 0
                   AND CAST(COALESCE(c2.{purchased_col}, '0') AS INTEGER) NOT IN (999, 99999)
                 ORDER BY c2.account_id
                 LIMIT 1

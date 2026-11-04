@@ -18,11 +18,19 @@ AccountHubSpotData AS (
     WHERE c.name = '${company_name}'
 ),
 PurchasedTotal AS (
-    SELECT CAST(COALESCE({purchased_col}, '0') AS INTEGER) AS purchased_total
-    FROM AccountHubSpotData
-    WHERE CAST(COALESCE({purchased_col}, '0') AS INTEGER) NOT IN (999, 99999)
-    ORDER BY account_id
-    LIMIT 1
+    -- Skip accounts with 0 (no limit on record) or 999/99999 (unlimited).
+    -- Otherwise the first account_id can zero out the company limit.
+    SELECT COALESCE(
+        (
+            SELECT CAST(COALESCE({purchased_col}, '0') AS INTEGER)
+            FROM AccountHubSpotData
+            WHERE CAST(COALESCE({purchased_col}, '0') AS INTEGER) > 0
+              AND CAST(COALESCE({purchased_col}, '0') AS INTEGER) NOT IN (999, 99999)
+            ORDER BY account_id
+            LIMIT 1
+        ),
+        0
+    ) AS purchased_total
 ),
 AccountDateRanges AS (
     SELECT ca.account_id,

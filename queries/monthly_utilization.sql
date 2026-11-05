@@ -18,12 +18,14 @@ AccountHubSpotData AS (
     WHERE c.name = '${company_name}'
 ),
 PurchasedTotal AS (
-    -- Same HubSpot row as By Customer purchased clients: first account_id.
+    -- Same HubSpot row as Purchased: a positive quantity wins over a 0 account id.
     SELECT COALESCE(
         (
             SELECT CAST(COALESCE({purchased_col}, '0') AS INTEGER)
             FROM AccountHubSpotData
-            ORDER BY account_id
+            ORDER BY
+                CASE WHEN CAST(COALESCE({purchased_col}, '0') AS INTEGER) > 0 THEN 0 ELSE 1 END,
+                account_id
             LIMIT 1
         ),
         0

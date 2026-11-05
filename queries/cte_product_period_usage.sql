@@ -92,17 +92,22 @@ TimeRangeMonths AS (
     SELECT {time_range_month_count} AS month_count
 ),
 PurchasedSummary AS (
-    -- By Customer "purchased clients": HubSpot quantity on the first account_id.
-    -- 999/99999 means unlimited. The stat multiplies the quantity by months in range.
+    -- HubSpot quantity for the accounts in the filter.
+    -- A company can have an extra account id whose HubSpot quantity is 0.
+    -- Prefer a positive quantity (999/99999 = unlimited) over that zero row.
     SELECT
         (SELECT CAST(COALESCE({purchased_col}, '0') AS INTEGER)
          FROM AccountHubSpotData
-         ORDER BY account_id
+         ORDER BY
+            CASE WHEN CAST(COALESCE({purchased_col}, '0') AS INTEGER) > 0 THEN 0 ELSE 1 END,
+            account_id
          LIMIT 1) AS purchased_limit,
         CASE
             WHEN (SELECT CAST(COALESCE({purchased_col}, '0') AS INTEGER)
                   FROM AccountHubSpotData
-                  ORDER BY account_id
+                  ORDER BY
+                      CASE WHEN CAST(COALESCE({purchased_col}, '0') AS INTEGER) > 0 THEN 0 ELSE 1 END,
+                      account_id
                   LIMIT 1) IN (999, 99999) THEN 1
             ELSE 0
         END AS is_unlimited

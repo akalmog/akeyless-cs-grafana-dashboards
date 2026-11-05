@@ -1146,8 +1146,7 @@ FROM PeriodTotals pt
 CROSS JOIN PeriodCapacity pc
 """
     elif metric == "purchased":
-        # Same as By Customer "purchased clients":
-        # first account's HubSpot quantity × months in the Time Range.
+        # HubSpot quantity (positive account wins over a 0 account id) × months in the Time Range.
         final = """
 SELECT CASE
     WHEN pc.is_unlimited = 1 THEN 'unlimited'
@@ -1294,7 +1293,11 @@ def account_used_subquery(product, account_id_expr, field="amount"):
 
 
 def purchased_by_company_cte(purchased_col, company_filter_sql):
-    """HubSpot purchased quantity on the first account_id, matching By Customer."""
+    """HubSpot purchased quantity for the filtered accounts.
+
+    Prefer a positive quantity so an extra account id stored as 0 does not hide
+    the license on the account the customer uses. A selected account id is used as-is.
+    """
     return f"""PurchasedByCompany AS (
     SELECT c.name AS company_name,
         CAST(COALESCE(
@@ -1304,7 +1307,10 @@ def purchased_by_company_cte(purchased_col, company_filter_sql):
                 WHERE c2.name = c.name
                   AND c2.account_id IS NOT NULL
                   AND c2.account_id != ''
-                ORDER BY c2.account_id
+                  AND ({ACCOUNT_ALL_CHECK} OR c2.account_id = '${{account_id}}')
+                ORDER BY
+                    CASE WHEN CAST(COALESCE(c2.{purchased_col}, '0') AS INTEGER) > 0 THEN 0 ELSE 1 END,
+                    c2.account_id
                 LIMIT 1
             ),
             '0'

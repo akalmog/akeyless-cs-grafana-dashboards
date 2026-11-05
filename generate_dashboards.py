@@ -17,11 +17,9 @@ from pathlib import Path
 
 OUT_DIR = Path(__file__).parent
 QUERIES_DIR = OUT_DIR / "queries"
-# uid=None uses the org default datasource ("Active Customers Data" on akeyless-analytics.com)
+# uid=None uses the org default datasource ("Active Customers Data" on akeyless-analytics.com).
+# Staging keeps uid null too: a hardcoded uid from another org leaves Company Name empty.
 DS = {"type": "frser-sqlite-datasource", "uid": None}
-# Same SQLite datasource the By Customer dashboard uses. Staging sets this explicitly
-# so an import does not overwrite the production dashboard and still hits the live data.
-STAGING_DS_UID = "ef71zkgvsbw8wc"
 
 REPORT_JOIN = "JOIN reports r ON r.id = rc.report_id AND r.report_type = 'clients_report'"
 PRODUCTS = [
@@ -1044,9 +1042,11 @@ def rolling_months(count=24):
     return list(reversed(months))
 
 
-# Default monthly utilization pivot columns — matches default Time Range (Last 12 Months).
-# SQL data window still follows ${period_months} at runtime via range_start.
+# How many month columns the utilization tables show.
+# Headers are computed in SQL from date('now'), not from the day the JSON was generated,
+# so a finished month such as October still appears after the file is imported.
 UTILIZATION_PIVOT_MONTHS = 12
+_MONTH_ABBR = "JanFebMarAprMayJunJulAugSepOctNovDec"
 
 
 def completed_rolling_months(count=3):
@@ -1315,22 +1315,83 @@ def purchased_by_company_cte(purchased_col, company_filter_sql):
 )"""
 
 
-def month_column_label(year, month):
-    return date(year, month, 1).strftime("%b-%y")
+def _month_anchor_sql(offset):
+    """Start-of-month date, offset 0 = current month, 1 = previous month."""
+    if offset == 0:
+        return "date('now', 'start of month')"
+    return f"date('now', 'start of month', '-{offset} months')"
 
 
-def utilization_pivot_counts_columns(months, used_total="used_total", purchased="clients_purchased"):
-    util_pct = "util_pct"
-    return ", ".join([
-        (
-            f"MAX(CASE WHEN report_month = '{y:04d}-{m:02d}' THEN "
-            f"CASE WHEN {util_pct} IS NULL THEN NULL "
-            f"ELSE printf('%d|(%d/%d)', CAST(ROUND({util_pct}) AS INTEGER), "
-            f"{used_total}, {purchased}) END END) "
-            f'AS "{month_column_label(y, m)}"'
-        )
-        for y, m in months
-    ])
+def month_ym_expr(offset):
+    """YYYY-MM for a month relative to today, evaluated when Grafana runs the query."""
+    return f"strftime('%Y-%m', {_month_anchor_sql(offset)})"
+
+
+def month_key_expr(offset):
+    """Mon-YY label, e.g. Oct-26. SQLite strftime has no %y, so the year is sliced from %Y."""
+    anchor = _month_anchor_sql(offset)
+    return (
+        f"substr('{_MONTH_ABBR}', (CAST(strftime('%m', {anchor}) AS INTEGER) - 1) * 3 + 1, 3) "
+        f"|| '-' || substr(strftime('%Y', {anchor}), 3, 2)"
+    )
+
+
+def dynamic_month_in_list(count, include_current):
+    start = 0 if include_current else 1
+    return ", ".join(month_ym_expr(offset) for offset in range(start, start + count))
+
+
+def utilization_month_cells_sql(count, include_current, display):
+    """One JSON object whose keys are the month labels at query time.
+
+    Grafana extractFields turns those keys into table columns, so October is not
+    stuck on whatever month the dashboard file was generated.
+    """
+    start = 0 if include_current else 1
+    offsets = range(start + count - 1, start - 1, -1)  # oldest month first
+    parts = []
+    for offset in offsets:
+        ym = month_ym_expr(offset)
+        if display == "counts":
+            value = f"""(
+                SELECT CASE WHEN f2.util_pct IS NULL THEN NULL
+                    ELSE printf(
+                        '%d|(%d/%d)',
+                        CAST(ROUND(f2.util_pct) AS INTEGER),
+                        f2.used_total,
+                        f2.clients_purchased
+                    )
+                END
+                FROM FinalData f2
+                WHERE f2.company_name = FinalData.company_name
+                  AND f2.report_month = {ym}
+            )"""
+        else:
+            value = f"""(
+                SELECT f2.util_pct
+                FROM FinalData f2
+                WHERE f2.company_name = FinalData.company_name
+                  AND f2.report_month = {ym}
+            )"""
+        parts.append(f"{month_key_expr(offset)}, {value}")
+    return f'json_object({", ".join(parts)}) AS "Month Cells"'
+
+
+def utilization_month_transformations():
+    """Spread the Month Cells JSON into Mon-YY columns and hide the raw JSON."""
+    return [
+        {
+            "id": "extractFields",
+            "options": {"format": "json", "replace": False, "source": "Month Cells"},
+        },
+        {
+            "id": "organize",
+            "options": {
+                "excludeByName": {"Month Cells": True},
+                "indexByName": {"Customer": 0, "Avg (Last 3M)": 1},
+            },
+        },
+    ]
 
 
 def utilization_avg_counts_sql(avg_months_sql, used_total="used_total", purchased="clients_purchased"):
@@ -1536,24 +1597,20 @@ def product_utilization_sql(
     display="pct",
 ):
     if include_current_month:
-        months = rolling_months(months_count)
         range_end = "strftime('%Y-%m-%d', 'now')"
     else:
-        months = completed_rolling_months(months_count) if experimental else rolling_months(months_count)
         range_end = last_completed_month_end_sql()
-    avg_months = completed_rolling_months(3) if experimental else rolling_months(3)
-    avg_months_sql = ", ".join(f"'{y:04d}-{m:02d}'" for y, m in avg_months)
+    # Avg (Last 3M) stays on completed months for the experimental dashboards.
+    # The month list is SQL, so it moves forward with the clock.
+    avg_include_current = not experimental
+    avg_months_sql = dynamic_month_in_list(3, include_current=avg_include_current)
     if display == "counts":
         avg_expr = utilization_avg_counts_sql(avg_months_sql)
-        pivot_cols = utilization_pivot_counts_columns(months)
     else:
         avg_expr = (
             f'ROUND(AVG(CASE WHEN report_month IN ({avg_months_sql}) THEN util_pct END), 1)'
         )
-        pivot_cols = ", ".join([
-            f"MAX(CASE WHEN report_month = '{y:04d}-{m:02d}' THEN util_pct END) AS \"{month_column_label(y, m)}\""
-            for y, m in months
-        ])
+    pivot_cols = utilization_month_cells_sql(months_count, include_current_month, display)
     order_by = '"Avg (Last 3M)" DESC' if portfolio else "company_name ASC"
     company_filter = utilization_company_filter(portfolio, experimental=experimental)
 
@@ -1774,6 +1831,7 @@ def product_utilization_table_panel(
             "gridPos": {"h": h, "w": w, "x": x, "y": y},
             "id": next_id(),
             "targets": [sql_target(sql, query_type="table")],
+            "transformations": utilization_month_transformations(),
             "options": {
                 "cellHeight": "sm",
                 "footer": {"countRows": False, "fields": "", "reducer": ["sum"], "show": False},
@@ -1788,6 +1846,7 @@ def product_utilization_table_panel(
         "gridPos": {"h": h, "w": w, "x": x, "y": y},
         "id": next_id(),
         "targets": [sql_target(sql, query_type="table")],
+        "transformations": utilization_month_transformations(),
         "options": {
             "cellHeight": "sm",
             "footer": {"countRows": False, "fields": "", "reducer": ["sum"], "show": False},
@@ -3742,7 +3801,6 @@ def main():
         portfolio=False,
         experimental=True,
         staging=True,
-        datasource_uid=STAGING_DS_UID,
     )
 
     paths = {

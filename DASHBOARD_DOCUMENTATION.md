@@ -173,8 +173,7 @@ Usage % = (Used + Exceeded) / (HubSpot purchased × months in Time Range) × 100
 ```
 
 - **Used / Exceeded:** sum of monthly `ObjectsReport` usage within Time Range (one report per account per day, latest per month).
-- **Purchased:** the HubSpot product quantity itself (`clients_sm`, `clients_ca`, `clients_sra`, `clients_pm`). It is not multiplied by the Time Range. Multiple accounts → first account with a positive HubSpot value (`LIMIT 1`), skipping `0` and unlimited placeholders (`999` / `99999`).
-- **Usage % denominator:** that same HubSpot quantity × months in the Time Range, so summed usage is compared with capacity for the whole range.
+- **Purchased:** HubSpot product quantity on the first `account_id` (`clients_sm`, `clients_ca`, `clients_sra`, `clients_pm`) × months in the Time Range. Same rule as By Customer “purchased clients”. `999` / `99999` displays as `unlimited`.
 - **Unlimited purchased** → blank %.
 
 ### Summary by Customer (multi-account)

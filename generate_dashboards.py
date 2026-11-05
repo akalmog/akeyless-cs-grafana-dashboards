@@ -5,6 +5,7 @@ Outputs:
   dashboard-single-account.json       — production single-account dashboard
   dashboard-multi-account.json        — production multi-account dashboard
   dashboard-portfolio-anomalies.json  — production portfolio anomalies dashboard
+  dashboard-staging-account.json      — importable staging copy (separate Grafana uid)
   test-single-account.json            — test copy of single-account dashboard
   test-multiple-accounts.json         — test copy of multi-account dashboard
 """
@@ -18,6 +19,9 @@ OUT_DIR = Path(__file__).parent
 QUERIES_DIR = OUT_DIR / "queries"
 # uid=None uses the org default datasource ("Active Customers Data" on akeyless-analytics.com)
 DS = {"type": "frser-sqlite-datasource", "uid": None}
+# Same SQLite datasource the By Customer dashboard uses. Staging sets this explicitly
+# so an import does not overwrite the production dashboard and still hits the live data.
+STAGING_DS_UID = "ef71zkgvsbw8wc"
 
 REPORT_JOIN = "JOIN reports r ON r.id = rc.report_id AND r.report_type = 'clients_report'"
 PRODUCTS = [
@@ -1142,12 +1146,12 @@ FROM PeriodTotals pt
 CROSS JOIN PeriodCapacity pc
 """
     elif metric == "purchased":
-        # HubSpot product quantity (clients_sm / clients_ca / clients_sra / clients_pm).
-        # Not multiplied by the time range — that factor is only for Usage %.
+        # Same as By Customer "purchased clients":
+        # first account's HubSpot quantity × months in the Time Range.
         final = """
 SELECT CASE
-    WHEN pc.is_unlimited = 1 THEN NULL
-    ELSE COALESCE(pc.purchased_limit, 0)
+    WHEN pc.is_unlimited = 1 THEN 'unlimited'
+    ELSE CAST(COALESCE(pc.purchased_monthly_total, 0) AS TEXT)
 END AS value
 FROM PeriodCapacity pc
 """
@@ -1290,23 +1294,16 @@ def account_used_subquery(product, account_id_expr, field="amount"):
 
 
 def purchased_by_company_cte(purchased_col, company_filter_sql):
-    """One purchased limit per company.
-
-    HubSpot copies the company limit onto each account row. Some rows are 0
-    (limit not filled in) or 999/99999 (unlimited placeholder). Take the first
-    account_id with a real positive limit so a zero row cannot hide it.
-    """
+    """HubSpot purchased quantity on the first account_id, matching By Customer."""
     return f"""PurchasedByCompany AS (
     SELECT c.name AS company_name,
         CAST(COALESCE(
             (
-                SELECT c2.{purchased_col}
+                SELECT CAST(COALESCE(c2.{purchased_col}, '0') AS INTEGER)
                 FROM companies c2
                 WHERE c2.name = c.name
                   AND c2.account_id IS NOT NULL
                   AND c2.account_id != ''
-                  AND CAST(COALESCE(c2.{purchased_col}, '0') AS INTEGER) > 0
-                  AND CAST(COALESCE(c2.{purchased_col}, '0') AS INTEGER) NOT IN (999, 99999)
                 ORDER BY c2.account_id
                 LIMIT 1
             ),
@@ -3492,7 +3489,35 @@ def templating_portfolio(experimental=True):
     return t
 
 
-def build_dashboard(title, uid, portfolio=False, multi_account=False, experimental=True, test=False):
+def build_dashboard(
+    title,
+    uid,
+    portfolio=False,
+    multi_account=False,
+    experimental=True,
+    test=False,
+    staging=False,
+    datasource_uid=None,
+):
+    previous_uid = DS.get("uid")
+    DS["uid"] = datasource_uid
+    try:
+        return _build_dashboard(
+            title,
+            uid,
+            portfolio=portfolio,
+            multi_account=multi_account,
+            experimental=experimental,
+            test=test,
+            staging=staging,
+        )
+    finally:
+        DS["uid"] = previous_uid
+
+
+def _build_dashboard(
+    title, uid, portfolio=False, multi_account=False, experimental=True, test=False, staging=False
+):
     reset_ids()
     panels = []
     y = 0
@@ -3556,8 +3581,10 @@ def build_dashboard(title, uid, portfolio=False, multi_account=False, experiment
         tags = ["akeyless", "customer-success", "usage", "technical"]
         if test:
             tags.append("test")
+        if staging:
+            tags.append("staging")
 
-    return {
+    return deepcopy({
         "annotations": {"list": []},
         "editable": True,
         "fiscalYearStartMonth": 0,
@@ -3578,7 +3605,7 @@ def build_dashboard(title, uid, portfolio=False, multi_account=False, experiment
         "uid": uid,
         "version": 26,
         "weekStart": "",
-    }
+    })
 
 
 # Panels that must keep identical display settings (type, size, options, fieldConfig)
@@ -3709,11 +3736,20 @@ def main():
         experimental=True,
         test=True,
     )
+    staging_single = build_dashboard(
+        "Akeyless CS — Account Technical Dashboard (STAGING)",
+        "akeyless-cs-staging-account",
+        portfolio=False,
+        experimental=True,
+        staging=True,
+        datasource_uid=STAGING_DS_UID,
+    )
 
     paths = {
         OUT_DIR / "dashboard-single-account.json": prod_single,
         OUT_DIR / "dashboard-multi-account.json": prod_multi,
         OUT_DIR / "dashboard-portfolio-anomalies.json": prod_portfolio,
+        OUT_DIR / "dashboard-staging-account.json": staging_single,
         OUT_DIR / "test-single-account.json": test_single,
         OUT_DIR / "test-multiple-accounts.json": test_multi,
     }

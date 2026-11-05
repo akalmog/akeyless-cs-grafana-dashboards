@@ -18,14 +18,11 @@ AccountHubSpotData AS (
     WHERE c.name = '${company_name}'
 ),
 PurchasedTotal AS (
-    -- Skip accounts with 0 (no limit on record) or 999/99999 (unlimited).
-    -- Otherwise the first account_id can zero out the company limit.
+    -- Same HubSpot row as By Customer purchased clients: first account_id.
     SELECT COALESCE(
         (
             SELECT CAST(COALESCE({purchased_col}, '0') AS INTEGER)
             FROM AccountHubSpotData
-            WHERE CAST(COALESCE({purchased_col}, '0') AS INTEGER) > 0
-              AND CAST(COALESCE({purchased_col}, '0') AS INTEGER) NOT IN (999, 99999)
             ORDER BY account_id
             LIMIT 1
         ),
@@ -104,7 +101,8 @@ MonthlyUsed AS (
 SELECT
     mu.report_month AS "Month",
     CASE
-        WHEN pt.purchased_total IS NULL OR pt.purchased_total <= 0 THEN NULL
+        WHEN pt.purchased_total IS NULL OR pt.purchased_total <= 0
+            OR pt.purchased_total IN (999, 99999) THEN NULL
         ELSE ROUND(
             100.0 * (mu.used_amount + mu.exceeded_amount) / pt.purchased_total,
             1

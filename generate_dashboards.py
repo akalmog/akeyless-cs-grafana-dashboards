@@ -1142,10 +1142,12 @@ FROM PeriodTotals pt
 CROSS JOIN PeriodCapacity pc
 """
     elif metric == "purchased":
+        # HubSpot product quantity (clients_sm / clients_ca / clients_sra / clients_pm).
+        # Not multiplied by the time range — that factor is only for Usage %.
         final = """
 SELECT CASE
     WHEN pc.is_unlimited = 1 THEN NULL
-    ELSE COALESCE(pc.purchased_monthly_total, 0)
+    ELSE COALESCE(pc.purchased_limit, 0)
 END AS value
 FROM PeriodCapacity pc
 """
@@ -1970,7 +1972,8 @@ LIMIT 1
 
 
 def product_purchased_sql(purchased_col, portfolio=False, product="sm", experimental=True):
-    if product == "ca" or not experimental:
+    """HubSpot purchased quantity for one product (companies.clients_*)."""
+    if not experimental:
         where = account_where_clause(portfolio, experimental=experimental)
         cf = company_filter_sql(portfolio, "companies")
         return f"""

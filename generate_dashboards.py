@@ -2736,6 +2736,12 @@ def header_value_panel(title, sql, x, y, w, h=4, field=None, link=None, all_valu
     return panel
 
 
+def header_one_value_sql(source_sql, column):
+    """One column named value, so the stat tile cannot miss the field and show No data."""
+    inner = source_sql.strip().rstrip(";")
+    return f'SELECT "{column}" AS value FROM ({inner})'
+
+
 def original_account_header_panels(y=0):
     """Header tiles. Stat panels shrink text to fit, so the row does not grow scrollbars."""
     sla_sql = load_query("account_sla.sql")
@@ -2793,7 +2799,9 @@ def original_account_header_panels(y=0):
         },
         header_value_panel(
             "Account IDs",
-            load_query("account_ids.sql"),
+            "SELECT account_id AS value FROM ("
+            + load_query("account_ids.sql").strip().rstrip(";")
+            + ")",
             x=4,
             y=y,
             w=3,
@@ -2806,13 +2814,17 @@ def original_account_header_panels(y=0):
             y=y,
             w=3,
         ),
-        header_value_panel("Contract Start", contract_sql, x=10, y=y, w=2, field="/^Contract Start$/"),
-        header_value_panel("Contract End", contract_sql, x=12, y=y, w=2, field="/^Contract End$/"),
-        header_value_panel("Elapsed", contract_sql, x=14, y=y, w=2, field="/^Elapsed$/"),
-        header_value_panel("Channel", contract_sql, x=16, y=y, w=2, field="/^Channel$/"),
-        header_value_panel("CSM", owners_sql, x=18, y=y, w=2, field="/^CSM$/"),
-        header_value_panel("Sales", owners_sql, x=20, y=y, w=2, field="/^Sales$/"),
-        header_value_panel("CSE", owners_sql, x=22, y=y, w=2, field="/^CSE$/"),
+        header_value_panel(
+            "Contract Start", header_one_value_sql(contract_sql, "Contract Start"), x=10, y=y, w=2
+        ),
+        header_value_panel(
+            "Contract End", header_one_value_sql(contract_sql, "Contract End"), x=12, y=y, w=2
+        ),
+        header_value_panel("Elapsed", header_one_value_sql(contract_sql, "Elapsed"), x=14, y=y, w=2),
+        header_value_panel("Channel", header_one_value_sql(contract_sql, "Channel"), x=16, y=y, w=2),
+        header_value_panel("CSM", header_one_value_sql(owners_sql, "CSM"), x=18, y=y, w=2),
+        header_value_panel("Sales", header_one_value_sql(owners_sql, "Sales"), x=20, y=y, w=2),
+        header_value_panel("CSE", header_one_value_sql(owners_sql, "CSE"), x=22, y=y, w=2),
     ]
     return panels, y + 4
 

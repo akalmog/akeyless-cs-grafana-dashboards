@@ -1563,8 +1563,7 @@ def utilization_pct_heatmap_field_config(fit_columns=False):
                 utilization_avg_field_override(),
             ],
         }
-    # Fixed column widths so "Nov-26" is readable and the row stays in the panel.
-    # 150 + 100 + 12*78 = 1186px.
+    # Low minimums so Grafana shares the panel width. Fixed pixel widths were wider than the panel and caused a scrollbar.
     return {
         "defaults": {
             "color": {"mode": "thresholds"},
@@ -1573,8 +1572,7 @@ def utilization_pct_heatmap_field_config(fit_columns=False):
                 "cellOptions": {"type": "color-background", "applyToRow": False, "wrapText": False},
                 "inspect": False,
                 "filterable": False,
-                "minWidth": 70,
-                "width": 78,
+                "minWidth": 36,
             },
             "decimals": 1,
             "mappings": [],
@@ -1586,8 +1584,7 @@ def utilization_pct_heatmap_field_config(fit_columns=False):
                 "matcher": {"id": "byName", "options": "Customer"},
                 "properties": [
                     {"id": "custom.cellOptions", "value": {"type": "auto", "wrapText": False}},
-                    {"id": "custom.width", "value": 150},
-                    {"id": "custom.minWidth", "value": 130},
+                    {"id": "custom.minWidth", "value": 120},
                     {"id": "unit", "value": "string"},
                     {"id": "color", "value": {"mode": "fixed", "fixedColor": "text"}},
                     {"id": "mappings", "value": []},
@@ -1596,16 +1593,14 @@ def utilization_pct_heatmap_field_config(fit_columns=False):
             {
                 "matcher": {"id": "byName", "options": "Avg (Last 3M)"},
                 "properties": [
-                    {"id": "custom.width", "value": 100},
-                    {"id": "custom.minWidth", "value": 88},
+                    {"id": "custom.minWidth", "value": 72},
                     {"id": "custom.cellOptions", "value": {"mode": "gradient", "type": "color-background"}},
                 ],
             },
             {
                 "matcher": {"id": "byRegexp", "options": "/^[A-Z][a-z]{2}-\\d{2}$/"},
                 "properties": [
-                    {"id": "custom.width", "value": 78},
-                    {"id": "custom.minWidth", "value": 70},
+                    {"id": "custom.minWidth", "value": 36},
                 ],
             },
         ],
@@ -2604,7 +2599,13 @@ SLA_VALUE_MAPPINGS = [
 
 HEADER_TABLE_FIELD_CONFIG = {
     "defaults": {
-        "custom": {"align": "auto", "cellOptions": {"type": "auto"}, "inspect": False},
+        "custom": {
+            "align": "auto",
+            "cellOptions": {"type": "auto", "wrapText": True},
+            "inspect": False,
+            "filterable": False,
+            "minWidth": 40,
+        },
         "mappings": [],
         "thresholds": SLA_HEADER_THRESHOLDS,
         "color": {"mode": "thresholds"},
@@ -2619,14 +2620,14 @@ HEADER_TABLE_OPTIONS = {
 }
 
 
-def header_table_panel(sql, x, y, w, title="", align="auto"):
+def header_table_panel(sql, x, y, w, title="", align="auto", h=4):
     fc = dict(HEADER_TABLE_FIELD_CONFIG)
     fc["defaults"] = dict(fc["defaults"])
     fc["defaults"]["custom"] = dict(fc["defaults"]["custom"])
     fc["defaults"]["custom"]["align"] = align
     panel = {
         "type": "table",
-        "gridPos": {"h": 3, "w": w, "x": x, "y": y},
+        "gridPos": {"h": h, "w": w, "x": x, "y": y},
         "id": next_id(),
         "targets": [sql_target(sql)],
         "options": HEADER_TABLE_OPTIONS,
@@ -2638,27 +2639,28 @@ def header_table_panel(sql, x, y, w, title="", align="auto"):
     return panel
 
 
-def header_account_ids_panel(x, y, w=2):
-    """One account ID per row — readable at fixed table font size (no stat auto-shrink)."""
+def header_account_ids_panel(x, y, w=4):
+    """One account ID per row, wrapped so the cell does not grow a scrollbar."""
     return {
         "type": "table",
         "title": "Account IDs",
-        "gridPos": {"h": 3, "w": w, "x": x, "y": y},
+        "gridPos": {"h": 4, "w": w, "x": x, "y": y},
         "id": next_id(),
         "targets": [sql_target(load_query("account_ids.sql"))],
         "options": {
             "showHeader": False,
-            "cellHeight": "sm",
+            "cellHeight": "md",
             "footer": {"show": False, "reducer": ["sum"], "countRows": False, "fields": ""},
             "sortBy": [],
         },
         "fieldConfig": {
             "defaults": {
                 "custom": {
-                    "align": "auto",
-                    "cellOptions": {"type": "auto", "wrapText": False},
+                    "align": "left",
+                    "cellOptions": {"type": "auto", "wrapText": True},
                     "inspect": False,
                     "filterable": False,
+                    "minWidth": 40,
                 },
                 "color": {"fixedColor": "text", "mode": "fixed"},
                 "mappings": [],
@@ -2701,7 +2703,7 @@ def original_account_header_panels(y=0):
     panels = [
         {
             "type": "text",
-            "gridPos": {"h": 3, "w": 2, "x": 0, "y": y},
+            "gridPos": {"h": 4, "w": 2, "x": 0, "y": y},
             "id": next_id(),
             "options": {
                 "mode": "html",
@@ -2713,7 +2715,7 @@ def original_account_header_panels(y=0):
         {
             "type": "stat",
             "title": "SLA",
-            "gridPos": {"h": 3, "w": 2, "x": 2, "y": y},
+            "gridPos": {"h": 4, "w": 2, "x": 2, "y": y},
             "id": next_id(),
             "targets": [sql_target(sla_sql)],
             "options": {
@@ -2746,37 +2748,41 @@ def original_account_header_panels(y=0):
             },
             "datasource": DS,
         },
-        header_account_ids_panel(x=4, y=y),
+        header_account_ids_panel(x=4, y=y, w=4),
         {
             "type": "text",
-            "gridPos": {"h": 3, "w": 4, "x": 6, "y": y},
+            "gridPos": {"h": 4, "w": 4, "x": 8, "y": y},
             "id": next_id(),
             "options": {
                 "mode": "html",
                 "code": {"language": "plaintext", "showLineNumbers": False, "showMiniMap": False},
                 "content": (
-                    '<div style="text-align: center; font-size: 36px; font-weight: bold; '
-                    'display: flex; align-items: center; justify-content: center; height: 100%;">\n'
-                    "${company_name}\n</div>"
+                    '<div style="box-sizing:border-box;width:100%;height:100%;overflow:hidden;'
+                    'display:flex;align-items:center;justify-content:center;text-align:center;'
+                    'font-size:22px;font-weight:700;line-height:1.15;word-break:break-word;padding:4px;">'
+                    "${company_name}</div>"
                 ),
             },
-            "targets": [
-                sql_target(
-                    "SELECT name AS \"Company Name\" FROM companies WHERE name = '${company_name}' LIMIT 1;"
-                )
-            ],
             "datasource": DS,
         },
         header_table_panel(
             load_query("account_contract_info.sql"),
-            x=10,
+            x=12,
             y=y,
-            w=8,
+            w=7,
+            h=4,
             align="center",
         ),
-        header_table_panel(load_query("account_owners.sql"), x=18, y=y, w=6, align="center"),
+        header_table_panel(
+            load_query("account_owners.sql"),
+            x=19,
+            y=y,
+            w=5,
+            h=4,
+            align="center",
+        ),
     ]
-    return panels, y + 3
+    return panels, y + 4
 
 
 def account_details_panels(y, portfolio=False, experimental=True):
@@ -2985,14 +2991,14 @@ def product_section(
                 portfolio=use_portfolio_sql,
                 x=0,
                 y=y,
-                h=util_height,
+                h=6,
                 experimental=experimental,
                 months_count=util_months,
                 include_current_month=True,
                 fit_columns=True,
             )
         )
-        y += util_height
+        y += 6
         chart_h = 10
         panels.append(
             monthly_timeseries_panel(
@@ -3917,7 +3923,11 @@ def _build_dashboard(
         "style": "dark",
         "tags": tags,
         "templating": templating,
-        "time": {"from": "now-12M", "to": "now"},
+        "time": (
+            {"from": "now-2y", "to": "now+2y"}
+            if staging and not multi_account and not portfolio
+            else {"from": "now-12M", "to": "now"}
+        ),
         "timepicker": {},
         "timezone": "browser",
         "title": title,

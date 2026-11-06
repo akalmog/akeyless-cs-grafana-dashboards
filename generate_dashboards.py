@@ -2700,21 +2700,61 @@ HOME_BUTTON_HTML = """<div style="display:flex;align-items:center;justify-conten
 """
 
 
-def original_account_header_panels(y=0):
-    """Top header row matching the original By Customer dashboard."""
-    sla_sql = load_query("account_sla.sql")
-    panels = [
-        {
-            "type": "text",
-            "gridPos": {"h": 4, "w": 2, "x": 0, "y": y},
-            "id": next_id(),
-            "options": {
-                "mode": "html",
-                "code": {"language": "plaintext", "showLineNumbers": False, "showMiniMap": False},
-                "content": HOME_BUTTON_HTML,
+def header_value_panel(title, sql, x, y, w, h=4, field=None, link=None, all_values=False):
+    """Stat tile. Grafana shrinks the text to the panel, so it does not open a scrollbar."""
+    panel = {
+        "type": "stat",
+        "title": title,
+        "gridPos": {"h": h, "w": w, "x": x, "y": y},
+        "id": next_id(),
+        "targets": [sql_target(sql)],
+        "options": {
+            "reduceOptions": {
+                "values": all_values,
+                "calcs": ["lastNotNull"],
+                "fields": field or "/.*/",
             },
-            "datasource": DS,
+            "orientation": "auto",
+            "textMode": "value",
+            "wideLayout": True,
+            "colorMode": "none",
+            "graphMode": "none",
+            "justifyMode": "center",
+            "showPercentChange": False,
         },
+        "fieldConfig": {
+            "defaults": {
+                "mappings": [],
+                "color": {"mode": "fixed", "fixedColor": "text"},
+            },
+            "overrides": [],
+        },
+        "datasource": DS,
+    }
+    if link:
+        panel["fieldConfig"]["defaults"]["links"] = [link]
+    return panel
+
+
+def original_account_header_panels(y=0):
+    """Header tiles. Stat panels shrink text to fit, so the row does not grow scrollbars."""
+    sla_sql = load_query("account_sla.sql")
+    contract_sql = load_query("account_contract_info.sql")
+    owners_sql = load_query("account_owners.sql")
+    home_link = {
+        "title": "Home",
+        "url": "https://akeyless-analytics.com/d/af7l8pm3w7e9sd/v2-draft-all-customer?orgId=1",
+        "targetBlank": True,
+    }
+    panels = [
+        header_value_panel(
+            "Home",
+            "SELECT 'Home' AS value",
+            x=0,
+            y=y,
+            w=2,
+            link=home_link,
+        ),
         {
             "type": "stat",
             "title": "SLA",
@@ -2751,45 +2791,28 @@ def original_account_header_panels(y=0):
             },
             "datasource": DS,
         },
-        header_account_ids_panel(x=4, y=y, w=3, h=4),
-        {
-            "type": "text",
-            "gridPos": {"h": 4, "w": 3, "x": 7, "y": y},
-            "id": next_id(),
-            "options": {
-                "mode": "html",
-                "code": {"language": "plaintext", "showLineNumbers": False, "showMiniMap": False},
-                "content": (
-                    '<div style="display:flex;align-items:center;justify-content:center;text-align:center;'
-                    'font-size:18px;font-weight:700;line-height:1.2;padding:8px 6px;">'
-                    "${company_name}</div>"
-                ),
-            },
-            "datasource": DS,
-        },
-        header_table_panel(
-            load_query("account_contract_info.sql"),
-            x=10,
+        header_value_panel(
+            "Account IDs",
+            load_query("account_ids.sql"),
+            x=4,
             y=y,
-            w=9,
-            h=4,
-            align="center",
-            column_widths={
-                "Contract Start": 140,
-                "Contract End": 130,
-                "Elapsed": 90,
-                "Channel": 110,
-            },
+            w=3,
+            all_values=True,
         ),
-        header_table_panel(
-            load_query("account_owners.sql"),
-            x=19,
+        header_value_panel(
+            "Company",
+            "SELECT name AS value FROM companies WHERE name = '${company_name}' LIMIT 1",
+            x=7,
             y=y,
-            w=5,
-            h=4,
-            align="center",
-            column_widths={"CSM": 100, "Sales": 110, "CSE": 100},
+            w=3,
         ),
+        header_value_panel("Contract Start", contract_sql, x=10, y=y, w=2, field="/^Contract Start$/"),
+        header_value_panel("Contract End", contract_sql, x=12, y=y, w=2, field="/^Contract End$/"),
+        header_value_panel("Elapsed", contract_sql, x=14, y=y, w=2, field="/^Elapsed$/"),
+        header_value_panel("Channel", contract_sql, x=16, y=y, w=2, field="/^Channel$/"),
+        header_value_panel("CSM", owners_sql, x=18, y=y, w=2, field="/^CSM$/"),
+        header_value_panel("Sales", owners_sql, x=20, y=y, w=2, field="/^Sales$/"),
+        header_value_panel("CSE", owners_sql, x=22, y=y, w=2, field="/^CSE$/"),
     ]
     return panels, y + 4
 

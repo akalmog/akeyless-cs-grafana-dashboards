@@ -5,7 +5,8 @@ Outputs:
   dashboard-single-account.json       — production single-account dashboard
   dashboard-multi-account.json        — production multi-account dashboard
   dashboard-portfolio-anomalies.json  — production portfolio anomalies dashboard
-  dashboard-staging-account.json      — importable staging copy (separate Grafana uid)
+  dashboard-staging-account.json      — importable staging copy of the single-account dashboard
+  dashboard-staging-multi-account.json — importable staging copy of the multi-account dashboard
   test-single-account.json            — test copy of single-account dashboard
   test-multiple-accounts.json         — test copy of multi-account dashboard
 """
@@ -1372,6 +1373,21 @@ def utilization_month_cells_sql(count, include_current, display):
                 WHERE f2.company_name = FinalData.company_name
                   AND f2.report_month = {ym}
             )"""
+        elif display == "combined":
+            value = f"""(
+                SELECT CASE WHEN f2.util_pct IS NULL THEN NULL
+                    ELSE printf(
+                        '%d|%.1f%% (%d/%d)',
+                        CAST(ROUND(f2.util_pct) AS INTEGER),
+                        f2.util_pct,
+                        f2.used_total,
+                        f2.clients_purchased
+                    )
+                END
+                FROM FinalData f2
+                WHERE f2.company_name = FinalData.company_name
+                  AND f2.report_month = {ym}
+            )"""
         else:
             value = f"""(
                 SELECT f2.util_pct
@@ -1410,9 +1426,18 @@ def utilization_avg_counts_sql(avg_months_sql, used_total="used_total", purchase
     END"""
 
 
-def utilization_counts_string_mappings():
-    """Map encoded 'pct|(used/threshold)' strings to display text + threshold colors."""
-    display = r"(\(\d+/\d+\))"
+def utilization_avg_combined_sql(avg_months_sql, used_total="used_total", purchased="clients_purchased"):
+    avg_util = f"AVG(CASE WHEN report_month IN ({avg_months_sql}) THEN util_pct END)"
+    avg_used = f"AVG(CASE WHEN report_month IN ({avg_months_sql}) THEN {used_total} END)"
+    return f"""CASE
+        WHEN {avg_util} IS NULL THEN NULL
+        ELSE printf('%d|%.1f%% (%d/%d)', CAST(ROUND({avg_util}) AS INTEGER),
+            {avg_util}, CAST(ROUND({avg_used}) AS INTEGER), MAX({purchased}))
+    END"""
+
+
+def utilization_counts_string_mappings(display=r"(\(\d+/\d+\))"):
+    """Map encoded 'pct|display text' strings to display text + threshold colors."""
     return [
         {
             "type": "regex",
@@ -1519,6 +1544,41 @@ def utilization_counts_heatmap_field_config():
     }
 
 
+def utilization_combined_heatmap_field_config():
+    """One monthly table: cell text is '169.3% (593/350)', colored like utilization %."""
+    mappings = utilization_counts_string_mappings(display=r"(.+)")
+    return {
+        "defaults": {
+            "custom": {
+                "align": "center",
+                "cellOptions": {"type": "color-background", "applyToRow": False, "wrapText": True},
+                "inspect": False,
+                "filterable": False,
+                "minWidth": 118,
+            },
+            "mappings": mappings,
+        },
+        "overrides": [
+            utilization_customer_field_override(),
+            {
+                "matcher": {"id": "byName", "options": "Avg (Last 3M)"},
+                "properties": [
+                    {"id": "custom.width", "value": 140},
+                    {"id": "mappings", "value": mappings},
+                    {"id": "custom.cellOptions", "value": {"mode": "gradient", "type": "color-background"}},
+                ],
+            },
+            {
+                "matcher": {"id": "byRegexp", "options": "/^[A-Z][a-z]{2}-\\d{2}$/"},
+                "properties": [
+                    {"id": "mappings", "value": mappings},
+                    {"id": "custom.cellOptions", "value": {"type": "color-background", "applyToRow": False, "wrapText": True}},
+                ],
+            },
+        ],
+    }
+
+
 CLM_DAILY_CERTS_EXPR = """CASE
     WHEN (COALESCE(r.ca_self_signed, 0) - COALESCE(r.risk_expired, 0)) < 0 THEN 0
     ELSE (COALESCE(r.ca_self_signed, 0) - COALESCE(r.risk_expired, 0))
@@ -1612,6 +1672,8 @@ def product_utilization_sql(
     avg_months_sql = dynamic_month_in_list(3, include_current=avg_include_current)
     if display == "counts":
         avg_expr = utilization_avg_counts_sql(avg_months_sql)
+    elif display == "combined":
+        avg_expr = utilization_avg_combined_sql(avg_months_sql)
     else:
         avg_expr = (
             f'ROUND(AVG(CASE WHEN report_month IN ({avg_months_sql}) THEN util_pct END), 1)'
@@ -1829,6 +1891,27 @@ def product_utilization_table_panel(
         include_current_month=include_current_month,
         display=display,
     )
+    if display == "combined":
+        return {
+            "type": "table",
+            "title": title,
+            "description": (
+                "One monthly view. Each cell is utilization % and (used/threshold), "
+                "including exceeded clients in the used count. "
+                "Color: red under 30%, blue 30–69%, green 70% and above."
+            ),
+            "gridPos": {"h": h, "w": w, "x": x, "y": y},
+            "id": next_id(),
+            "targets": [sql_target(sql, query_type="table")],
+            "transformations": utilization_month_transformations(),
+            "options": {
+                "cellHeight": "md",
+                "footer": {"countRows": False, "fields": "", "reducer": ["sum"], "show": False},
+                "showHeader": True,
+            },
+            "fieldConfig": utilization_combined_heatmap_field_config(),
+            "datasource": DS,
+        }
     if display == "counts":
         return {
             "type": "table",
@@ -2663,7 +2746,9 @@ SELECT CAST(julianday('now') - julianday(current_contract_start_date) AS INTEGER
     return panels, y2 + 4
 
 
-def product_section(label, product, purchased_col, y, portfolio=False, multi_account=False, experimental=True):
+def product_section(
+    label, product, purchased_col, y, portfolio=False, multi_account=False, experimental=True, merge_monthly=False
+):
     use_portfolio_sql = portfolio or multi_account
     panels = [row_panel(f"{label} — {product_label_full(label)}", y)]
     y += 1
@@ -2758,6 +2843,28 @@ def product_section(label, product, purchased_col, y, portfolio=False, multi_acc
 
     util_height = 5 if not use_portfolio_sql else 16
     util_months = UTILIZATION_PIVOT_MONTHS
+    if merge_monthly:
+        merged_h = 8 if not use_portfolio_sql else util_height
+        merged_title = (
+            f"{label} Monthly by Customer" if use_portfolio_sql else f"{label} Monthly"
+        )
+        panels.append(
+            product_utilization_table_panel(
+                merged_title,
+                product,
+                purchased_col,
+                portfolio=use_portfolio_sql,
+                x=0,
+                y=y,
+                h=merged_h,
+                experimental=experimental,
+                months_count=util_months,
+                include_current_month=True,
+                display="combined",
+            )
+        )
+        return panels, y + merged_h
+
     counts_title = (
         f"{label} Monthly Used / Threshold by Customer"
         if use_portfolio_sql
@@ -3604,6 +3711,7 @@ def _build_dashboard(
             portfolio=use_portfolio_sql,
             multi_account=multi_account,
             experimental=experimental,
+            merge_monthly=staging,
         )
         panels.extend(section)
 
@@ -3646,8 +3754,8 @@ def _build_dashboard(
         tags = ["akeyless", "customer-success", "usage", "technical"]
         if test:
             tags.append("test")
-        if staging:
-            tags.append("staging")
+    if staging:
+        tags.append("staging")
 
     return deepcopy({
         "annotations": {"list": []},
@@ -3808,12 +3916,20 @@ def main():
         experimental=True,
         staging=True,
     )
+    staging_multi = build_dashboard(
+        "Akeyless CS — Multi-Account Technical Dashboard (STAGING)",
+        "akeyless-cs-staging-multi-account",
+        multi_account=True,
+        experimental=True,
+        staging=True,
+    )
 
     paths = {
         OUT_DIR / "dashboard-single-account.json": prod_single,
         OUT_DIR / "dashboard-multi-account.json": prod_multi,
         OUT_DIR / "dashboard-portfolio-anomalies.json": prod_portfolio,
         OUT_DIR / "dashboard-staging-account.json": staging_single,
+        OUT_DIR / "dashboard-staging-multi-account.json": staging_multi,
         OUT_DIR / "test-single-account.json": test_single,
         OUT_DIR / "test-multiple-accounts.json": test_multi,
     }

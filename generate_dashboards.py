@@ -505,12 +505,17 @@ def monthly_timeseries_field_config():
                 "gradientMode": "none",
                 "spanNulls": False,
                 "insertNulls": False,
-                "stacking": {"mode": "none"},
-                "axisPlacement": "auto",
-                "axisBorderShow": False,
-                "scaleDistribution": {"type": "linear"},
                 "showPoints": "auto",
                 "pointSize": 5,
+                "stacking": {"mode": "normal", "group": "A"},
+                "axisPlacement": "auto",
+                "axisLabel": "",
+                "axisColorMode": "text",
+                "axisBorderShow": False,
+                "scaleDistribution": {"type": "linear"},
+                "axisCenteredZero": False,
+                "hideFrom": {"tooltip": False, "viz": False, "legend": False},
+                "thresholdsStyle": {"mode": "off"},
             },
             "color": {"mode": "palette-classic"},
             "mappings": [],
@@ -528,7 +533,6 @@ def monthly_timeseries_field_config():
                 "properties": [
                     {"id": "custom.drawStyle", "value": "bars"},
                     {"id": "custom.fillOpacity", "value": 100},
-                    {"id": "custom.stacking", "value": {"mode": "normal", "group": "A"}},
                     {"id": "color", "value": {"fixedColor": "blue", "mode": "fixed"}},
                 ],
             },
@@ -537,7 +541,6 @@ def monthly_timeseries_field_config():
                 "properties": [
                     {"id": "custom.drawStyle", "value": "bars"},
                     {"id": "custom.fillOpacity", "value": 100},
-                    {"id": "custom.stacking", "value": {"mode": "normal", "group": "A"}},
                     {"id": "color", "value": {"fixedColor": "red", "mode": "fixed"}},
                 ],
             },
@@ -545,9 +548,6 @@ def monthly_timeseries_field_config():
                 "matcher": {"id": "byName", "options": "Purchased Clients"},
                 "properties": [
                     {"id": "color", "value": {"fixedColor": "yellow", "mode": "fixed"}},
-                    {"id": "custom.drawStyle", "value": "line"},
-                    {"id": "custom.lineWidth", "value": 2},
-                    {"id": "custom.stacking", "value": {"mode": "none"}},
                 ],
             },
             {
@@ -555,7 +555,6 @@ def monthly_timeseries_field_config():
                 "properties": [
                     {"id": "custom.drawStyle", "value": "points"},
                     {"id": "custom.pointSize", "value": 19},
-                    {"id": "custom.stacking", "value": {"mode": "none"}},
                     {"id": "color", "value": {"fixedColor": "text", "mode": "fixed"}},
                 ],
             },
@@ -679,28 +678,35 @@ def flatten_dashboard_rows(panels):
 
 
 def nest_dashboard_rows(panels):
-    """Normalize to Grafana's collapsed-row JSON: collapsed=true, children in row.panels."""
+    """Collapsed Grafana rows: children live in row.panels, headers stack with no gaps.
+
+    Child gridPos.y stays on the expanded layout. Grafana's expand uses that y
+    against the row position, then pushes the rows below down.
+    """
     nested = []
     i = 0
+    next_y = 0
     while i < len(panels):
         panel = panels[i]
         if panel.get("type") != "row":
             nested.append(panel)
+            next_y = panel["gridPos"]["y"] + panel["gridPos"]["h"]
             i += 1
             continue
 
         row = deepcopy(panel)
-        row_y = row["gridPos"]["y"]
         children = []
         i += 1
         while i < len(panels) and panels[i].get("type") != "row":
-            child = deepcopy(panels[i])
-            children.append(child)
+            children.append(deepcopy(panels[i]))
             i += 1
 
+        row["gridPos"]["y"] = next_y
+        row["gridPos"]["h"] = 1
         row["collapsed"] = True
         row["panels"] = children
         nested.append(row)
+        next_y += 1
 
     return nested
 
@@ -2921,7 +2927,7 @@ def product_section(
             )
         )
         y += util_height
-        chart_h = 12
+        chart_h = 18
         panels.append(
             monthly_timeseries_panel(
                 f"{label} - Clients Usage (#) per month",
@@ -3810,7 +3816,10 @@ def _build_dashboard(
         risk, y = risk_section(y, group_by_company=multi_account, experimental=experimental)
         panels.extend(risk)
 
-    panels = flatten_dashboard_rows(panels)
+    if staging and not multi_account and not portfolio:
+        panels = nest_dashboard_rows(panels)
+    else:
+        panels = flatten_dashboard_rows(panels)
 
     if multi_account:
         templating = templating_multi_account(experimental=experimental)

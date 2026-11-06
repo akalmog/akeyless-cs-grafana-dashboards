@@ -603,6 +603,8 @@ def monthly_timeseries_panel(title, product, purchased_col, x, y, w=24, h=12):
         "description": description,
         "gridPos": {"h": h, "w": w, "x": x, "y": y},
         "id": next_id(),
+        "timeFrom": "now-4y",
+        "hideTimeOverride": True,
         "targets": [
             sql_target(main_sql, query_type="table", ref="A", time_columns=["time", "ts"]),
             sql_target(contract_sql, query_type="table", ref="B", time_columns=["time", "ts"]),
@@ -2942,7 +2944,7 @@ def product_section(
             )
         )
         y += util_height
-        chart_h = 18
+        chart_h = 10
         panels.append(
             monthly_timeseries_panel(
                 f"{label} - Clients Usage (#) per month",

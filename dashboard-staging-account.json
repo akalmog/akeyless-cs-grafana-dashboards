@@ -945,6 +945,8 @@
                 "drawStyle": "line",
                 "lineInterpolation": "linear",
                 "barAlignment": 0,
+                "barWidthFactor": 0.45,
+                "barMaxWidth": 18,
                 "lineWidth": 1,
                 "fillOpacity": 0,
                 "gradientMode": "none",
@@ -1007,6 +1009,18 @@
                     "value": 100
                   },
                   {
+                    "id": "custom.lineWidth",
+                    "value": 0
+                  },
+                  {
+                    "id": "custom.barWidthFactor",
+                    "value": 0.45
+                  },
+                  {
+                    "id": "custom.barMaxWidth",
+                    "value": 18
+                  },
+                  {
                     "id": "color",
                     "value": {
                       "fixedColor": "blue",
@@ -1030,6 +1044,18 @@
                     "value": 100
                   },
                   {
+                    "id": "custom.lineWidth",
+                    "value": 0
+                  },
+                  {
+                    "id": "custom.barWidthFactor",
+                    "value": 0.45
+                  },
+                  {
+                    "id": "custom.barMaxWidth",
+                    "value": 18
+                  },
+                  {
                     "id": "color",
                     "value": {
                       "fixedColor": "red",
@@ -1050,6 +1076,28 @@
                       "fixedColor": "yellow",
                       "mode": "fixed"
                     }
+                  },
+                  {
+                    "id": "custom.drawStyle",
+                    "value": "line"
+                  },
+                  {
+                    "id": "custom.lineWidth",
+                    "value": 1
+                  },
+                  {
+                    "id": "custom.showPoints",
+                    "value": "always"
+                  },
+                  {
+                    "id": "custom.pointSize",
+                    "value": 5
+                  },
+                  {
+                    "id": "custom.stacking",
+                    "value": {
+                      "mode": "none"
+                    }
                   }
                 ]
               },
@@ -1065,12 +1113,22 @@
                   },
                   {
                     "id": "custom.pointSize",
-                    "value": 19
+                    "value": 8
+                  },
+                  {
+                    "id": "custom.showPoints",
+                    "value": "always"
+                  },
+                  {
+                    "id": "custom.stacking",
+                    "value": {
+                      "mode": "none"
+                    }
                   },
                   {
                     "id": "color",
                     "value": {
-                      "fixedColor": "text",
+                      "fixedColor": "yellow",
                       "mode": "fixed"
                     }
                   }
@@ -1566,6 +1624,8 @@
                 "drawStyle": "line",
                 "lineInterpolation": "linear",
                 "barAlignment": 0,
+                "barWidthFactor": 0.45,
+                "barMaxWidth": 18,
                 "lineWidth": 1,
                 "fillOpacity": 0,
                 "gradientMode": "none",
@@ -1628,6 +1688,18 @@
                     "value": 100
                   },
                   {
+                    "id": "custom.lineWidth",
+                    "value": 0
+                  },
+                  {
+                    "id": "custom.barWidthFactor",
+                    "value": 0.45
+                  },
+                  {
+                    "id": "custom.barMaxWidth",
+                    "value": 18
+                  },
+                  {
                     "id": "color",
                     "value": {
                       "fixedColor": "blue",
@@ -1651,6 +1723,18 @@
                     "value": 100
                   },
                   {
+                    "id": "custom.lineWidth",
+                    "value": 0
+                  },
+                  {
+                    "id": "custom.barWidthFactor",
+                    "value": 0.45
+                  },
+                  {
+                    "id": "custom.barMaxWidth",
+                    "value": 18
+                  },
+                  {
                     "id": "color",
                     "value": {
                       "fixedColor": "red",
@@ -1671,6 +1755,28 @@
                       "fixedColor": "yellow",
                       "mode": "fixed"
                     }
+                  },
+                  {
+                    "id": "custom.drawStyle",
+                    "value": "line"
+                  },
+                  {
+                    "id": "custom.lineWidth",
+                    "value": 1
+                  },
+                  {
+                    "id": "custom.showPoints",
+                    "value": "always"
+                  },
+                  {
+                    "id": "custom.pointSize",
+                    "value": 5
+                  },
+                  {
+                    "id": "custom.stacking",
+                    "value": {
+                      "mode": "none"
+                    }
                   }
                 ]
               },
@@ -1686,12 +1792,22 @@
                   },
                   {
                     "id": "custom.pointSize",
-                    "value": 19
+                    "value": 8
+                  },
+                  {
+                    "id": "custom.showPoints",
+                    "value": "always"
+                  },
+                  {
+                    "id": "custom.stacking",
+                    "value": {
+                      "mode": "none"
+                    }
                   },
                   {
                     "id": "color",
                     "value": {
-                      "fixedColor": "text",
+                      "fixedColor": "yellow",
                       "mode": "fixed"
                     }
                   }
@@ -2291,6 +2407,8 @@
                 "drawStyle": "line",
                 "lineInterpolation": "linear",
                 "barAlignment": 0,
+                "barWidthFactor": 0.45,
+                "barMaxWidth": 18,
                 "lineWidth": 1,
                 "fillOpacity": 0,
                 "gradientMode": "none",
@@ -2353,6 +2471,18 @@
                     "value": 100
                   },
                   {
+                    "id": "custom.lineWidth",
+                    "value": 0
+                  },
+                  {
+                    "id": "custom.barWidthFactor",
+                    "value": 0.45
+                  },
+                  {
+                    "id": "custom.barMaxWidth",
+                    "value": 18
+                  },
+                  {
                     "id": "color",
                     "value": {
                       "fixedColor": "blue",
@@ -2376,6 +2506,18 @@
                     "value": 100
                   },
                   {
+                    "id": "custom.lineWidth",
+                    "value": 0
+                  },
+                  {
+                    "id": "custom.barWidthFactor",
+                    "value": 0.45
+                  },
+                  {
+                    "id": "custom.barMaxWidth",
+                    "value": 18
+                  },
+                  {
                     "id": "color",
                     "value": {
                       "fixedColor": "red",
@@ -2396,6 +2538,28 @@
                       "fixedColor": "yellow",
                       "mode": "fixed"
                     }
+                  },
+                  {
+                    "id": "custom.drawStyle",
+                    "value": "line"
+                  },
+                  {
+                    "id": "custom.lineWidth",
+                    "value": 1
+                  },
+                  {
+                    "id": "custom.showPoints",
+                    "value": "always"
+                  },
+                  {
+                    "id": "custom.pointSize",
+                    "value": 5
+                  },
+                  {
+                    "id": "custom.stacking",
+                    "value": {
+                      "mode": "none"
+                    }
                   }
                 ]
               },
@@ -2411,12 +2575,22 @@
                   },
                   {
                     "id": "custom.pointSize",
-                    "value": 19
+                    "value": 8
+                  },
+                  {
+                    "id": "custom.showPoints",
+                    "value": "always"
+                  },
+                  {
+                    "id": "custom.stacking",
+                    "value": {
+                      "mode": "none"
+                    }
                   },
                   {
                     "id": "color",
                     "value": {
-                      "fixedColor": "text",
+                      "fixedColor": "yellow",
                       "mode": "fixed"
                     }
                   }
@@ -3016,6 +3190,8 @@
                 "drawStyle": "line",
                 "lineInterpolation": "linear",
                 "barAlignment": 0,
+                "barWidthFactor": 0.45,
+                "barMaxWidth": 18,
                 "lineWidth": 1,
                 "fillOpacity": 0,
                 "gradientMode": "none",
@@ -3078,6 +3254,18 @@
                     "value": 100
                   },
                   {
+                    "id": "custom.lineWidth",
+                    "value": 0
+                  },
+                  {
+                    "id": "custom.barWidthFactor",
+                    "value": 0.45
+                  },
+                  {
+                    "id": "custom.barMaxWidth",
+                    "value": 18
+                  },
+                  {
                     "id": "color",
                     "value": {
                       "fixedColor": "blue",
@@ -3101,6 +3289,18 @@
                     "value": 100
                   },
                   {
+                    "id": "custom.lineWidth",
+                    "value": 0
+                  },
+                  {
+                    "id": "custom.barWidthFactor",
+                    "value": 0.45
+                  },
+                  {
+                    "id": "custom.barMaxWidth",
+                    "value": 18
+                  },
+                  {
                     "id": "color",
                     "value": {
                       "fixedColor": "red",
@@ -3121,6 +3321,28 @@
                       "fixedColor": "yellow",
                       "mode": "fixed"
                     }
+                  },
+                  {
+                    "id": "custom.drawStyle",
+                    "value": "line"
+                  },
+                  {
+                    "id": "custom.lineWidth",
+                    "value": 1
+                  },
+                  {
+                    "id": "custom.showPoints",
+                    "value": "always"
+                  },
+                  {
+                    "id": "custom.pointSize",
+                    "value": 5
+                  },
+                  {
+                    "id": "custom.stacking",
+                    "value": {
+                      "mode": "none"
+                    }
                   }
                 ]
               },
@@ -3136,12 +3358,22 @@
                   },
                   {
                     "id": "custom.pointSize",
-                    "value": 19
+                    "value": 8
+                  },
+                  {
+                    "id": "custom.showPoints",
+                    "value": "always"
+                  },
+                  {
+                    "id": "custom.stacking",
+                    "value": {
+                      "mode": "none"
+                    }
                   },
                   {
                     "id": "color",
                     "value": {
-                      "fixedColor": "text",
+                      "fixedColor": "yellow",
                       "mode": "fixed"
                     }
                   }

@@ -802,8 +802,8 @@
                 },
                 "inspect": false,
                 "filterable": false,
-                "minWidth": 48,
-                "width": 64
+                "minWidth": 70,
+                "width": 78
               },
               "decimals": 1,
               "mappings": [],
@@ -842,11 +842,11 @@
                   },
                   {
                     "id": "custom.width",
-                    "value": 140
+                    "value": 150
                   },
                   {
                     "id": "custom.minWidth",
-                    "value": 140
+                    "value": 130
                   },
                   {
                     "id": "unit",
@@ -873,11 +873,11 @@
                 "properties": [
                   {
                     "id": "custom.width",
-                    "value": 96
+                    "value": 100
                   },
                   {
                     "id": "custom.minWidth",
-                    "value": 96
+                    "value": 88
                   },
                   {
                     "id": "custom.cellOptions",
@@ -896,11 +896,11 @@
                 "properties": [
                   {
                     "id": "custom.width",
-                    "value": 64
+                    "value": 78
                   },
                   {
                     "id": "custom.minWidth",
-                    "value": 48
+                    "value": 70
                   }
                 ]
               }
@@ -916,14 +916,12 @@
           "title": "SM - Clients Usage (#) per month",
           "description": "Monthly used and exceeded clients, the HubSpot purchased quantity, and contract start. Blue and red bars stack. The yellow line is the monthly purchased quantity.",
           "gridPos": {
-            "h": 8,
+            "h": 10,
             "w": 24,
             "x": 0,
             "y": 14
           },
           "id": 15,
-          "timeFrom": "now-4y",
-          "hideTimeOverride": true,
           "targets": [
             {
               "datasource": {
@@ -972,8 +970,8 @@
                 "drawStyle": "line",
                 "lineInterpolation": "linear",
                 "barAlignment": 0,
-                "barWidthFactor": 0.45,
-                "barMaxWidth": 18,
+                "barWidthFactor": 0.6,
+                "barMaxWidth": 36,
                 "lineWidth": 1,
                 "fillOpacity": 0,
                 "gradientMode": "none",
@@ -1042,11 +1040,11 @@
                   },
                   {
                     "id": "custom.barWidthFactor",
-                    "value": 0.45
+                    "value": 0.6
                   },
                   {
                     "id": "custom.barMaxWidth",
-                    "value": 18
+                    "value": 36
                   },
                   {
                     "id": "color",
@@ -1077,11 +1075,11 @@
                   },
                   {
                     "id": "custom.barWidthFactor",
-                    "value": 0.45
+                    "value": 0.6
                   },
                   {
                     "id": "custom.barMaxWidth",
-                    "value": 18
+                    "value": 36
                   },
                   {
                     "id": "color",
@@ -1190,7 +1188,7 @@
             "h": 5,
             "w": 5,
             "x": 0,
-            "y": 23
+            "y": 25
           },
           "id": 17,
           "targets": [
@@ -1262,7 +1260,7 @@
             "h": 5,
             "w": 5,
             "x": 5,
-            "y": 23
+            "y": 25
           },
           "id": 18,
           "targets": [
@@ -1314,7 +1312,7 @@
             "h": 5,
             "w": 5,
             "x": 10,
-            "y": 23
+            "y": 25
           },
           "id": 19,
           "targets": [
@@ -1366,7 +1364,7 @@
             "h": 5,
             "w": 5,
             "x": 15,
-            "y": 23
+            "y": 25
           },
           "id": 20,
           "targets": [
@@ -1439,7 +1437,7 @@
             "h": 5,
             "w": 24,
             "x": 0,
-            "y": 28
+            "y": 30
           },
           "id": 21,
           "targets": [
@@ -1509,8 +1507,8 @@
                 },
                 "inspect": false,
                 "filterable": false,
-                "minWidth": 48,
-                "width": 64
+                "minWidth": 70,
+                "width": 78
               },
               "decimals": 1,
               "mappings": [],
@@ -1549,11 +1547,11 @@
                   },
                   {
                     "id": "custom.width",
-                    "value": 140
+                    "value": 150
                   },
                   {
                     "id": "custom.minWidth",
-                    "value": 140
+                    "value": 130
                   },
                   {
                     "id": "unit",
@@ -1580,11 +1578,11 @@
                 "properties": [
                   {
                     "id": "custom.width",
-                    "value": 96
+                    "value": 100
                   },
                   {
                     "id": "custom.minWidth",
-                    "value": 96
+                    "value": 88
                   },
                   {
                     "id": "custom.cellOptions",
@@ -1603,11 +1601,11 @@
                 "properties": [
                   {
                     "id": "custom.width",
-                    "value": 64
+                    "value": 78
                   },
                   {
                     "id": "custom.minWidth",
-                    "value": 48
+                    "value": 70
                   }
                 ]
               }
@@ -1623,14 +1621,12 @@
           "title": "CLM - Clients Usage (#) per month",
           "description": "Monthly certificates in use, the HubSpot purchased quantity, and contract start. The yellow line is the monthly purchased quantity.",
           "gridPos": {
-            "h": 8,
+            "h": 10,
             "w": 24,
             "x": 0,
-            "y": 33
+            "y": 35
           },
           "id": 22,
-          "timeFrom": "now-4y",
-          "hideTimeOverride": true,
           "targets": [
             {
               "datasource": {
@@ -1679,8 +1675,8 @@
                 "drawStyle": "line",
                 "lineInterpolation": "linear",
                 "barAlignment": 0,
-                "barWidthFactor": 0.45,
-                "barMaxWidth": 18,
+                "barWidthFactor": 0.6,
+                "barMaxWidth": 36,
                 "lineWidth": 1,
                 "fillOpacity": 0,
                 "gradientMode": "none",
@@ -1749,11 +1745,11 @@
                   },
                   {
                     "id": "custom.barWidthFactor",
-                    "value": 0.45
+                    "value": 0.6
                   },
                   {
                     "id": "custom.barMaxWidth",
-                    "value": 18
+                    "value": 36
                   },
                   {
                     "id": "color",
@@ -1784,11 +1780,11 @@
                   },
                   {
                     "id": "custom.barWidthFactor",
-                    "value": 0.45
+                    "value": 0.6
                   },
                   {
                     "id": "custom.barMaxWidth",
-                    "value": 18
+                    "value": 36
                   },
                   {
                     "id": "color",
@@ -1897,7 +1893,7 @@
             "h": 5,
             "w": 4,
             "x": 0,
-            "y": 42
+            "y": 46
           },
           "id": 24,
           "targets": [
@@ -1969,7 +1965,7 @@
             "h": 5,
             "w": 4,
             "x": 4,
-            "y": 42
+            "y": 46
           },
           "id": 25,
           "targets": [
@@ -2021,7 +2017,7 @@
             "h": 5,
             "w": 4,
             "x": 8,
-            "y": 42
+            "y": 46
           },
           "id": 26,
           "targets": [
@@ -2073,7 +2069,7 @@
             "h": 5,
             "w": 3,
             "x": 12,
-            "y": 42
+            "y": 46
           },
           "id": 27,
           "targets": [
@@ -2125,7 +2121,7 @@
             "h": 5,
             "w": 4,
             "x": 15,
-            "y": 42
+            "y": 46
           },
           "id": 28,
           "targets": [
@@ -2177,7 +2173,7 @@
             "h": 5,
             "w": 5,
             "x": 19,
-            "y": 42
+            "y": 46
           },
           "id": 29,
           "targets": [
@@ -2250,7 +2246,7 @@
             "h": 5,
             "w": 24,
             "x": 0,
-            "y": 47
+            "y": 51
           },
           "id": 30,
           "targets": [
@@ -2320,8 +2316,8 @@
                 },
                 "inspect": false,
                 "filterable": false,
-                "minWidth": 48,
-                "width": 64
+                "minWidth": 70,
+                "width": 78
               },
               "decimals": 1,
               "mappings": [],
@@ -2360,11 +2356,11 @@
                   },
                   {
                     "id": "custom.width",
-                    "value": 140
+                    "value": 150
                   },
                   {
                     "id": "custom.minWidth",
-                    "value": 140
+                    "value": 130
                   },
                   {
                     "id": "unit",
@@ -2391,11 +2387,11 @@
                 "properties": [
                   {
                     "id": "custom.width",
-                    "value": 96
+                    "value": 100
                   },
                   {
                     "id": "custom.minWidth",
-                    "value": 96
+                    "value": 88
                   },
                   {
                     "id": "custom.cellOptions",
@@ -2414,11 +2410,11 @@
                 "properties": [
                   {
                     "id": "custom.width",
-                    "value": 64
+                    "value": 78
                   },
                   {
                     "id": "custom.minWidth",
-                    "value": 48
+                    "value": 70
                   }
                 ]
               }
@@ -2434,14 +2430,12 @@
           "title": "SRA - Clients Usage (#) per month",
           "description": "Monthly used and exceeded clients, the HubSpot purchased quantity, and contract start. Blue and red bars stack. The yellow line is the monthly purchased quantity.",
           "gridPos": {
-            "h": 8,
+            "h": 10,
             "w": 24,
             "x": 0,
-            "y": 52
+            "y": 56
           },
           "id": 31,
-          "timeFrom": "now-4y",
-          "hideTimeOverride": true,
           "targets": [
             {
               "datasource": {
@@ -2490,8 +2484,8 @@
                 "drawStyle": "line",
                 "lineInterpolation": "linear",
                 "barAlignment": 0,
-                "barWidthFactor": 0.45,
-                "barMaxWidth": 18,
+                "barWidthFactor": 0.6,
+                "barMaxWidth": 36,
                 "lineWidth": 1,
                 "fillOpacity": 0,
                 "gradientMode": "none",
@@ -2560,11 +2554,11 @@
                   },
                   {
                     "id": "custom.barWidthFactor",
-                    "value": 0.45
+                    "value": 0.6
                   },
                   {
                     "id": "custom.barMaxWidth",
-                    "value": 18
+                    "value": 36
                   },
                   {
                     "id": "color",
@@ -2595,11 +2589,11 @@
                   },
                   {
                     "id": "custom.barWidthFactor",
-                    "value": 0.45
+                    "value": 0.6
                   },
                   {
                     "id": "custom.barMaxWidth",
-                    "value": 18
+                    "value": 36
                   },
                   {
                     "id": "color",
@@ -2708,7 +2702,7 @@
             "h": 5,
             "w": 4,
             "x": 0,
-            "y": 61
+            "y": 67
           },
           "id": 33,
           "targets": [
@@ -2780,7 +2774,7 @@
             "h": 5,
             "w": 4,
             "x": 4,
-            "y": 61
+            "y": 67
           },
           "id": 34,
           "targets": [
@@ -2832,7 +2826,7 @@
             "h": 5,
             "w": 4,
             "x": 8,
-            "y": 61
+            "y": 67
           },
           "id": 35,
           "targets": [
@@ -2884,7 +2878,7 @@
             "h": 5,
             "w": 3,
             "x": 12,
-            "y": 61
+            "y": 67
           },
           "id": 36,
           "targets": [
@@ -2936,7 +2930,7 @@
             "h": 5,
             "w": 4,
             "x": 15,
-            "y": 61
+            "y": 67
           },
           "id": 37,
           "targets": [
@@ -2988,7 +2982,7 @@
             "h": 5,
             "w": 5,
             "x": 19,
-            "y": 61
+            "y": 67
           },
           "id": 38,
           "targets": [
@@ -3061,7 +3055,7 @@
             "h": 5,
             "w": 24,
             "x": 0,
-            "y": 66
+            "y": 72
           },
           "id": 39,
           "targets": [
@@ -3131,8 +3125,8 @@
                 },
                 "inspect": false,
                 "filterable": false,
-                "minWidth": 48,
-                "width": 64
+                "minWidth": 70,
+                "width": 78
               },
               "decimals": 1,
               "mappings": [],
@@ -3171,11 +3165,11 @@
                   },
                   {
                     "id": "custom.width",
-                    "value": 140
+                    "value": 150
                   },
                   {
                     "id": "custom.minWidth",
-                    "value": 140
+                    "value": 130
                   },
                   {
                     "id": "unit",
@@ -3202,11 +3196,11 @@
                 "properties": [
                   {
                     "id": "custom.width",
-                    "value": 96
+                    "value": 100
                   },
                   {
                     "id": "custom.minWidth",
-                    "value": 96
+                    "value": 88
                   },
                   {
                     "id": "custom.cellOptions",
@@ -3225,11 +3219,11 @@
                 "properties": [
                   {
                     "id": "custom.width",
-                    "value": 64
+                    "value": 78
                   },
                   {
                     "id": "custom.minWidth",
-                    "value": 48
+                    "value": 70
                   }
                 ]
               }
@@ -3245,14 +3239,12 @@
           "title": "PWM - Clients Usage (#) per month",
           "description": "Monthly used and exceeded clients, the HubSpot purchased quantity, and contract start. Blue and red bars stack. The yellow line is the monthly purchased quantity.",
           "gridPos": {
-            "h": 8,
+            "h": 10,
             "w": 24,
             "x": 0,
-            "y": 71
+            "y": 77
           },
           "id": 40,
-          "timeFrom": "now-4y",
-          "hideTimeOverride": true,
           "targets": [
             {
               "datasource": {
@@ -3301,8 +3293,8 @@
                 "drawStyle": "line",
                 "lineInterpolation": "linear",
                 "barAlignment": 0,
-                "barWidthFactor": 0.45,
-                "barMaxWidth": 18,
+                "barWidthFactor": 0.6,
+                "barMaxWidth": 36,
                 "lineWidth": 1,
                 "fillOpacity": 0,
                 "gradientMode": "none",
@@ -3371,11 +3363,11 @@
                   },
                   {
                     "id": "custom.barWidthFactor",
-                    "value": 0.45
+                    "value": 0.6
                   },
                   {
                     "id": "custom.barMaxWidth",
-                    "value": 18
+                    "value": 36
                   },
                   {
                     "id": "color",
@@ -3406,11 +3398,11 @@
                   },
                   {
                     "id": "custom.barWidthFactor",
-                    "value": 0.45
+                    "value": 0.6
                   },
                   {
                     "id": "custom.barMaxWidth",
-                    "value": 18
+                    "value": 36
                   },
                   {
                     "id": "color",
@@ -3520,7 +3512,7 @@
             "h": 18,
             "w": 24,
             "x": 0,
-            "y": 80
+            "y": 88
           },
           "id": 42,
           "targets": [
@@ -3663,7 +3655,7 @@
             "h": 8,
             "w": 24,
             "x": 0,
-            "y": 99
+            "y": 107
           },
           "id": 44,
           "targets": [
@@ -3716,7 +3708,7 @@
             "h": 8,
             "w": 24,
             "x": 0,
-            "y": 107
+            "y": 115
           },
           "id": 45,
           "targets": [
@@ -3879,7 +3871,7 @@
             "h": 10,
             "w": 24,
             "x": 0,
-            "y": 115
+            "y": 123
           },
           "id": 46,
           "targets": [
@@ -3983,7 +3975,7 @@
             "h": 4,
             "w": 8,
             "x": 0,
-            "y": 125
+            "y": 133
           },
           "id": 47,
           "targets": [
@@ -4037,7 +4029,7 @@
             "h": 4,
             "w": 8,
             "x": 8,
-            "y": 125
+            "y": 133
           },
           "id": 48,
           "targets": [
@@ -4091,7 +4083,7 @@
             "h": 4,
             "w": 8,
             "x": 16,
-            "y": 125
+            "y": 133
           },
           "id": 49,
           "targets": [
@@ -4161,7 +4153,7 @@
             "h": 8,
             "w": 8,
             "x": 0,
-            "y": 129
+            "y": 137
           },
           "id": 50,
           "targets": [
@@ -4245,7 +4237,7 @@
             "h": 8,
             "w": 16,
             "x": 8,
-            "y": 129
+            "y": 137
           },
           "id": 51,
           "targets": [
@@ -4375,7 +4367,7 @@
             "h": 6,
             "w": 8,
             "x": 0,
-            "y": 138
+            "y": 146
           },
           "id": 53,
           "targets": [
@@ -4458,7 +4450,7 @@
             "h": 6,
             "w": 16,
             "x": 8,
-            "y": 138
+            "y": 146
           },
           "id": 54,
           "targets": [
@@ -4541,7 +4533,7 @@
             "h": 5,
             "w": 24,
             "x": 0,
-            "y": 144
+            "y": 152
           },
           "id": 55,
           "targets": [
@@ -4763,7 +4755,7 @@
             "h": 6,
             "w": 12,
             "x": 0,
-            "y": 149
+            "y": 157
           },
           "id": 56,
           "targets": [
@@ -4999,7 +4991,7 @@
             "h": 6,
             "w": 12,
             "x": 12,
-            "y": 149
+            "y": 157
           },
           "id": 57,
           "targets": [
@@ -5249,7 +5241,7 @@
             "h": 8,
             "w": 24,
             "x": 0,
-            "y": 156
+            "y": 164
           },
           "id": 59,
           "targets": [
@@ -5345,7 +5337,7 @@
             "h": 6,
             "w": 24,
             "x": 0,
-            "y": 164
+            "y": 172
           },
           "id": 60,
           "targets": [
@@ -5494,7 +5486,7 @@
             "h": 6,
             "w": 24,
             "x": 0,
-            "y": 170
+            "y": 178
           },
           "id": 61,
           "targets": [
@@ -5648,7 +5640,7 @@
             "h": 8,
             "w": 24,
             "x": 0,
-            "y": 176
+            "y": 184
           },
           "id": 62,
           "targets": [
@@ -5796,7 +5788,7 @@
             "h": 6,
             "w": 24,
             "x": 0,
-            "y": 184
+            "y": 192
           },
           "id": 63,
           "targets": [
@@ -6023,8 +6015,8 @@
     ]
   },
   "time": {
-    "from": "now-2y",
-    "to": "now+2y"
+    "from": "now-12M",
+    "to": "now"
   },
   "timepicker": {},
   "timezone": "browser",

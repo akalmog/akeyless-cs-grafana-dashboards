@@ -500,8 +500,8 @@ def monthly_timeseries_field_config():
                 "drawStyle": "line",
                 "lineInterpolation": "linear",
                 "barAlignment": 0,
-                "barWidthFactor": 0.45,
-                "barMaxWidth": 18,
+                "barWidthFactor": 0.6,
+                "barMaxWidth": 36,
                 "lineWidth": 1,
                 "fillOpacity": 0,
                 "gradientMode": "none",
@@ -537,8 +537,8 @@ def monthly_timeseries_field_config():
                     {"id": "custom.drawStyle", "value": "bars"},
                     {"id": "custom.fillOpacity", "value": 100},
                     {"id": "custom.lineWidth", "value": 0},
-                    {"id": "custom.barWidthFactor", "value": 0.45},
-                    {"id": "custom.barMaxWidth", "value": 18},
+                    {"id": "custom.barWidthFactor", "value": 0.6},
+                    {"id": "custom.barMaxWidth", "value": 36},
                     {"id": "color", "value": {"fixedColor": "blue", "mode": "fixed"}},
                 ],
             },
@@ -548,8 +548,8 @@ def monthly_timeseries_field_config():
                     {"id": "custom.drawStyle", "value": "bars"},
                     {"id": "custom.fillOpacity", "value": 100},
                     {"id": "custom.lineWidth", "value": 0},
-                    {"id": "custom.barWidthFactor", "value": 0.45},
-                    {"id": "custom.barMaxWidth", "value": 18},
+                    {"id": "custom.barWidthFactor", "value": 0.6},
+                    {"id": "custom.barMaxWidth", "value": 36},
                     {"id": "color", "value": {"fixedColor": "red", "mode": "fixed"}},
                 ],
             },
@@ -604,8 +604,6 @@ def monthly_timeseries_panel(title, product, purchased_col, x, y, w=24, h=12):
         "description": description,
         "gridPos": {"h": h, "w": w, "x": x, "y": y},
         "id": next_id(),
-        "timeFrom": "now-4y",
-        "hideTimeOverride": True,
         "targets": [
             sql_target(main_sql, query_type="table", ref="A", time_columns=["time", "ts"]),
             sql_target(contract_sql, query_type="table", ref="B", time_columns=["time", "ts"]),
@@ -1565,8 +1563,8 @@ def utilization_pct_heatmap_field_config(fit_columns=False):
                 utilization_avg_field_override(),
             ],
         }
-    # Fixed column widths so 12 months fit in the panel without a horizontal scrollbar.
-    # 140 + 96 + 12*64 = 1004px.
+    # Fixed column widths so "Nov-26" is readable and the row stays in the panel.
+    # 150 + 100 + 12*78 = 1186px.
     return {
         "defaults": {
             "color": {"mode": "thresholds"},
@@ -1575,8 +1573,8 @@ def utilization_pct_heatmap_field_config(fit_columns=False):
                 "cellOptions": {"type": "color-background", "applyToRow": False, "wrapText": False},
                 "inspect": False,
                 "filterable": False,
-                "minWidth": 48,
-                "width": 64,
+                "minWidth": 70,
+                "width": 78,
             },
             "decimals": 1,
             "mappings": [],
@@ -1588,8 +1586,8 @@ def utilization_pct_heatmap_field_config(fit_columns=False):
                 "matcher": {"id": "byName", "options": "Customer"},
                 "properties": [
                     {"id": "custom.cellOptions", "value": {"type": "auto", "wrapText": False}},
-                    {"id": "custom.width", "value": 140},
-                    {"id": "custom.minWidth", "value": 140},
+                    {"id": "custom.width", "value": 150},
+                    {"id": "custom.minWidth", "value": 130},
                     {"id": "unit", "value": "string"},
                     {"id": "color", "value": {"mode": "fixed", "fixedColor": "text"}},
                     {"id": "mappings", "value": []},
@@ -1598,16 +1596,16 @@ def utilization_pct_heatmap_field_config(fit_columns=False):
             {
                 "matcher": {"id": "byName", "options": "Avg (Last 3M)"},
                 "properties": [
-                    {"id": "custom.width", "value": 96},
-                    {"id": "custom.minWidth", "value": 96},
+                    {"id": "custom.width", "value": 100},
+                    {"id": "custom.minWidth", "value": 88},
                     {"id": "custom.cellOptions", "value": {"mode": "gradient", "type": "color-background"}},
                 ],
             },
             {
                 "matcher": {"id": "byRegexp", "options": "/^[A-Z][a-z]{2}-\\d{2}$/"},
                 "properties": [
-                    {"id": "custom.width", "value": 64},
-                    {"id": "custom.minWidth", "value": 48},
+                    {"id": "custom.width", "value": 78},
+                    {"id": "custom.minWidth", "value": 70},
                 ],
             },
         ],
@@ -2995,7 +2993,7 @@ def product_section(
             )
         )
         y += util_height
-        chart_h = 8
+        chart_h = 10
         panels.append(
             monthly_timeseries_panel(
                 f"{label} - Clients Usage (#) per month",
@@ -3919,11 +3917,7 @@ def _build_dashboard(
         "style": "dark",
         "tags": tags,
         "templating": templating,
-        "time": (
-            {"from": "now-2y", "to": "now+2y"}
-            if staging and not multi_account and not portfolio
-            else {"from": "now-12M", "to": "now"}
-        ),
+        "time": {"from": "now-12M", "to": "now"},
         "timepicker": {},
         "timezone": "browser",
         "title": title,

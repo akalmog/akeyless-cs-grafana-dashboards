@@ -5,6 +5,8 @@ Outputs:
   dashboard-single-account.json       — production single-account dashboard
   dashboard-multi-account.json        — production multi-account dashboard
   dashboard-portfolio-anomalies.json  — production portfolio anomalies dashboard
+  dashboard-staging-account.json      — importable staging copy of the single-account dashboard
+  dashboard-staging-multi-account.json — importable staging copy of the multi-account dashboard
   test-single-account.json            — test copy of single-account dashboard
   test-multiple-accounts.json         — test copy of multi-account dashboard
 """
@@ -16,7 +18,8 @@ from pathlib import Path
 
 OUT_DIR = Path(__file__).parent
 QUERIES_DIR = OUT_DIR / "queries"
-# uid=None uses the org default datasource ("Active Customers Data" on akeyless-analytics.com)
+# uid=None uses the org default datasource ("Active Customers Data" on akeyless-analytics.com).
+# Staging keeps uid null too: a hardcoded uid from another org leaves Company Name empty.
 DS = {"type": "frser-sqlite-datasource", "uid": None}
 
 REPORT_JOIN = "JOIN reports r ON r.id = rc.report_id AND r.report_type = 'clients_report'"
@@ -497,17 +500,35 @@ def monthly_timeseries_field_config():
                 "drawStyle": "line",
                 "lineInterpolation": "linear",
                 "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "barMaxWidth": 36,
                 "lineWidth": 1,
                 "fillOpacity": 0,
-                "stacking": {"mode": "normal", "group": "A"},
-                "axisPlacement": "auto",
-                "axisBorderShow": False,
-                "scaleDistribution": {"type": "linear"},
+                "gradientMode": "none",
+                "spanNulls": False,
+                "insertNulls": False,
                 "showPoints": "auto",
                 "pointSize": 5,
+                "stacking": {"mode": "normal", "group": "A"},
+                "axisPlacement": "left",
+                "axisLabel": "",
+                "axisColorMode": "text",
+                "axisBorderShow": False,
+                "scaleDistribution": {"type": "linear"},
+                "axisCenteredZero": False,
+                "hideFrom": {"tooltip": False, "viz": False, "legend": False},
+                "thresholdsStyle": {"mode": "off"},
             },
             "color": {"mode": "palette-classic"},
+            "min": 0,
             "mappings": [],
+            "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                    {"color": "green", "value": None},
+                    {"color": "red", "value": 80},
+                ],
+            },
         },
         "overrides": [
             {
@@ -515,6 +536,9 @@ def monthly_timeseries_field_config():
                 "properties": [
                     {"id": "custom.drawStyle", "value": "bars"},
                     {"id": "custom.fillOpacity", "value": 100},
+                    {"id": "custom.lineWidth", "value": 0},
+                    {"id": "custom.barWidthFactor", "value": 0.6},
+                    {"id": "custom.barMaxWidth", "value": 36},
                     {"id": "color", "value": {"fixedColor": "blue", "mode": "fixed"}},
                 ],
             },
@@ -523,6 +547,9 @@ def monthly_timeseries_field_config():
                 "properties": [
                     {"id": "custom.drawStyle", "value": "bars"},
                     {"id": "custom.fillOpacity", "value": 100},
+                    {"id": "custom.lineWidth", "value": 0},
+                    {"id": "custom.barWidthFactor", "value": 0.6},
+                    {"id": "custom.barMaxWidth", "value": 36},
                     {"id": "color", "value": {"fixedColor": "red", "mode": "fixed"}},
                 ],
             },
@@ -531,27 +558,50 @@ def monthly_timeseries_field_config():
                 "properties": [
                     {"id": "color", "value": {"fixedColor": "yellow", "mode": "fixed"}},
                     {"id": "custom.drawStyle", "value": "line"},
-                    {"id": "custom.lineWidth", "value": 2},
+                    {"id": "custom.lineWidth", "value": 1},
+                    {"id": "custom.showPoints", "value": "always"},
+                    {"id": "custom.pointSize", "value": 5},
+                    {"id": "custom.stacking", "value": {"mode": "none"}},
                 ],
             },
             {
                 "matcher": {"id": "byName", "options": "Contract Start"},
                 "properties": [
                     {"id": "custom.drawStyle", "value": "points"},
-                    {"id": "custom.pointSize", "value": 19},
-                    {"id": "color", "value": {"fixedColor": "text", "mode": "fixed"}},
+                    {"id": "custom.pointSize", "value": 8},
+                    {"id": "custom.showPoints", "value": "always"},
+                    {"id": "custom.stacking", "value": {"mode": "none"}},
+                    {"id": "color", "value": {"fixedColor": "yellow", "mode": "fixed"}},
                 ],
             },
         ],
     }
 
 
-def monthly_timeseries_panel(title, product, purchased_col, x, y, w=16, h=8):
-    main_sql = load_query("monthly_clients_usage.sql", product=product, purchased_col=purchased_col)
-    contract_sql = load_query("contract_start_marker.sql", product=product, purchased_col=purchased_col)
+def monthly_timeseries_panel(title, product, purchased_col, x, y, w=24, h=12):
+    if product == "ca":
+        main_sql = load_query(
+            "monthly_clm_usage.sql", product=product, purchased_col=purchased_col, time_range_contract_col=""
+        )
+    else:
+        main_sql = load_query("monthly_clients_usage.sql", product=product, purchased_col=purchased_col)
+    contract_sql = load_query(
+        "contract_start_marker.sql",
+        product=product,
+        purchased_col=purchased_col,
+        time_range_contract_col="c.current_contract_start_date",
+    )
+    description = (
+        "Monthly certificates in use, the HubSpot purchased quantity, and contract start. "
+        "The yellow line is the monthly purchased quantity."
+        if product == "ca"
+        else "Monthly used and exceeded clients, the HubSpot purchased quantity, and contract start. "
+        "Blue and red bars stack. The yellow line is the monthly purchased quantity."
+    )
     return {
         "type": "timeseries",
         "title": title,
+        "description": description,
         "gridPos": {"h": h, "w": w, "x": x, "y": y},
         "id": next_id(),
         "targets": [
@@ -644,28 +694,35 @@ def flatten_dashboard_rows(panels):
 
 
 def nest_dashboard_rows(panels):
-    """Normalize to Grafana's collapsed-row JSON: collapsed=true, children in row.panels."""
+    """Collapsed Grafana rows: children live in row.panels, headers stack with no gaps.
+
+    Child gridPos.y stays on the expanded layout. Grafana's expand uses that y
+    against the row position, then pushes the rows below down.
+    """
     nested = []
     i = 0
+    next_y = 0
     while i < len(panels):
         panel = panels[i]
         if panel.get("type") != "row":
             nested.append(panel)
+            next_y = panel["gridPos"]["y"] + panel["gridPos"]["h"]
             i += 1
             continue
 
         row = deepcopy(panel)
-        row_y = row["gridPos"]["y"]
         children = []
         i += 1
         while i < len(panels) and panels[i].get("type") != "row":
-            child = deepcopy(panels[i])
-            children.append(child)
+            children.append(deepcopy(panels[i]))
             i += 1
 
+        row["gridPos"]["y"] = next_y
+        row["gridPos"]["h"] = 1
         row["collapsed"] = True
         row["panels"] = children
         nested.append(row)
+        next_y += 1
 
     return nested
 
@@ -1040,9 +1097,11 @@ def rolling_months(count=24):
     return list(reversed(months))
 
 
-# Default monthly utilization pivot columns — matches default Time Range (Last 12 Months).
-# SQL data window still follows ${period_months} at runtime via range_start.
+# How many month columns the utilization tables show.
+# Headers are computed in SQL from date('now'), not from the day the JSON was generated,
+# so a finished month such as October still appears after the file is imported.
 UTILIZATION_PIVOT_MONTHS = 12
+_MONTH_ABBR = "JanFebMarAprMayJunJulAugSepOctNovDec"
 
 
 def completed_rolling_months(count=3):
@@ -1142,10 +1201,11 @@ FROM PeriodTotals pt
 CROSS JOIN PeriodCapacity pc
 """
     elif metric == "purchased":
+        # HubSpot quantity (positive account wins over a 0 account id) × months in the Time Range.
         final = """
 SELECT CASE
-    WHEN pc.is_unlimited = 1 THEN NULL
-    ELSE pc.purchased_monthly_total
+    WHEN pc.is_unlimited = 1 THEN 'unlimited'
+    ELSE CAST(COALESCE(pc.purchased_monthly_total, 0) AS TEXT)
 END AS value
 FROM PeriodCapacity pc
 """
@@ -1288,18 +1348,24 @@ def account_used_subquery(product, account_id_expr, field="amount"):
 
 
 def purchased_by_company_cte(purchased_col, company_filter_sql):
-    """One purchased limit per company (first account_id), matching single-account dashboard logic."""
+    """HubSpot purchased quantity for the filtered accounts.
+
+    Prefer a positive quantity so an extra account id stored as 0 does not hide
+    the license on the account the customer uses. A selected account id is used as-is.
+    """
     return f"""PurchasedByCompany AS (
     SELECT c.name AS company_name,
         CAST(COALESCE(
             (
-                SELECT c2.{purchased_col}
+                SELECT CAST(COALESCE(c2.{purchased_col}, '0') AS INTEGER)
                 FROM companies c2
                 WHERE c2.name = c.name
                   AND c2.account_id IS NOT NULL
                   AND c2.account_id != ''
-                  AND CAST(COALESCE(c2.{purchased_col}, '0') AS INTEGER) NOT IN (999, 99999)
-                ORDER BY c2.account_id
+                  AND ({ACCOUNT_ALL_CHECK} OR c2.account_id = '${{account_id}}')
+                ORDER BY
+                    CASE WHEN CAST(COALESCE(c2.{purchased_col}, '0') AS INTEGER) > 0 THEN 0 ELSE 1 END,
+                    c2.account_id
                 LIMIT 1
             ),
             '0'
@@ -1310,22 +1376,98 @@ def purchased_by_company_cte(purchased_col, company_filter_sql):
 )"""
 
 
-def month_column_label(year, month):
-    return date(year, month, 1).strftime("%b-%y")
+def _month_anchor_sql(offset):
+    """Start-of-month date, offset 0 = current month, 1 = previous month."""
+    if offset == 0:
+        return "date('now', 'start of month')"
+    return f"date('now', 'start of month', '-{offset} months')"
 
 
-def utilization_pivot_counts_columns(months, used_total="used_total", purchased="clients_purchased"):
-    util_pct = "util_pct"
-    return ", ".join([
-        (
-            f"MAX(CASE WHEN report_month = '{y:04d}-{m:02d}' THEN "
-            f"CASE WHEN {util_pct} IS NULL THEN NULL "
-            f"ELSE printf('%d|(%d/%d)', CAST(ROUND({util_pct}) AS INTEGER), "
-            f"{used_total}, {purchased}) END END) "
-            f'AS "{month_column_label(y, m)}"'
-        )
-        for y, m in months
-    ])
+def month_ym_expr(offset):
+    """YYYY-MM for a month relative to today, evaluated when Grafana runs the query."""
+    return f"strftime('%Y-%m', {_month_anchor_sql(offset)})"
+
+
+def month_key_expr(offset):
+    """Mon-YY label, e.g. Oct-26. SQLite strftime has no %y, so the year is sliced from %Y."""
+    anchor = _month_anchor_sql(offset)
+    return (
+        f"substr('{_MONTH_ABBR}', (CAST(strftime('%m', {anchor}) AS INTEGER) - 1) * 3 + 1, 3) "
+        f"|| '-' || substr(strftime('%Y', {anchor}), 3, 2)"
+    )
+
+
+def dynamic_month_in_list(count, include_current):
+    start = 0 if include_current else 1
+    return ", ".join(month_ym_expr(offset) for offset in range(start, start + count))
+
+
+def utilization_month_cells_sql(count, include_current, display):
+    """One JSON object whose keys are the month labels at query time.
+
+    Grafana extractFields turns those keys into table columns, so October is not
+    stuck on whatever month the dashboard file was generated.
+    """
+    start = 0 if include_current else 1
+    offsets = range(start + count - 1, start - 1, -1)  # oldest month first
+    parts = []
+    for offset in offsets:
+        ym = month_ym_expr(offset)
+        if display == "counts":
+            value = f"""(
+                SELECT CASE WHEN f2.util_pct IS NULL THEN NULL
+                    ELSE printf(
+                        '%d|(%d/%d)',
+                        CAST(ROUND(f2.util_pct) AS INTEGER),
+                        f2.used_total,
+                        f2.clients_purchased
+                    )
+                END
+                FROM FinalData f2
+                WHERE f2.company_name = FinalData.company_name
+                  AND f2.report_month = {ym}
+            )"""
+        elif display == "combined":
+            value = f"""(
+                SELECT CASE WHEN f2.util_pct IS NULL THEN NULL
+                    ELSE printf(
+                        '%d|%.1f%% (%d/%d)',
+                        CAST(ROUND(f2.util_pct) AS INTEGER),
+                        f2.util_pct,
+                        f2.used_total,
+                        f2.clients_purchased
+                    )
+                END
+                FROM FinalData f2
+                WHERE f2.company_name = FinalData.company_name
+                  AND f2.report_month = {ym}
+            )"""
+        else:
+            value = f"""(
+                SELECT f2.util_pct
+                FROM FinalData f2
+                WHERE f2.company_name = FinalData.company_name
+                  AND f2.report_month = {ym}
+            )"""
+        parts.append(f"{month_key_expr(offset)}, {value}")
+    return f'json_object({", ".join(parts)}) AS "Month Cells"'
+
+
+def utilization_month_transformations():
+    """Spread the Month Cells JSON into Mon-YY columns and hide the raw JSON."""
+    return [
+        {
+            "id": "extractFields",
+            "options": {"format": "json", "replace": False, "source": "Month Cells"},
+        },
+        {
+            "id": "organize",
+            "options": {
+                "excludeByName": {"Month Cells": True},
+                "indexByName": {"Customer": 0, "Avg (Last 3M)": 1},
+            },
+        },
+    ]
 
 
 def utilization_avg_counts_sql(avg_months_sql, used_total="used_total", purchased="clients_purchased"):
@@ -1338,9 +1480,18 @@ def utilization_avg_counts_sql(avg_months_sql, used_total="used_total", purchase
     END"""
 
 
-def utilization_counts_string_mappings():
-    """Map encoded 'pct|(used/threshold)' strings to display text + threshold colors."""
-    display = r"(\(\d+/\d+\))"
+def utilization_avg_combined_sql(avg_months_sql, used_total="used_total", purchased="clients_purchased"):
+    avg_util = f"AVG(CASE WHEN report_month IN ({avg_months_sql}) THEN util_pct END)"
+    avg_used = f"AVG(CASE WHEN report_month IN ({avg_months_sql}) THEN {used_total} END)"
+    return f"""CASE
+        WHEN {avg_util} IS NULL THEN NULL
+        ELSE printf('%d|%.1f%% (%d/%d)', CAST(ROUND({avg_util}) AS INTEGER),
+            {avg_util}, CAST(ROUND({avg_used}) AS INTEGER), MAX({purchased}))
+    END"""
+
+
+def utilization_counts_string_mappings(display=r"(\(\d+/\d+\))"):
+    """Map encoded 'pct|display text' strings to display text + threshold colors."""
     return [
         {
             "type": "regex",
@@ -1389,17 +1540,42 @@ def utilization_avg_field_override():
     }
 
 
-def utilization_pct_heatmap_field_config():
+def utilization_pct_heatmap_field_config(fit_columns=False):
     """Field config for numeric utilization % heatmap (matches Grafana 11.1 panel JSON)."""
+    if not fit_columns:
+        return {
+            "defaults": {
+                "color": {"mode": "thresholds"},
+                "custom": {
+                    "align": "center",
+                    "cellOptions": {"type": "color-background", "applyToRow": False, "wrapText": True},
+                    "inspect": False,
+                    "filterable": False,
+                    "minWidth": 80,
+                },
+                "decimals": 1,
+                "mappings": [],
+                "thresholds": SM_UTIL_THRESHOLDS,
+                "unit": "percent",
+            },
+            "overrides": [
+                utilization_customer_field_override(),
+                utilization_avg_field_override(),
+            ],
+        }
+    # Fixed widths with slack for Grafana's always-on table scrollbar.
+    # 150 + 90 + 12*90 = 1320px, under the panel on a laptop and on a zoomed-out window.
+    month_width = 90
     return {
         "defaults": {
             "color": {"mode": "thresholds"},
             "custom": {
                 "align": "center",
-                "cellOptions": {"type": "color-background", "applyToRow": False, "wrapText": True},
+                "cellOptions": {"type": "color-background", "applyToRow": False, "wrapText": False},
                 "inspect": False,
                 "filterable": False,
-                "minWidth": 80,
+                "minWidth": month_width,
+                "width": month_width,
             },
             "decimals": 1,
             "mappings": [],
@@ -1407,8 +1583,32 @@ def utilization_pct_heatmap_field_config():
             "unit": "percent",
         },
         "overrides": [
-            utilization_customer_field_override(),
-            utilization_avg_field_override(),
+            {
+                "matcher": {"id": "byName", "options": "Customer"},
+                "properties": [
+                    {"id": "custom.cellOptions", "value": {"type": "auto", "wrapText": False}},
+                    {"id": "custom.width", "value": 150},
+                    {"id": "custom.minWidth", "value": 150},
+                    {"id": "unit", "value": "string"},
+                    {"id": "color", "value": {"mode": "fixed", "fixedColor": "text"}},
+                    {"id": "mappings", "value": []},
+                ],
+            },
+            {
+                "matcher": {"id": "byName", "options": "Avg (Last 3M)"},
+                "properties": [
+                    {"id": "custom.width", "value": 90},
+                    {"id": "custom.minWidth", "value": 90},
+                    {"id": "custom.cellOptions", "value": {"mode": "gradient", "type": "color-background"}},
+                ],
+            },
+            {
+                "matcher": {"id": "byRegexp", "options": "/^[A-Z][a-z]{2}-\\d{2}$/"},
+                "properties": [
+                    {"id": "custom.width", "value": month_width},
+                    {"id": "custom.minWidth", "value": month_width},
+                ],
+            },
         ],
     }
 
@@ -1440,6 +1640,41 @@ def utilization_counts_heatmap_field_config():
                 "matcher": {"id": "byRegexp", "options": "/^[A-Z][a-z]{2}-\\d{2}$/"},
                 "properties": [
                     {"id": "mappings", "value": utilization_counts_string_mappings()},
+                    {"id": "custom.cellOptions", "value": {"type": "color-background", "applyToRow": False, "wrapText": True}},
+                ],
+            },
+        ],
+    }
+
+
+def utilization_combined_heatmap_field_config():
+    """One monthly table: cell text is '169.3% (593/350)', colored like utilization %."""
+    mappings = utilization_counts_string_mappings(display=r"(.+)")
+    return {
+        "defaults": {
+            "custom": {
+                "align": "center",
+                "cellOptions": {"type": "color-background", "applyToRow": False, "wrapText": True},
+                "inspect": False,
+                "filterable": False,
+                "minWidth": 118,
+            },
+            "mappings": mappings,
+        },
+        "overrides": [
+            utilization_customer_field_override(),
+            {
+                "matcher": {"id": "byName", "options": "Avg (Last 3M)"},
+                "properties": [
+                    {"id": "custom.width", "value": 140},
+                    {"id": "mappings", "value": mappings},
+                    {"id": "custom.cellOptions", "value": {"mode": "gradient", "type": "color-background"}},
+                ],
+            },
+            {
+                "matcher": {"id": "byRegexp", "options": "/^[A-Z][a-z]{2}-\\d{2}$/"},
+                "properties": [
+                    {"id": "mappings", "value": mappings},
                     {"id": "custom.cellOptions", "value": {"type": "color-background", "applyToRow": False, "wrapText": True}},
                 ],
             },
@@ -1531,24 +1766,22 @@ def product_utilization_sql(
     display="pct",
 ):
     if include_current_month:
-        months = rolling_months(months_count)
         range_end = "strftime('%Y-%m-%d', 'now')"
     else:
-        months = completed_rolling_months(months_count) if experimental else rolling_months(months_count)
         range_end = last_completed_month_end_sql()
-    avg_months = completed_rolling_months(3) if experimental else rolling_months(3)
-    avg_months_sql = ", ".join(f"'{y:04d}-{m:02d}'" for y, m in avg_months)
+    # Avg (Last 3M) stays on completed months for the experimental dashboards.
+    # The month list is SQL, so it moves forward with the clock.
+    avg_include_current = not experimental
+    avg_months_sql = dynamic_month_in_list(3, include_current=avg_include_current)
     if display == "counts":
         avg_expr = utilization_avg_counts_sql(avg_months_sql)
-        pivot_cols = utilization_pivot_counts_columns(months)
+    elif display == "combined":
+        avg_expr = utilization_avg_combined_sql(avg_months_sql)
     else:
         avg_expr = (
             f'ROUND(AVG(CASE WHEN report_month IN ({avg_months_sql}) THEN util_pct END), 1)'
         )
-        pivot_cols = ", ".join([
-            f"MAX(CASE WHEN report_month = '{y:04d}-{m:02d}' THEN util_pct END) AS \"{month_column_label(y, m)}\""
-            for y, m in months
-        ])
+    pivot_cols = utilization_month_cells_sql(months_count, include_current_month, display)
     order_by = '"Avg (Last 3M)" DESC' if portfolio else "company_name ASC"
     company_filter = utilization_company_filter(portfolio, experimental=experimental)
 
@@ -1751,6 +1984,7 @@ def product_utilization_table_panel(
     months_count=24,
     include_current_month=False,
     display="pct",
+    fit_columns=False,
 ):
     sql = product_utilization_sql(
         product,
@@ -1761,6 +1995,27 @@ def product_utilization_table_panel(
         include_current_month=include_current_month,
         display=display,
     )
+    if display == "combined":
+        return {
+            "type": "table",
+            "title": title,
+            "description": (
+                "One monthly view. Each cell is utilization % and (used/threshold), "
+                "including exceeded clients in the used count. "
+                "Color: red under 30%, blue 30–69%, green 70% and above."
+            ),
+            "gridPos": {"h": h, "w": w, "x": x, "y": y},
+            "id": next_id(),
+            "targets": [sql_target(sql, query_type="table")],
+            "transformations": utilization_month_transformations(),
+            "options": {
+                "cellHeight": "md",
+                "footer": {"countRows": False, "fields": "", "reducer": ["sum"], "show": False},
+                "showHeader": True,
+            },
+            "fieldConfig": utilization_combined_heatmap_field_config(),
+            "datasource": DS,
+        }
     if display == "counts":
         return {
             "type": "table",
@@ -1769,6 +2024,7 @@ def product_utilization_table_panel(
             "gridPos": {"h": h, "w": w, "x": x, "y": y},
             "id": next_id(),
             "targets": [sql_target(sql, query_type="table")],
+            "transformations": utilization_month_transformations(),
             "options": {
                 "cellHeight": "sm",
                 "footer": {"countRows": False, "fields": "", "reducer": ["sum"], "show": False},
@@ -1783,13 +2039,14 @@ def product_utilization_table_panel(
         "gridPos": {"h": h, "w": w, "x": x, "y": y},
         "id": next_id(),
         "targets": [sql_target(sql, query_type="table")],
+        "transformations": utilization_month_transformations(),
         "options": {
             "cellHeight": "sm",
             "footer": {"countRows": False, "fields": "", "reducer": ["sum"], "show": False},
             "showHeader": True,
             "sortBy": [{"desc": True, "displayName": "Avg (Last 3M)"}],
         },
-        "fieldConfig": utilization_pct_heatmap_field_config(),
+        "fieldConfig": utilization_pct_heatmap_field_config(fit_columns=fit_columns),
         "datasource": DS,
     }
 
@@ -1964,7 +2221,8 @@ LIMIT 1
 
 
 def product_purchased_sql(purchased_col, portfolio=False, product="sm", experimental=True):
-    if product == "ca" or not experimental:
+    """HubSpot purchased quantity for one product (companies.clients_*)."""
+    if not experimental:
         where = account_where_clause(portfolio, experimental=experimental)
         cf = company_filter_sql(portfolio, "companies")
         return f"""
@@ -2347,7 +2605,13 @@ SLA_VALUE_MAPPINGS = [
 
 HEADER_TABLE_FIELD_CONFIG = {
     "defaults": {
-        "custom": {"align": "auto", "cellOptions": {"type": "auto"}, "inspect": False},
+        "custom": {
+            "align": "auto",
+            "cellOptions": {"type": "auto", "wrapText": True},
+            "inspect": False,
+            "filterable": False,
+            "minWidth": 40,
+        },
         "mappings": [],
         "thresholds": SLA_HEADER_THRESHOLDS,
         "color": {"mode": "thresholds"},
@@ -2362,14 +2626,26 @@ HEADER_TABLE_OPTIONS = {
 }
 
 
-def header_table_panel(sql, x, y, w, title="", align="auto"):
+def header_table_panel(sql, x, y, w, title="", align="auto", h=6, column_widths=None):
     fc = dict(HEADER_TABLE_FIELD_CONFIG)
     fc["defaults"] = dict(fc["defaults"])
     fc["defaults"]["custom"] = dict(fc["defaults"]["custom"])
     fc["defaults"]["custom"]["align"] = align
+    if column_widths:
+        fc["overrides"] = [
+            {
+                "matcher": {"id": "byName", "options": name},
+                "properties": [
+                    {"id": "custom.width", "value": width},
+                    {"id": "custom.minWidth", "value": width},
+                    {"id": "custom.cellOptions", "value": {"type": "auto", "wrapText": False}},
+                ],
+            }
+            for name, width in column_widths.items()
+        ]
     panel = {
         "type": "table",
-        "gridPos": {"h": 3, "w": w, "x": x, "y": y},
+        "gridPos": {"h": h, "w": w, "x": x, "y": y},
         "id": next_id(),
         "targets": [sql_target(sql)],
         "options": HEADER_TABLE_OPTIONS,
@@ -2381,12 +2657,12 @@ def header_table_panel(sql, x, y, w, title="", align="auto"):
     return panel
 
 
-def header_account_ids_panel(x, y, w=2):
-    """One account ID per row — readable at fixed table font size (no stat auto-shrink)."""
+def header_account_ids_panel(x, y, w=4, h=6):
+    """Account ids in a fixed-width column so the table does not grow a scrollbar."""
     return {
         "type": "table",
         "title": "Account IDs",
-        "gridPos": {"h": 3, "w": w, "x": x, "y": y},
+        "gridPos": {"h": h, "w": w, "x": x, "y": y},
         "id": next_id(),
         "targets": [sql_target(load_query("account_ids.sql"))],
         "options": {
@@ -2398,10 +2674,12 @@ def header_account_ids_panel(x, y, w=2):
         "fieldConfig": {
             "defaults": {
                 "custom": {
-                    "align": "auto",
+                    "align": "left",
                     "cellOptions": {"type": "auto", "wrapText": False},
                     "inspect": False,
                     "filterable": False,
+                    "minWidth": 160,
+                    "width": 160,
                 },
                 "color": {"fixedColor": "text", "mode": "fixed"},
                 "mappings": [],
@@ -2412,51 +2690,81 @@ def header_account_ids_panel(x, y, w=2):
     }
 
 
-HOME_BUTTON_HTML = """<div style="
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  height:100%;
-">
+HOME_BUTTON_HTML = """<div style="display:flex;align-items:center;justify-content:center;padding:10px 4px;">
   <a href="https://akeyless-analytics.com/d/af7l8pm3w7e9sd/v2-draft-all-customer?orgId=1"
    target="_blank"
-   style="
-     display:inline-flex;
-     align-items:center;
-     justify-content:center;
-     padding:12px 22px;
-     font-size:16px;
-     font-weight:600;
-     border:1.5px solid #ccc;
-     border-radius:8px;
-     text-decoration:none;
-   ">
+   style="display:inline-flex;align-items:center;justify-content:center;padding:8px 12px;font-size:14px;font-weight:600;border:1.5px solid #ccc;border-radius:8px;text-decoration:none;">
   ⌂ Home
 </a>
-
 </div>
 """
 
 
-def original_account_header_panels(y=0):
-    """Top header row matching the original By Customer dashboard."""
-    sla_sql = load_query("account_sla.sql")
-    panels = [
-        {
-            "type": "text",
-            "gridPos": {"h": 3, "w": 2, "x": 0, "y": y},
-            "id": next_id(),
-            "options": {
-                "mode": "html",
-                "code": {"language": "plaintext", "showLineNumbers": False, "showMiniMap": False},
-                "content": HOME_BUTTON_HTML,
+def header_value_panel(title, sql, x, y, w, h=4, field=None, link=None, all_values=False):
+    """Stat tile. Grafana shrinks the text to the panel, so it does not open a scrollbar."""
+    panel = {
+        "type": "stat",
+        "title": title,
+        "gridPos": {"h": h, "w": w, "x": x, "y": y},
+        "id": next_id(),
+        "targets": [sql_target(sql)],
+        "options": {
+            "reduceOptions": {
+                "values": all_values,
+                "calcs": ["lastNotNull"],
+                "fields": field or "/.*/",
             },
-            "datasource": DS,
+            "orientation": "auto",
+            "textMode": "value",
+            "wideLayout": True,
+            "colorMode": "none",
+            "graphMode": "none",
+            "justifyMode": "center",
+            "showPercentChange": False,
         },
+        "fieldConfig": {
+            "defaults": {
+                "mappings": [],
+                "color": {"mode": "fixed", "fixedColor": "text"},
+            },
+            "overrides": [],
+        },
+        "datasource": DS,
+    }
+    if link:
+        panel["fieldConfig"]["defaults"]["links"] = [link]
+    return panel
+
+
+def header_one_value_sql(source_sql, column):
+    """One column named value, so the stat tile cannot miss the field and show No data."""
+    inner = source_sql.strip().rstrip(";")
+    return f'SELECT "{column}" AS value FROM ({inner})'
+
+
+def original_account_header_panels(y=0):
+    """Header tiles. Stat panels shrink text to fit, so the row does not grow scrollbars."""
+    sla_sql = load_query("account_sla.sql")
+    contract_sql = load_query("account_contract_info.sql")
+    owners_sql = load_query("account_owners.sql")
+    home_link = {
+        "title": "Home",
+        "url": "https://akeyless-analytics.com/d/af7l8pm3w7e9sd/v2-draft-all-customer?orgId=1",
+        "targetBlank": True,
+    }
+    panels = [
+        header_value_panel(
+            "Home",
+            "SELECT 'Home' AS value",
+            x=0,
+            y=y,
+            w=2,
+            link=home_link,
+        ),
         {
             "type": "stat",
             "title": "SLA",
-            "gridPos": {"h": 3, "w": 2, "x": 2, "y": y},
+            "gridPos": {"h": 4, "w": 2, "x": 2, "y": y},
             "id": next_id(),
             "targets": [sql_target(sla_sql)],
             "options": {
@@ -2489,37 +2797,36 @@ def original_account_header_panels(y=0):
             },
             "datasource": DS,
         },
-        header_account_ids_panel(x=4, y=y),
-        {
-            "type": "text",
-            "gridPos": {"h": 3, "w": 4, "x": 6, "y": y},
-            "id": next_id(),
-            "options": {
-                "mode": "html",
-                "code": {"language": "plaintext", "showLineNumbers": False, "showMiniMap": False},
-                "content": (
-                    '<div style="text-align: center; font-size: 36px; font-weight: bold; '
-                    'display: flex; align-items: center; justify-content: center; height: 100%;">\n'
-                    "${company_name}\n</div>"
-                ),
-            },
-            "targets": [
-                sql_target(
-                    "SELECT name AS \"Company Name\" FROM companies WHERE name = '${company_name}' LIMIT 1;"
-                )
-            ],
-            "datasource": DS,
-        },
-        header_table_panel(
-            load_query("account_contract_info.sql"),
-            x=10,
+        header_value_panel(
+            "Account IDs",
+            "SELECT account_id AS value FROM ("
+            + load_query("account_ids.sql").strip().rstrip(";")
+            + ")",
+            x=4,
             y=y,
-            w=8,
-            align="center",
+            w=3,
+            all_values=True,
         ),
-        header_table_panel(load_query("account_owners.sql"), x=18, y=y, w=6, align="center"),
+        header_value_panel(
+            "Company",
+            "SELECT name AS value FROM companies WHERE name = '${company_name}' LIMIT 1",
+            x=7,
+            y=y,
+            w=3,
+        ),
+        header_value_panel(
+            "Contract Start", header_one_value_sql(contract_sql, "Contract Start"), x=10, y=y, w=2
+        ),
+        header_value_panel(
+            "Contract End", header_one_value_sql(contract_sql, "Contract End"), x=12, y=y, w=2
+        ),
+        header_value_panel("Elapsed", header_one_value_sql(contract_sql, "Elapsed"), x=14, y=y, w=2),
+        header_value_panel("Channel", header_one_value_sql(contract_sql, "Channel"), x=16, y=y, w=2),
+        header_value_panel("CSM", header_one_value_sql(owners_sql, "CSM"), x=18, y=y, w=2),
+        header_value_panel("Sales", header_one_value_sql(owners_sql, "Sales"), x=20, y=y, w=2),
+        header_value_panel("CSE", header_one_value_sql(owners_sql, "CSE"), x=22, y=y, w=2),
     ]
-    return panels, y + 3
+    return panels, y + 4
 
 
 def account_details_panels(y, portfolio=False, experimental=True):
@@ -2592,7 +2899,17 @@ SELECT CAST(julianday('now') - julianday(current_contract_start_date) AS INTEGER
     return panels, y2 + 4
 
 
-def product_section(label, product, purchased_col, y, portfolio=False, multi_account=False, experimental=True):
+def product_section(
+    label,
+    product,
+    purchased_col,
+    y,
+    portfolio=False,
+    multi_account=False,
+    experimental=True,
+    merge_monthly=False,
+    usage_chart=False,
+):
     use_portfolio_sql = portfolio or multi_account
     panels = [row_panel(f"{label} — {product_label_full(label)}", y)]
     y += 1
@@ -2687,6 +3004,59 @@ def product_section(label, product, purchased_col, y, portfolio=False, multi_acc
 
     util_height = 5 if not use_portfolio_sql else 16
     util_months = UTILIZATION_PIVOT_MONTHS
+    if merge_monthly:
+        merged_h = 8 if not use_portfolio_sql else util_height
+        merged_title = (
+            f"{label} Monthly by Customer" if use_portfolio_sql else f"{label} Monthly"
+        )
+        panels.append(
+            product_utilization_table_panel(
+                merged_title,
+                product,
+                purchased_col,
+                portfolio=use_portfolio_sql,
+                x=0,
+                y=y,
+                h=merged_h,
+                experimental=experimental,
+                months_count=util_months,
+                include_current_month=True,
+                display="combined",
+            )
+        )
+        return panels, y + merged_h
+
+    if usage_chart:
+        panels.append(
+            product_utilization_table_panel(
+                f"{label} Monthly Utilization %",
+                product,
+                purchased_col,
+                portfolio=use_portfolio_sql,
+                x=0,
+                y=y,
+                h=4,
+                experimental=experimental,
+                months_count=util_months,
+                include_current_month=True,
+                fit_columns=True,
+            )
+        )
+        y += 4
+        chart_h = 11
+        panels.append(
+            monthly_timeseries_panel(
+                f"{label} - Clients Usage (#) per month",
+                product,
+                purchased_col,
+                x=0,
+                y=y,
+                w=24,
+                h=chart_h,
+            )
+        )
+        return panels, y + chart_h
+
     counts_title = (
         f"{label} Monthly Used / Threshold by Customer"
         if use_portfolio_sql
@@ -3483,7 +3853,35 @@ def templating_portfolio(experimental=True):
     return t
 
 
-def build_dashboard(title, uid, portfolio=False, multi_account=False, experimental=True, test=False):
+def build_dashboard(
+    title,
+    uid,
+    portfolio=False,
+    multi_account=False,
+    experimental=True,
+    test=False,
+    staging=False,
+    datasource_uid=None,
+):
+    previous_uid = DS.get("uid")
+    DS["uid"] = datasource_uid
+    try:
+        return _build_dashboard(
+            title,
+            uid,
+            portfolio=portfolio,
+            multi_account=multi_account,
+            experimental=experimental,
+            test=test,
+            staging=staging,
+        )
+    finally:
+        DS["uid"] = previous_uid
+
+
+def _build_dashboard(
+    title, uid, portfolio=False, multi_account=False, experimental=True, test=False, staging=False
+):
     reset_ids()
     panels = []
     y = 0
@@ -3505,6 +3903,8 @@ def build_dashboard(title, uid, portfolio=False, multi_account=False, experiment
             portfolio=use_portfolio_sql,
             multi_account=multi_account,
             experimental=experimental,
+            merge_monthly=staging and multi_account,
+            usage_chart=staging and not multi_account and not portfolio,
         )
         panels.extend(section)
 
@@ -3532,7 +3932,10 @@ def build_dashboard(title, uid, portfolio=False, multi_account=False, experiment
         risk, y = risk_section(y, group_by_company=multi_account, experimental=experimental)
         panels.extend(risk)
 
-    panels = flatten_dashboard_rows(panels)
+    if staging and not multi_account and not portfolio:
+        panels = nest_dashboard_rows(panels)
+    else:
+        panels = flatten_dashboard_rows(panels)
 
     if multi_account:
         templating = templating_multi_account(experimental=experimental)
@@ -3547,8 +3950,10 @@ def build_dashboard(title, uid, portfolio=False, multi_account=False, experiment
         tags = ["akeyless", "customer-success", "usage", "technical"]
         if test:
             tags.append("test")
+    if staging:
+        tags.append("staging")
 
-    return {
+    return deepcopy({
         "annotations": {"list": []},
         "editable": True,
         "fiscalYearStartMonth": 0,
@@ -3562,14 +3967,18 @@ def build_dashboard(title, uid, portfolio=False, multi_account=False, experiment
         "style": "dark",
         "tags": tags,
         "templating": templating,
-        "time": {"from": "now-12M", "to": "now"},
+        "time": (
+            {"from": "now-2y", "to": "now+2y"}
+            if staging and not multi_account and not portfolio
+            else {"from": "now-12M", "to": "now"}
+        ),
         "timepicker": {},
         "timezone": "browser",
         "title": title,
         "uid": uid,
         "version": 26,
         "weekStart": "",
-    }
+    })
 
 
 # Panels that must keep identical display settings (type, size, options, fieldConfig)
@@ -3700,11 +4109,27 @@ def main():
         experimental=True,
         test=True,
     )
+    staging_single = build_dashboard(
+        "Akeyless CS — Account Technical Dashboard (STAGING)",
+        "akeyless-cs-staging-account",
+        portfolio=False,
+        experimental=True,
+        staging=True,
+    )
+    staging_multi = build_dashboard(
+        "Akeyless CS — Multi-Account Technical Dashboard (STAGING)",
+        "akeyless-cs-staging-multi-account",
+        multi_account=True,
+        experimental=True,
+        staging=True,
+    )
 
     paths = {
         OUT_DIR / "dashboard-single-account.json": prod_single,
         OUT_DIR / "dashboard-multi-account.json": prod_multi,
         OUT_DIR / "dashboard-portfolio-anomalies.json": prod_portfolio,
+        OUT_DIR / "dashboard-staging-account.json": staging_single,
+        OUT_DIR / "dashboard-staging-multi-account.json": staging_multi,
         OUT_DIR / "test-single-account.json": test_single,
         OUT_DIR / "test-multiple-accounts.json": test_multi,
     }

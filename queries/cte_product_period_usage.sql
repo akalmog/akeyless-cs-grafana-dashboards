@@ -92,14 +92,25 @@ TimeRangeMonths AS (
     SELECT {time_range_month_count} AS month_count
 ),
 PurchasedSummary AS (
+    -- HubSpot quantity for the accounts in the filter.
+    -- A company can have an extra account id whose HubSpot quantity is 0.
+    -- Prefer a positive quantity (999/99999 = unlimited) over that zero row.
     SELECT
         (SELECT CAST(COALESCE({purchased_col}, '0') AS INTEGER)
          FROM AccountHubSpotData
-         WHERE CAST(COALESCE({purchased_col}, '0') AS INTEGER) NOT IN (999, 99999)
-         ORDER BY account_id
+         ORDER BY
+            CASE WHEN CAST(COALESCE({purchased_col}, '0') AS INTEGER) > 0 THEN 0 ELSE 1 END,
+            account_id
          LIMIT 1) AS purchased_limit,
-        (SELECT MAX(CASE WHEN CAST(COALESCE({purchased_col}, '0') AS INTEGER) IN (999, 99999) THEN 1 ELSE 0 END)
-         FROM AccountHubSpotData) AS is_unlimited
+        CASE
+            WHEN (SELECT CAST(COALESCE({purchased_col}, '0') AS INTEGER)
+                  FROM AccountHubSpotData
+                  ORDER BY
+                      CASE WHEN CAST(COALESCE({purchased_col}, '0') AS INTEGER) > 0 THEN 0 ELSE 1 END,
+                      account_id
+                  LIMIT 1) IN (999, 99999) THEN 1
+            ELSE 0
+        END AS is_unlimited
 ),
 PeriodCapacity AS (
     SELECT

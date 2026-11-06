@@ -18,11 +18,18 @@ AccountHubSpotData AS (
     WHERE c.name = '${company_name}'
 ),
 PurchasedTotal AS (
-    SELECT CAST(COALESCE({purchased_col}, '0') AS INTEGER) AS purchased_total
-    FROM AccountHubSpotData
-    WHERE CAST(COALESCE({purchased_col}, '0') AS INTEGER) NOT IN (999, 99999)
-    ORDER BY account_id
-    LIMIT 1
+    -- Same HubSpot row as Purchased: a positive quantity wins over a 0 account id.
+    SELECT COALESCE(
+        (
+            SELECT CAST(COALESCE({purchased_col}, '0') AS INTEGER)
+            FROM AccountHubSpotData
+            ORDER BY
+                CASE WHEN CAST(COALESCE({purchased_col}, '0') AS INTEGER) > 0 THEN 0 ELSE 1 END,
+                account_id
+            LIMIT 1
+        ),
+        0
+    ) AS purchased_total
 ),
 AccountDateRanges AS (
     SELECT ca.account_id,
@@ -96,7 +103,8 @@ MonthlyUsed AS (
 SELECT
     mu.report_month AS "Month",
     CASE
-        WHEN pt.purchased_total IS NULL OR pt.purchased_total <= 0 THEN NULL
+        WHEN pt.purchased_total IS NULL OR pt.purchased_total <= 0
+            OR pt.purchased_total IN (999, 99999) THEN NULL
         ELSE ROUND(
             100.0 * (mu.used_amount + mu.exceeded_amount) / pt.purchased_total,
             1

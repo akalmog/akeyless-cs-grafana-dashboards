@@ -502,10 +502,7 @@ def monthly_timeseries_field_config():
                 "barAlignment": 0,
                 "lineWidth": 1,
                 "fillOpacity": 0,
-                "gradientMode": "none",
-                "spanNulls": False,
-                "insertNulls": False,
-                "stacking": {"mode": "none"},
+                "stacking": {"mode": "normal", "group": "A"},
                 "axisPlacement": "auto",
                 "axisBorderShow": False,
                 "scaleDistribution": {"type": "linear"},
@@ -514,13 +511,6 @@ def monthly_timeseries_field_config():
             },
             "color": {"mode": "palette-classic"},
             "mappings": [],
-            "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                    {"color": "green", "value": None},
-                    {"color": "red", "value": 80},
-                ],
-            },
         },
         "overrides": [
             {
@@ -528,7 +518,6 @@ def monthly_timeseries_field_config():
                 "properties": [
                     {"id": "custom.drawStyle", "value": "bars"},
                     {"id": "custom.fillOpacity", "value": 100},
-                    {"id": "custom.stacking", "value": {"mode": "normal", "group": "A"}},
                     {"id": "color", "value": {"fixedColor": "blue", "mode": "fixed"}},
                 ],
             },
@@ -537,7 +526,6 @@ def monthly_timeseries_field_config():
                 "properties": [
                     {"id": "custom.drawStyle", "value": "bars"},
                     {"id": "custom.fillOpacity", "value": 100},
-                    {"id": "custom.stacking", "value": {"mode": "normal", "group": "A"}},
                     {"id": "color", "value": {"fixedColor": "red", "mode": "fixed"}},
                 ],
             },
@@ -547,7 +535,6 @@ def monthly_timeseries_field_config():
                     {"id": "color", "value": {"fixedColor": "yellow", "mode": "fixed"}},
                     {"id": "custom.drawStyle", "value": "line"},
                     {"id": "custom.lineWidth", "value": 2},
-                    {"id": "custom.stacking", "value": {"mode": "none"}},
                 ],
             },
             {
@@ -555,7 +542,6 @@ def monthly_timeseries_field_config():
                 "properties": [
                     {"id": "custom.drawStyle", "value": "points"},
                     {"id": "custom.pointSize", "value": 19},
-                    {"id": "custom.stacking", "value": {"mode": "none"}},
                     {"id": "color", "value": {"fixedColor": "text", "mode": "fixed"}},
                 ],
             },
@@ -563,30 +549,12 @@ def monthly_timeseries_field_config():
     }
 
 
-def monthly_timeseries_panel(title, product, purchased_col, x, y, w=24, h=12):
-    if product == "ca":
-        main_sql = load_query(
-            "monthly_clm_usage.sql", product=product, purchased_col=purchased_col, time_range_contract_col=""
-        )
-    else:
-        main_sql = load_query("monthly_clients_usage.sql", product=product, purchased_col=purchased_col)
-    contract_sql = load_query(
-        "contract_start_marker.sql",
-        product=product,
-        purchased_col=purchased_col,
-        time_range_contract_col="c.current_contract_start_date",
-    )
-    description = (
-        "Monthly certificates in use, the HubSpot purchased quantity, and contract start. "
-        "The yellow line is the monthly purchased quantity."
-        if product == "ca"
-        else "Monthly used and exceeded clients, the HubSpot purchased quantity, and contract start. "
-        "Blue and red bars stack. The yellow line is the monthly purchased quantity."
-    )
+def monthly_timeseries_panel(title, product, purchased_col, x, y, w=16, h=8):
+    main_sql = load_query("monthly_clients_usage.sql", product=product, purchased_col=purchased_col)
+    contract_sql = load_query("contract_start_marker.sql", product=product, purchased_col=purchased_col)
     return {
         "type": "timeseries",
         "title": title,
-        "description": description,
         "gridPos": {"h": h, "w": w, "x": x, "y": y},
         "id": next_id(),
         "targets": [
@@ -2779,15 +2747,7 @@ SELECT CAST(julianday('now') - julianday(current_contract_start_date) AS INTEGER
 
 
 def product_section(
-    label,
-    product,
-    purchased_col,
-    y,
-    portfolio=False,
-    multi_account=False,
-    experimental=True,
-    merge_monthly=False,
-    usage_chart=False,
+    label, product, purchased_col, y, portfolio=False, multi_account=False, experimental=True, merge_monthly=False
 ):
     use_portfolio_sql = portfolio or multi_account
     panels = [row_panel(f"{label} — {product_label_full(label)}", y)]
@@ -2904,36 +2864,6 @@ def product_section(
             )
         )
         return panels, y + merged_h
-
-    if usage_chart:
-        panels.append(
-            product_utilization_table_panel(
-                f"{label} Monthly Utilization %",
-                product,
-                purchased_col,
-                portfolio=use_portfolio_sql,
-                x=0,
-                y=y,
-                h=util_height,
-                experimental=experimental,
-                months_count=util_months,
-                include_current_month=True,
-            )
-        )
-        y += util_height
-        chart_h = 12
-        panels.append(
-            monthly_timeseries_panel(
-                f"{label} - Clients Usage (#) per month",
-                product,
-                purchased_col,
-                x=0,
-                y=y,
-                w=24,
-                h=chart_h,
-            )
-        )
-        return panels, y + chart_h
 
     counts_title = (
         f"{label} Monthly Used / Threshold by Customer"
@@ -3781,8 +3711,7 @@ def _build_dashboard(
             portfolio=use_portfolio_sql,
             multi_account=multi_account,
             experimental=experimental,
-            merge_monthly=staging and multi_account,
-            usage_chart=staging and not multi_account and not portfolio,
+            merge_monthly=staging,
         )
         panels.extend(section)
 

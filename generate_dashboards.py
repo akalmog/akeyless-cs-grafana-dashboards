@@ -520,6 +520,7 @@ def monthly_timeseries_field_config():
                 "thresholdsStyle": {"mode": "off"},
             },
             "color": {"mode": "palette-classic"},
+            "min": 0,
             "mappings": [],
             "thresholds": {
                 "mode": "absolute",
@@ -1541,17 +1542,41 @@ def utilization_avg_field_override():
     }
 
 
-def utilization_pct_heatmap_field_config():
+def utilization_pct_heatmap_field_config(fit_columns=False):
     """Field config for numeric utilization % heatmap (matches Grafana 11.1 panel JSON)."""
+    if not fit_columns:
+        return {
+            "defaults": {
+                "color": {"mode": "thresholds"},
+                "custom": {
+                    "align": "center",
+                    "cellOptions": {"type": "color-background", "applyToRow": False, "wrapText": True},
+                    "inspect": False,
+                    "filterable": False,
+                    "minWidth": 80,
+                },
+                "decimals": 1,
+                "mappings": [],
+                "thresholds": SM_UTIL_THRESHOLDS,
+                "unit": "percent",
+            },
+            "overrides": [
+                utilization_customer_field_override(),
+                utilization_avg_field_override(),
+            ],
+        }
+    # Fixed column widths so 12 months fit in the panel without a horizontal scrollbar.
+    # 140 + 96 + 12*64 = 1004px.
     return {
         "defaults": {
             "color": {"mode": "thresholds"},
             "custom": {
                 "align": "center",
-                "cellOptions": {"type": "color-background", "applyToRow": False, "wrapText": True},
+                "cellOptions": {"type": "color-background", "applyToRow": False, "wrapText": False},
                 "inspect": False,
                 "filterable": False,
-                "minWidth": 80,
+                "minWidth": 48,
+                "width": 64,
             },
             "decimals": 1,
             "mappings": [],
@@ -1559,8 +1584,32 @@ def utilization_pct_heatmap_field_config():
             "unit": "percent",
         },
         "overrides": [
-            utilization_customer_field_override(),
-            utilization_avg_field_override(),
+            {
+                "matcher": {"id": "byName", "options": "Customer"},
+                "properties": [
+                    {"id": "custom.cellOptions", "value": {"type": "auto", "wrapText": False}},
+                    {"id": "custom.width", "value": 140},
+                    {"id": "custom.minWidth", "value": 140},
+                    {"id": "unit", "value": "string"},
+                    {"id": "color", "value": {"mode": "fixed", "fixedColor": "text"}},
+                    {"id": "mappings", "value": []},
+                ],
+            },
+            {
+                "matcher": {"id": "byName", "options": "Avg (Last 3M)"},
+                "properties": [
+                    {"id": "custom.width", "value": 96},
+                    {"id": "custom.minWidth", "value": 96},
+                    {"id": "custom.cellOptions", "value": {"mode": "gradient", "type": "color-background"}},
+                ],
+            },
+            {
+                "matcher": {"id": "byRegexp", "options": "/^[A-Z][a-z]{2}-\\d{2}$/"},
+                "properties": [
+                    {"id": "custom.width", "value": 64},
+                    {"id": "custom.minWidth", "value": 48},
+                ],
+            },
         ],
     }
 
@@ -1936,6 +1985,7 @@ def product_utilization_table_panel(
     months_count=24,
     include_current_month=False,
     display="pct",
+    fit_columns=False,
 ):
     sql = product_utilization_sql(
         product,
@@ -1997,7 +2047,7 @@ def product_utilization_table_panel(
             "showHeader": True,
             "sortBy": [{"desc": True, "displayName": "Avg (Last 3M)"}],
         },
-        "fieldConfig": utilization_pct_heatmap_field_config(),
+        "fieldConfig": utilization_pct_heatmap_field_config(fit_columns=fit_columns),
         "datasource": DS,
     }
 
@@ -2941,10 +2991,11 @@ def product_section(
                 experimental=experimental,
                 months_count=util_months,
                 include_current_month=True,
+                fit_columns=True,
             )
         )
         y += util_height
-        chart_h = 10
+        chart_h = 8
         panels.append(
             monthly_timeseries_panel(
                 f"{label} - Clients Usage (#) per month",
@@ -3868,7 +3919,11 @@ def _build_dashboard(
         "style": "dark",
         "tags": tags,
         "templating": templating,
-        "time": {"from": "now-12M", "to": "now"},
+        "time": (
+            {"from": "now-2y", "to": "now+2y"}
+            if staging and not multi_account and not portfolio
+            else {"from": "now-12M", "to": "now"}
+        ),
         "timepicker": {},
         "timezone": "browser",
         "title": title,

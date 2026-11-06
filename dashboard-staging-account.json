@@ -798,11 +798,12 @@
                 "cellOptions": {
                   "type": "color-background",
                   "applyToRow": false,
-                  "wrapText": true
+                  "wrapText": false
                 },
                 "inspect": false,
                 "filterable": false,
-                "minWidth": 80
+                "minWidth": 48,
+                "width": 64
               },
               "decimals": 1,
               "mappings": [],
@@ -836,12 +837,16 @@
                     "id": "custom.cellOptions",
                     "value": {
                       "type": "auto",
-                      "wrapText": true
+                      "wrapText": false
                     }
                   },
                   {
                     "id": "custom.width",
-                    "value": 200
+                    "value": 140
+                  },
+                  {
+                    "id": "custom.minWidth",
+                    "value": 140
                   },
                   {
                     "id": "unit",
@@ -868,7 +873,11 @@
                 "properties": [
                   {
                     "id": "custom.width",
-                    "value": 110
+                    "value": 96
+                  },
+                  {
+                    "id": "custom.minWidth",
+                    "value": 96
                   },
                   {
                     "id": "custom.cellOptions",
@@ -876,6 +885,22 @@
                       "mode": "gradient",
                       "type": "color-background"
                     }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byRegexp",
+                  "options": "/^[A-Z][a-z]{2}-\\d{2}$/"
+                },
+                "properties": [
+                  {
+                    "id": "custom.width",
+                    "value": 64
+                  },
+                  {
+                    "id": "custom.minWidth",
+                    "value": 48
                   }
                 ]
               }
@@ -891,7 +916,7 @@
           "title": "SM - Clients Usage (#) per month",
           "description": "Monthly used and exceeded clients, the HubSpot purchased quantity, and contract start. Blue and red bars stack. The yellow line is the monthly purchased quantity.",
           "gridPos": {
-            "h": 10,
+            "h": 8,
             "w": 24,
             "x": 0,
             "y": 14
@@ -980,6 +1005,7 @@
               "color": {
                 "mode": "palette-classic"
               },
+              "min": 0,
               "mappings": [],
               "thresholds": {
                 "mode": "absolute",
@@ -1164,7 +1190,7 @@
             "h": 5,
             "w": 5,
             "x": 0,
-            "y": 25
+            "y": 23
           },
           "id": 17,
           "targets": [
@@ -1236,7 +1262,7 @@
             "h": 5,
             "w": 5,
             "x": 5,
-            "y": 25
+            "y": 23
           },
           "id": 18,
           "targets": [
@@ -1288,7 +1314,7 @@
             "h": 5,
             "w": 5,
             "x": 10,
-            "y": 25
+            "y": 23
           },
           "id": 19,
           "targets": [
@@ -1340,7 +1366,7 @@
             "h": 5,
             "w": 5,
             "x": 15,
-            "y": 25
+            "y": 23
           },
           "id": 20,
           "targets": [
@@ -1413,7 +1439,7 @@
             "h": 5,
             "w": 24,
             "x": 0,
-            "y": 30
+            "y": 28
           },
           "id": 21,
           "targets": [
@@ -1479,11 +1505,12 @@
                 "cellOptions": {
                   "type": "color-background",
                   "applyToRow": false,
-                  "wrapText": true
+                  "wrapText": false
                 },
                 "inspect": false,
                 "filterable": false,
-                "minWidth": 80
+                "minWidth": 48,
+                "width": 64
               },
               "decimals": 1,
               "mappings": [],
@@ -1517,12 +1544,16 @@
                     "id": "custom.cellOptions",
                     "value": {
                       "type": "auto",
-                      "wrapText": true
+                      "wrapText": false
                     }
                   },
                   {
                     "id": "custom.width",
-                    "value": 200
+                    "value": 140
+                  },
+                  {
+                    "id": "custom.minWidth",
+                    "value": 140
                   },
                   {
                     "id": "unit",
@@ -1549,7 +1580,11 @@
                 "properties": [
                   {
                     "id": "custom.width",
-                    "value": 110
+                    "value": 96
+                  },
+                  {
+                    "id": "custom.minWidth",
+                    "value": 96
                   },
                   {
                     "id": "custom.cellOptions",
@@ -1557,6 +1592,22 @@
                       "mode": "gradient",
                       "type": "color-background"
                     }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byRegexp",
+                  "options": "/^[A-Z][a-z]{2}-\\d{2}$/"
+                },
+                "properties": [
+                  {
+                    "id": "custom.width",
+                    "value": 64
+                  },
+                  {
+                    "id": "custom.minWidth",
+                    "value": 48
                   }
                 ]
               }
@@ -1572,10 +1623,10 @@
           "title": "CLM - Clients Usage (#) per month",
           "description": "Monthly certificates in use, the HubSpot purchased quantity, and contract start. The yellow line is the monthly purchased quantity.",
           "gridPos": {
-            "h": 10,
+            "h": 8,
             "w": 24,
             "x": 0,
-            "y": 35
+            "y": 33
           },
           "id": 22,
           "timeFrom": "now-4y",
@@ -1661,6 +1712,7 @@
               "color": {
                 "mode": "palette-classic"
               },
+              "min": 0,
               "mappings": [],
               "thresholds": {
                 "mode": "absolute",
@@ -1845,7 +1897,7 @@
             "h": 5,
             "w": 4,
             "x": 0,
-            "y": 46
+            "y": 42
           },
           "id": 24,
           "targets": [
@@ -1917,7 +1969,7 @@
             "h": 5,
             "w": 4,
             "x": 4,
-            "y": 46
+            "y": 42
           },
           "id": 25,
           "targets": [
@@ -1969,7 +2021,7 @@
             "h": 5,
             "w": 4,
             "x": 8,
-            "y": 46
+            "y": 42
           },
           "id": 26,
           "targets": [
@@ -2021,7 +2073,7 @@
             "h": 5,
             "w": 3,
             "x": 12,
-            "y": 46
+            "y": 42
           },
           "id": 27,
           "targets": [
@@ -2073,7 +2125,7 @@
             "h": 5,
             "w": 4,
             "x": 15,
-            "y": 46
+            "y": 42
           },
           "id": 28,
           "targets": [
@@ -2125,7 +2177,7 @@
             "h": 5,
             "w": 5,
             "x": 19,
-            "y": 46
+            "y": 42
           },
           "id": 29,
           "targets": [
@@ -2198,7 +2250,7 @@
             "h": 5,
             "w": 24,
             "x": 0,
-            "y": 51
+            "y": 47
           },
           "id": 30,
           "targets": [
@@ -2264,11 +2316,12 @@
                 "cellOptions": {
                   "type": "color-background",
                   "applyToRow": false,
-                  "wrapText": true
+                  "wrapText": false
                 },
                 "inspect": false,
                 "filterable": false,
-                "minWidth": 80
+                "minWidth": 48,
+                "width": 64
               },
               "decimals": 1,
               "mappings": [],
@@ -2302,12 +2355,16 @@
                     "id": "custom.cellOptions",
                     "value": {
                       "type": "auto",
-                      "wrapText": true
+                      "wrapText": false
                     }
                   },
                   {
                     "id": "custom.width",
-                    "value": 200
+                    "value": 140
+                  },
+                  {
+                    "id": "custom.minWidth",
+                    "value": 140
                   },
                   {
                     "id": "unit",
@@ -2334,7 +2391,11 @@
                 "properties": [
                   {
                     "id": "custom.width",
-                    "value": 110
+                    "value": 96
+                  },
+                  {
+                    "id": "custom.minWidth",
+                    "value": 96
                   },
                   {
                     "id": "custom.cellOptions",
@@ -2342,6 +2403,22 @@
                       "mode": "gradient",
                       "type": "color-background"
                     }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byRegexp",
+                  "options": "/^[A-Z][a-z]{2}-\\d{2}$/"
+                },
+                "properties": [
+                  {
+                    "id": "custom.width",
+                    "value": 64
+                  },
+                  {
+                    "id": "custom.minWidth",
+                    "value": 48
                   }
                 ]
               }
@@ -2357,10 +2434,10 @@
           "title": "SRA - Clients Usage (#) per month",
           "description": "Monthly used and exceeded clients, the HubSpot purchased quantity, and contract start. Blue and red bars stack. The yellow line is the monthly purchased quantity.",
           "gridPos": {
-            "h": 10,
+            "h": 8,
             "w": 24,
             "x": 0,
-            "y": 56
+            "y": 52
           },
           "id": 31,
           "timeFrom": "now-4y",
@@ -2446,6 +2523,7 @@
               "color": {
                 "mode": "palette-classic"
               },
+              "min": 0,
               "mappings": [],
               "thresholds": {
                 "mode": "absolute",
@@ -2630,7 +2708,7 @@
             "h": 5,
             "w": 4,
             "x": 0,
-            "y": 67
+            "y": 61
           },
           "id": 33,
           "targets": [
@@ -2702,7 +2780,7 @@
             "h": 5,
             "w": 4,
             "x": 4,
-            "y": 67
+            "y": 61
           },
           "id": 34,
           "targets": [
@@ -2754,7 +2832,7 @@
             "h": 5,
             "w": 4,
             "x": 8,
-            "y": 67
+            "y": 61
           },
           "id": 35,
           "targets": [
@@ -2806,7 +2884,7 @@
             "h": 5,
             "w": 3,
             "x": 12,
-            "y": 67
+            "y": 61
           },
           "id": 36,
           "targets": [
@@ -2858,7 +2936,7 @@
             "h": 5,
             "w": 4,
             "x": 15,
-            "y": 67
+            "y": 61
           },
           "id": 37,
           "targets": [
@@ -2910,7 +2988,7 @@
             "h": 5,
             "w": 5,
             "x": 19,
-            "y": 67
+            "y": 61
           },
           "id": 38,
           "targets": [
@@ -2983,7 +3061,7 @@
             "h": 5,
             "w": 24,
             "x": 0,
-            "y": 72
+            "y": 66
           },
           "id": 39,
           "targets": [
@@ -3049,11 +3127,12 @@
                 "cellOptions": {
                   "type": "color-background",
                   "applyToRow": false,
-                  "wrapText": true
+                  "wrapText": false
                 },
                 "inspect": false,
                 "filterable": false,
-                "minWidth": 80
+                "minWidth": 48,
+                "width": 64
               },
               "decimals": 1,
               "mappings": [],
@@ -3087,12 +3166,16 @@
                     "id": "custom.cellOptions",
                     "value": {
                       "type": "auto",
-                      "wrapText": true
+                      "wrapText": false
                     }
                   },
                   {
                     "id": "custom.width",
-                    "value": 200
+                    "value": 140
+                  },
+                  {
+                    "id": "custom.minWidth",
+                    "value": 140
                   },
                   {
                     "id": "unit",
@@ -3119,7 +3202,11 @@
                 "properties": [
                   {
                     "id": "custom.width",
-                    "value": 110
+                    "value": 96
+                  },
+                  {
+                    "id": "custom.minWidth",
+                    "value": 96
                   },
                   {
                     "id": "custom.cellOptions",
@@ -3127,6 +3214,22 @@
                       "mode": "gradient",
                       "type": "color-background"
                     }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byRegexp",
+                  "options": "/^[A-Z][a-z]{2}-\\d{2}$/"
+                },
+                "properties": [
+                  {
+                    "id": "custom.width",
+                    "value": 64
+                  },
+                  {
+                    "id": "custom.minWidth",
+                    "value": 48
                   }
                 ]
               }
@@ -3142,10 +3245,10 @@
           "title": "PWM - Clients Usage (#) per month",
           "description": "Monthly used and exceeded clients, the HubSpot purchased quantity, and contract start. Blue and red bars stack. The yellow line is the monthly purchased quantity.",
           "gridPos": {
-            "h": 10,
+            "h": 8,
             "w": 24,
             "x": 0,
-            "y": 77
+            "y": 71
           },
           "id": 40,
           "timeFrom": "now-4y",
@@ -3231,6 +3334,7 @@
               "color": {
                 "mode": "palette-classic"
               },
+              "min": 0,
               "mappings": [],
               "thresholds": {
                 "mode": "absolute",
@@ -3416,7 +3520,7 @@
             "h": 18,
             "w": 24,
             "x": 0,
-            "y": 88
+            "y": 80
           },
           "id": 42,
           "targets": [
@@ -3559,7 +3663,7 @@
             "h": 8,
             "w": 24,
             "x": 0,
-            "y": 107
+            "y": 99
           },
           "id": 44,
           "targets": [
@@ -3612,7 +3716,7 @@
             "h": 8,
             "w": 24,
             "x": 0,
-            "y": 115
+            "y": 107
           },
           "id": 45,
           "targets": [
@@ -3775,7 +3879,7 @@
             "h": 10,
             "w": 24,
             "x": 0,
-            "y": 123
+            "y": 115
           },
           "id": 46,
           "targets": [
@@ -3879,7 +3983,7 @@
             "h": 4,
             "w": 8,
             "x": 0,
-            "y": 133
+            "y": 125
           },
           "id": 47,
           "targets": [
@@ -3933,7 +4037,7 @@
             "h": 4,
             "w": 8,
             "x": 8,
-            "y": 133
+            "y": 125
           },
           "id": 48,
           "targets": [
@@ -3987,7 +4091,7 @@
             "h": 4,
             "w": 8,
             "x": 16,
-            "y": 133
+            "y": 125
           },
           "id": 49,
           "targets": [
@@ -4057,7 +4161,7 @@
             "h": 8,
             "w": 8,
             "x": 0,
-            "y": 137
+            "y": 129
           },
           "id": 50,
           "targets": [
@@ -4141,7 +4245,7 @@
             "h": 8,
             "w": 16,
             "x": 8,
-            "y": 137
+            "y": 129
           },
           "id": 51,
           "targets": [
@@ -4271,7 +4375,7 @@
             "h": 6,
             "w": 8,
             "x": 0,
-            "y": 146
+            "y": 138
           },
           "id": 53,
           "targets": [
@@ -4354,7 +4458,7 @@
             "h": 6,
             "w": 16,
             "x": 8,
-            "y": 146
+            "y": 138
           },
           "id": 54,
           "targets": [
@@ -4437,7 +4541,7 @@
             "h": 5,
             "w": 24,
             "x": 0,
-            "y": 152
+            "y": 144
           },
           "id": 55,
           "targets": [
@@ -4659,7 +4763,7 @@
             "h": 6,
             "w": 12,
             "x": 0,
-            "y": 157
+            "y": 149
           },
           "id": 56,
           "targets": [
@@ -4895,7 +4999,7 @@
             "h": 6,
             "w": 12,
             "x": 12,
-            "y": 157
+            "y": 149
           },
           "id": 57,
           "targets": [
@@ -5145,7 +5249,7 @@
             "h": 8,
             "w": 24,
             "x": 0,
-            "y": 164
+            "y": 156
           },
           "id": 59,
           "targets": [
@@ -5241,7 +5345,7 @@
             "h": 6,
             "w": 24,
             "x": 0,
-            "y": 172
+            "y": 164
           },
           "id": 60,
           "targets": [
@@ -5390,7 +5494,7 @@
             "h": 6,
             "w": 24,
             "x": 0,
-            "y": 178
+            "y": 170
           },
           "id": 61,
           "targets": [
@@ -5544,7 +5648,7 @@
             "h": 8,
             "w": 24,
             "x": 0,
-            "y": 184
+            "y": 176
           },
           "id": 62,
           "targets": [
@@ -5692,7 +5796,7 @@
             "h": 6,
             "w": 24,
             "x": 0,
-            "y": 192
+            "y": 184
           },
           "id": 63,
           "targets": [
@@ -5919,8 +6023,8 @@
     ]
   },
   "time": {
-    "from": "now-12M",
-    "to": "now"
+    "from": "now-2y",
+    "to": "now+2y"
   },
   "timepicker": {},
   "timezone": "browser",

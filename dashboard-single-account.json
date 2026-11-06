@@ -12,7 +12,7 @@
     {
       "type": "text",
       "gridPos": {
-        "h": 4,
+        "h": 6,
         "w": 2,
         "x": 0,
         "y": 0
@@ -25,7 +25,7 @@
           "showLineNumbers": false,
           "showMiniMap": false
         },
-        "content": "<div style=\"\n  display:flex;\n  align-items:center;\n  justify-content:center;\n  height:100%;\n\">\n  <a href=\"https://akeyless-analytics.com/d/af7l8pm3w7e9sd/v2-draft-all-customer?orgId=1\"\n   target=\"_blank\"\n   style=\"\n     display:inline-flex;\n     align-items:center;\n     justify-content:center;\n     padding:12px 22px;\n     font-size:16px;\n     font-weight:600;\n     border:1.5px solid #ccc;\n     border-radius:8px;\n     text-decoration:none;\n   \">\n  \u2302 Home\n</a>\n\n</div>\n"
+        "content": "<div style=\"display:flex;align-items:center;justify-content:center;padding:10px 4px;\">\n  <a href=\"https://akeyless-analytics.com/d/af7l8pm3w7e9sd/v2-draft-all-customer?orgId=1\"\n   target=\"_blank\"\n   style=\"display:inline-flex;align-items:center;justify-content:center;padding:8px 12px;font-size:14px;font-weight:600;border:1.5px solid #ccc;border-radius:8px;text-decoration:none;\">\n  \u2302 Home\n</a>\n</div>\n"
       },
       "datasource": {
         "type": "frser-sqlite-datasource",
@@ -36,7 +36,7 @@
       "type": "stat",
       "title": "SLA",
       "gridPos": {
-        "h": 4,
+        "h": 6,
         "w": 2,
         "x": 2,
         "y": 0
@@ -132,7 +132,7 @@
       "type": "table",
       "title": "Account IDs",
       "gridPos": {
-        "h": 4,
+        "h": 6,
         "w": 4,
         "x": 4,
         "y": 0
@@ -153,7 +153,7 @@
       ],
       "options": {
         "showHeader": false,
-        "cellHeight": "md",
+        "cellHeight": "sm",
         "footer": {
           "show": false,
           "reducer": [
@@ -170,11 +170,12 @@
             "align": "left",
             "cellOptions": {
               "type": "auto",
-              "wrapText": true
+              "wrapText": false
             },
             "inspect": false,
             "filterable": false,
-            "minWidth": 40
+            "minWidth": 80,
+            "width": 200
           },
           "color": {
             "fixedColor": "text",
@@ -192,7 +193,7 @@
     {
       "type": "text",
       "gridPos": {
-        "h": 4,
+        "h": 6,
         "w": 4,
         "x": 8,
         "y": 0
@@ -205,7 +206,7 @@
           "showLineNumbers": false,
           "showMiniMap": false
         },
-        "content": "<div style=\"box-sizing:border-box;width:100%;height:100%;overflow:hidden;display:flex;align-items:center;justify-content:center;text-align:center;font-size:22px;font-weight:700;line-height:1.15;word-break:break-word;padding:4px;\">${company_name}</div>"
+        "content": "<div style=\"display:flex;align-items:center;justify-content:center;text-align:center;font-size:20px;font-weight:700;line-height:1.2;padding:12px 8px;\">${company_name}</div>"
       },
       "datasource": {
         "type": "frser-sqlite-datasource",
@@ -215,7 +216,7 @@
     {
       "type": "table",
       "gridPos": {
-        "h": 4,
+        "h": 6,
         "w": 7,
         "x": 12,
         "y": 0
@@ -276,7 +277,100 @@
             "mode": "thresholds"
           }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Contract Start Date"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 140
+              },
+              {
+                "id": "custom.minWidth",
+                "value": 80
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "auto",
+                  "wrapText": true
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Contract End Date"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 140
+              },
+              {
+                "id": "custom.minWidth",
+                "value": 80
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "auto",
+                  "wrapText": true
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Days Since Contract"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 120
+              },
+              {
+                "id": "custom.minWidth",
+                "value": 80
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "auto",
+                  "wrapText": true
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Selling Channel/Partner"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 150
+              },
+              {
+                "id": "custom.minWidth",
+                "value": 80
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "auto",
+                  "wrapText": true
+                }
+              }
+            ]
+          }
+        ]
       },
       "datasource": {
         "type": "frser-sqlite-datasource",
@@ -286,7 +380,7 @@
     {
       "type": "table",
       "gridPos": {
-        "h": 4,
+        "h": 6,
         "w": 5,
         "x": 19,
         "y": 0
@@ -347,7 +441,77 @@
             "mode": "thresholds"
           }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "CSM"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 110
+              },
+              {
+                "id": "custom.minWidth",
+                "value": 80
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "auto",
+                  "wrapText": true
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Sales"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 110
+              },
+              {
+                "id": "custom.minWidth",
+                "value": 80
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "auto",
+                  "wrapText": true
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "CSE"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 110
+              },
+              {
+                "id": "custom.minWidth",
+                "value": 80
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "auto",
+                  "wrapText": true
+                }
+              }
+            ]
+          }
+        ]
       },
       "datasource": {
         "type": "frser-sqlite-datasource",
@@ -361,7 +525,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 4
+        "y": 6
       },
       "id": 7,
       "collapsed": false,
@@ -374,7 +538,7 @@
         "h": 5,
         "w": 4,
         "x": 0,
-        "y": 5
+        "y": 7
       },
       "id": 8,
       "targets": [
@@ -446,7 +610,7 @@
         "h": 5,
         "w": 4,
         "x": 4,
-        "y": 5
+        "y": 7
       },
       "id": 9,
       "targets": [
@@ -498,7 +662,7 @@
         "h": 5,
         "w": 4,
         "x": 8,
-        "y": 5
+        "y": 7
       },
       "id": 10,
       "targets": [
@@ -550,7 +714,7 @@
         "h": 5,
         "w": 3,
         "x": 12,
-        "y": 5
+        "y": 7
       },
       "id": 11,
       "targets": [
@@ -602,7 +766,7 @@
         "h": 5,
         "w": 4,
         "x": 15,
-        "y": 5
+        "y": 7
       },
       "id": 12,
       "targets": [
@@ -654,7 +818,7 @@
         "h": 5,
         "w": 5,
         "x": 19,
-        "y": 5
+        "y": 7
       },
       "id": 13,
       "targets": [
@@ -728,7 +892,7 @@
         "h": 5,
         "w": 24,
         "x": 0,
-        "y": 10
+        "y": 12
       },
       "id": 14,
       "targets": [
@@ -987,7 +1151,7 @@
         "h": 5,
         "w": 24,
         "x": 0,
-        "y": 15
+        "y": 17
       },
       "id": 15,
       "targets": [
@@ -1148,7 +1312,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 20
+        "y": 22
       },
       "id": 16,
       "collapsed": false,
@@ -1161,7 +1325,7 @@
         "h": 5,
         "w": 5,
         "x": 0,
-        "y": 21
+        "y": 23
       },
       "id": 17,
       "targets": [
@@ -1233,7 +1397,7 @@
         "h": 5,
         "w": 5,
         "x": 5,
-        "y": 21
+        "y": 23
       },
       "id": 18,
       "targets": [
@@ -1285,7 +1449,7 @@
         "h": 5,
         "w": 5,
         "x": 10,
-        "y": 21
+        "y": 23
       },
       "id": 19,
       "targets": [
@@ -1337,7 +1501,7 @@
         "h": 5,
         "w": 5,
         "x": 15,
-        "y": 21
+        "y": 23
       },
       "id": 20,
       "targets": [
@@ -1411,7 +1575,7 @@
         "h": 5,
         "w": 24,
         "x": 0,
-        "y": 26
+        "y": 28
       },
       "id": 21,
       "targets": [
@@ -1670,7 +1834,7 @@
         "h": 5,
         "w": 24,
         "x": 0,
-        "y": 31
+        "y": 33
       },
       "id": 22,
       "targets": [
@@ -1831,7 +1995,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 36
+        "y": 38
       },
       "id": 23,
       "collapsed": false,
@@ -1844,7 +2008,7 @@
         "h": 5,
         "w": 4,
         "x": 0,
-        "y": 37
+        "y": 39
       },
       "id": 24,
       "targets": [
@@ -1916,7 +2080,7 @@
         "h": 5,
         "w": 4,
         "x": 4,
-        "y": 37
+        "y": 39
       },
       "id": 25,
       "targets": [
@@ -1968,7 +2132,7 @@
         "h": 5,
         "w": 4,
         "x": 8,
-        "y": 37
+        "y": 39
       },
       "id": 26,
       "targets": [
@@ -2020,7 +2184,7 @@
         "h": 5,
         "w": 3,
         "x": 12,
-        "y": 37
+        "y": 39
       },
       "id": 27,
       "targets": [
@@ -2072,7 +2236,7 @@
         "h": 5,
         "w": 4,
         "x": 15,
-        "y": 37
+        "y": 39
       },
       "id": 28,
       "targets": [
@@ -2124,7 +2288,7 @@
         "h": 5,
         "w": 5,
         "x": 19,
-        "y": 37
+        "y": 39
       },
       "id": 29,
       "targets": [
@@ -2198,7 +2362,7 @@
         "h": 5,
         "w": 24,
         "x": 0,
-        "y": 42
+        "y": 44
       },
       "id": 30,
       "targets": [
@@ -2457,7 +2621,7 @@
         "h": 5,
         "w": 24,
         "x": 0,
-        "y": 47
+        "y": 49
       },
       "id": 31,
       "targets": [
@@ -2618,7 +2782,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 52
+        "y": 54
       },
       "id": 32,
       "collapsed": false,
@@ -2631,7 +2795,7 @@
         "h": 5,
         "w": 4,
         "x": 0,
-        "y": 53
+        "y": 55
       },
       "id": 33,
       "targets": [
@@ -2703,7 +2867,7 @@
         "h": 5,
         "w": 4,
         "x": 4,
-        "y": 53
+        "y": 55
       },
       "id": 34,
       "targets": [
@@ -2755,7 +2919,7 @@
         "h": 5,
         "w": 4,
         "x": 8,
-        "y": 53
+        "y": 55
       },
       "id": 35,
       "targets": [
@@ -2807,7 +2971,7 @@
         "h": 5,
         "w": 3,
         "x": 12,
-        "y": 53
+        "y": 55
       },
       "id": 36,
       "targets": [
@@ -2859,7 +3023,7 @@
         "h": 5,
         "w": 4,
         "x": 15,
-        "y": 53
+        "y": 55
       },
       "id": 37,
       "targets": [
@@ -2911,7 +3075,7 @@
         "h": 5,
         "w": 5,
         "x": 19,
-        "y": 53
+        "y": 55
       },
       "id": 38,
       "targets": [
@@ -2985,7 +3149,7 @@
         "h": 5,
         "w": 24,
         "x": 0,
-        "y": 58
+        "y": 60
       },
       "id": 39,
       "targets": [
@@ -3244,7 +3408,7 @@
         "h": 5,
         "w": 24,
         "x": 0,
-        "y": 63
+        "y": 65
       },
       "id": 40,
       "targets": [
@@ -3405,7 +3569,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 68
+        "y": 70
       },
       "id": 41,
       "collapsed": false,
@@ -3419,7 +3583,7 @@
         "h": 18,
         "w": 24,
         "x": 0,
-        "y": 69
+        "y": 71
       },
       "id": 42,
       "targets": [
@@ -3548,7 +3712,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 87
+        "y": 89
       },
       "id": 43,
       "collapsed": false,
@@ -3561,7 +3725,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 88
+        "y": 90
       },
       "id": 44,
       "targets": [
@@ -3614,7 +3778,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 96
+        "y": 98
       },
       "id": 45,
       "targets": [
@@ -3777,7 +3941,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 104
+        "y": 106
       },
       "id": 46,
       "targets": [
@@ -3881,7 +4045,7 @@
         "h": 4,
         "w": 8,
         "x": 0,
-        "y": 114
+        "y": 116
       },
       "id": 47,
       "targets": [
@@ -3935,7 +4099,7 @@
         "h": 4,
         "w": 8,
         "x": 8,
-        "y": 114
+        "y": 116
       },
       "id": 48,
       "targets": [
@@ -3989,7 +4153,7 @@
         "h": 4,
         "w": 8,
         "x": 16,
-        "y": 114
+        "y": 116
       },
       "id": 49,
       "targets": [
@@ -4059,7 +4223,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 118
+        "y": 120
       },
       "id": 50,
       "targets": [
@@ -4143,7 +4307,7 @@
         "h": 8,
         "w": 16,
         "x": 8,
-        "y": 118
+        "y": 120
       },
       "id": 51,
       "targets": [
@@ -4259,7 +4423,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 126
+        "y": 128
       },
       "id": 52,
       "collapsed": false,
@@ -4272,7 +4436,7 @@
         "h": 6,
         "w": 8,
         "x": 0,
-        "y": 127
+        "y": 129
       },
       "id": 53,
       "targets": [
@@ -4355,7 +4519,7 @@
         "h": 6,
         "w": 16,
         "x": 8,
-        "y": 127
+        "y": 129
       },
       "id": 54,
       "targets": [
@@ -4438,7 +4602,7 @@
         "h": 5,
         "w": 24,
         "x": 0,
-        "y": 133
+        "y": 135
       },
       "id": 55,
       "targets": [
@@ -4660,7 +4824,7 @@
         "h": 6,
         "w": 12,
         "x": 0,
-        "y": 138
+        "y": 140
       },
       "id": 56,
       "targets": [
@@ -4896,7 +5060,7 @@
         "h": 6,
         "w": 12,
         "x": 12,
-        "y": 138
+        "y": 140
       },
       "id": 57,
       "targets": [
@@ -5132,7 +5296,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 144
+        "y": 146
       },
       "id": 58,
       "collapsed": false,
@@ -5145,7 +5309,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 145
+        "y": 147
       },
       "id": 59,
       "targets": [
@@ -5241,7 +5405,7 @@
         "h": 6,
         "w": 24,
         "x": 0,
-        "y": 153
+        "y": 155
       },
       "id": 60,
       "targets": [
@@ -5390,7 +5554,7 @@
         "h": 6,
         "w": 24,
         "x": 0,
-        "y": 159
+        "y": 161
       },
       "id": 61,
       "targets": [
@@ -5544,7 +5708,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 165
+        "y": 167
       },
       "id": 62,
       "targets": [
@@ -5692,7 +5856,7 @@
         "h": 6,
         "w": 24,
         "x": 0,
-        "y": 173
+        "y": 175
       },
       "id": 63,
       "targets": [

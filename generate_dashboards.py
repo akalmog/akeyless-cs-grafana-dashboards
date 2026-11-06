@@ -1563,10 +1563,9 @@ def utilization_pct_heatmap_field_config(fit_columns=False):
                 utilization_avg_field_override(),
             ],
         }
-    # Explicit widths. Grafana's auto layout stretches columns to the exact panel width,
-    # then the resize handle sticks out and both the table and the panel grow a scrollbar.
-    # 170 + 110 + 12*130 = 1840px, under a wide browser window.
-    month_width = 130
+    # Fixed widths with slack for Grafana's always-on table scrollbar.
+    # 150 + 90 + 12*90 = 1320px, under the panel on a laptop and on a zoomed-out window.
+    month_width = 90
     return {
         "defaults": {
             "color": {"mode": "thresholds"},
@@ -1588,8 +1587,8 @@ def utilization_pct_heatmap_field_config(fit_columns=False):
                 "matcher": {"id": "byName", "options": "Customer"},
                 "properties": [
                     {"id": "custom.cellOptions", "value": {"type": "auto", "wrapText": False}},
-                    {"id": "custom.width", "value": 170},
-                    {"id": "custom.minWidth", "value": 170},
+                    {"id": "custom.width", "value": 150},
+                    {"id": "custom.minWidth", "value": 150},
                     {"id": "unit", "value": "string"},
                     {"id": "color", "value": {"mode": "fixed", "fixedColor": "text"}},
                     {"id": "mappings", "value": []},
@@ -1598,8 +1597,8 @@ def utilization_pct_heatmap_field_config(fit_columns=False):
             {
                 "matcher": {"id": "byName", "options": "Avg (Last 3M)"},
                 "properties": [
-                    {"id": "custom.width", "value": 110},
-                    {"id": "custom.minWidth", "value": 110},
+                    {"id": "custom.width", "value": 90},
+                    {"id": "custom.minWidth", "value": 90},
                     {"id": "custom.cellOptions", "value": {"mode": "gradient", "type": "color-background"}},
                 ],
             },
@@ -2638,8 +2637,8 @@ def header_table_panel(sql, x, y, w, title="", align="auto", h=6, column_widths=
                 "matcher": {"id": "byName", "options": name},
                 "properties": [
                     {"id": "custom.width", "value": width},
-                    {"id": "custom.minWidth", "value": min(width, 80)},
-                    {"id": "custom.cellOptions", "value": {"type": "auto", "wrapText": True}},
+                    {"id": "custom.minWidth", "value": width},
+                    {"id": "custom.cellOptions", "value": {"type": "auto", "wrapText": False}},
                 ],
             }
             for name, width in column_widths.items()
@@ -2679,8 +2678,8 @@ def header_account_ids_panel(x, y, w=4, h=6):
                     "cellOptions": {"type": "auto", "wrapText": False},
                     "inspect": False,
                     "filterable": False,
-                    "minWidth": 80,
-                    "width": 200,
+                    "minWidth": 160,
+                    "width": 160,
                 },
                 "color": {"fixedColor": "text", "mode": "fixed"},
                 "mappings": [],
@@ -2707,7 +2706,7 @@ def original_account_header_panels(y=0):
     panels = [
         {
             "type": "text",
-            "gridPos": {"h": 6, "w": 2, "x": 0, "y": y},
+            "gridPos": {"h": 4, "w": 2, "x": 0, "y": y},
             "id": next_id(),
             "options": {
                 "mode": "html",
@@ -2719,7 +2718,7 @@ def original_account_header_panels(y=0):
         {
             "type": "stat",
             "title": "SLA",
-            "gridPos": {"h": 6, "w": 2, "x": 2, "y": y},
+            "gridPos": {"h": 4, "w": 2, "x": 2, "y": y},
             "id": next_id(),
             "targets": [sql_target(sla_sql)],
             "options": {
@@ -2752,17 +2751,17 @@ def original_account_header_panels(y=0):
             },
             "datasource": DS,
         },
-        header_account_ids_panel(x=4, y=y, w=4, h=6),
+        header_account_ids_panel(x=4, y=y, w=3, h=4),
         {
             "type": "text",
-            "gridPos": {"h": 6, "w": 4, "x": 8, "y": y},
+            "gridPos": {"h": 4, "w": 3, "x": 7, "y": y},
             "id": next_id(),
             "options": {
                 "mode": "html",
                 "code": {"language": "plaintext", "showLineNumbers": False, "showMiniMap": False},
                 "content": (
                     '<div style="display:flex;align-items:center;justify-content:center;text-align:center;'
-                    'font-size:20px;font-weight:700;line-height:1.2;padding:12px 8px;">'
+                    'font-size:18px;font-weight:700;line-height:1.2;padding:8px 6px;">'
                     "${company_name}</div>"
                 ),
             },
@@ -2770,16 +2769,16 @@ def original_account_header_panels(y=0):
         },
         header_table_panel(
             load_query("account_contract_info.sql"),
-            x=12,
+            x=10,
             y=y,
-            w=7,
-            h=6,
+            w=9,
+            h=4,
             align="center",
             column_widths={
-                "Contract Start Date": 140,
-                "Contract End Date": 140,
-                "Days Since Contract": 120,
-                "Selling Channel/Partner": 150,
+                "Contract Start": 140,
+                "Contract End": 130,
+                "Elapsed": 90,
+                "Channel": 110,
             },
         ),
         header_table_panel(
@@ -2787,12 +2786,12 @@ def original_account_header_panels(y=0):
             x=19,
             y=y,
             w=5,
-            h=6,
+            h=4,
             align="center",
-            column_widths={"CSM": 110, "Sales": 110, "CSE": 110},
+            column_widths={"CSM": 100, "Sales": 110, "CSE": 100},
         ),
     ]
-    return panels, y + 6
+    return panels, y + 4
 
 
 def account_details_panels(y, portfolio=False, experimental=True):
@@ -3001,14 +3000,14 @@ def product_section(
                 portfolio=use_portfolio_sql,
                 x=0,
                 y=y,
-                h=5,
+                h=4,
                 experimental=experimental,
                 months_count=util_months,
                 include_current_month=True,
                 fit_columns=True,
             )
         )
-        y += 5
+        y += 4
         chart_h = 11
         panels.append(
             monthly_timeseries_panel(

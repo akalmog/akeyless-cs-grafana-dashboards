@@ -12,7 +12,7 @@
     {
       "type": "text",
       "gridPos": {
-        "h": 6,
+        "h": 4,
         "w": 2,
         "x": 0,
         "y": 0
@@ -36,7 +36,7 @@
       "type": "stat",
       "title": "SLA",
       "gridPos": {
-        "h": 6,
+        "h": 4,
         "w": 2,
         "x": 2,
         "y": 0
@@ -132,8 +132,8 @@
       "type": "table",
       "title": "Account IDs",
       "gridPos": {
-        "h": 6,
-        "w": 4,
+        "h": 4,
+        "w": 3,
         "x": 4,
         "y": 0
       },
@@ -174,8 +174,8 @@
             },
             "inspect": false,
             "filterable": false,
-            "minWidth": 80,
-            "width": 200
+            "minWidth": 160,
+            "width": 160
           },
           "color": {
             "fixedColor": "text",
@@ -193,9 +193,9 @@
     {
       "type": "text",
       "gridPos": {
-        "h": 6,
-        "w": 4,
-        "x": 8,
+        "h": 4,
+        "w": 3,
+        "x": 7,
         "y": 0
       },
       "id": 4,
@@ -206,7 +206,7 @@
           "showLineNumbers": false,
           "showMiniMap": false
         },
-        "content": "<div style=\"display:flex;align-items:center;justify-content:center;text-align:center;font-size:20px;font-weight:700;line-height:1.2;padding:12px 8px;\">${company_name}</div>"
+        "content": "<div style=\"display:flex;align-items:center;justify-content:center;text-align:center;font-size:18px;font-weight:700;line-height:1.2;padding:8px 6px;\">${company_name}</div>"
       },
       "datasource": {
         "type": "frser-sqlite-datasource",
@@ -216,9 +216,9 @@
     {
       "type": "table",
       "gridPos": {
-        "h": 6,
-        "w": 7,
-        "x": 12,
+        "h": 4,
+        "w": 9,
+        "x": 10,
         "y": 0
       },
       "id": 5,
@@ -228,8 +228,8 @@
             "type": "frser-sqlite-datasource",
             "uid": null
           },
-          "queryText": "SELECT\n    COALESCE(MAX(current_contract_start_date), MAX(contract_start_date)) AS \"Contract Start Date\",\n    MAX(current_contract_end_date) AS \"Contract End Date\",\n    CASE\n        WHEN COALESCE(MAX(current_contract_start_date), MAX(contract_start_date)) IS NOT NULL\n            AND MAX(current_contract_end_date) IS NOT NULL\n        THEN ROUND(\n            ((julianday('now') - julianday(COALESCE(MAX(current_contract_start_date), MAX(contract_start_date))))\n             /\n             (julianday(MAX(current_contract_end_date)) - julianday(COALESCE(MAX(current_contract_start_date), MAX(contract_start_date)))))\n            * 100,\n            2\n        ) || '%'\n        ELSE NULL\n    END AS \"Days Since Contract\",\n    COALESCE(MAX(partner), 'N/A') AS \"Selling Channel/Partner\"\nFROM companies\nWHERE name = '${company_name}'\n    AND account_id IS NOT NULL\nGROUP BY name\nORDER BY name ASC;",
-          "rawQueryText": "SELECT\n    COALESCE(MAX(current_contract_start_date), MAX(contract_start_date)) AS \"Contract Start Date\",\n    MAX(current_contract_end_date) AS \"Contract End Date\",\n    CASE\n        WHEN COALESCE(MAX(current_contract_start_date), MAX(contract_start_date)) IS NOT NULL\n            AND MAX(current_contract_end_date) IS NOT NULL\n        THEN ROUND(\n            ((julianday('now') - julianday(COALESCE(MAX(current_contract_start_date), MAX(contract_start_date))))\n             /\n             (julianday(MAX(current_contract_end_date)) - julianday(COALESCE(MAX(current_contract_start_date), MAX(contract_start_date)))))\n            * 100,\n            2\n        ) || '%'\n        ELSE NULL\n    END AS \"Days Since Contract\",\n    COALESCE(MAX(partner), 'N/A') AS \"Selling Channel/Partner\"\nFROM companies\nWHERE name = '${company_name}'\n    AND account_id IS NOT NULL\nGROUP BY name\nORDER BY name ASC;",
+          "queryText": "SELECT\n    COALESCE(MAX(current_contract_start_date), MAX(contract_start_date)) AS \"Contract Start\",\n    MAX(current_contract_end_date) AS \"Contract End\",\n    CASE\n        WHEN COALESCE(MAX(current_contract_start_date), MAX(contract_start_date)) IS NOT NULL\n            AND MAX(current_contract_end_date) IS NOT NULL\n        THEN ROUND(\n            ((julianday('now') - julianday(COALESCE(MAX(current_contract_start_date), MAX(contract_start_date))))\n             /\n             (julianday(MAX(current_contract_end_date)) - julianday(COALESCE(MAX(current_contract_start_date), MAX(contract_start_date)))))\n            * 100,\n            2\n        ) || '%'\n        ELSE NULL\n    END AS \"Elapsed\",\n    COALESCE(MAX(partner), 'N/A') AS \"Channel\"\nFROM companies\nWHERE name = '${company_name}'\n    AND account_id IS NOT NULL\nGROUP BY name\nORDER BY name ASC;",
+          "rawQueryText": "SELECT\n    COALESCE(MAX(current_contract_start_date), MAX(contract_start_date)) AS \"Contract Start\",\n    MAX(current_contract_end_date) AS \"Contract End\",\n    CASE\n        WHEN COALESCE(MAX(current_contract_start_date), MAX(contract_start_date)) IS NOT NULL\n            AND MAX(current_contract_end_date) IS NOT NULL\n        THEN ROUND(\n            ((julianday('now') - julianday(COALESCE(MAX(current_contract_start_date), MAX(contract_start_date))))\n             /\n             (julianday(MAX(current_contract_end_date)) - julianday(COALESCE(MAX(current_contract_start_date), MAX(contract_start_date)))))\n            * 100,\n            2\n        ) || '%'\n        ELSE NULL\n    END AS \"Elapsed\",\n    COALESCE(MAX(partner), 'N/A') AS \"Channel\"\nFROM companies\nWHERE name = '${company_name}'\n    AND account_id IS NOT NULL\nGROUP BY name\nORDER BY name ASC;",
           "queryType": "table",
           "timeColumns": [],
           "refId": "A"
@@ -281,7 +281,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Contract Start Date"
+              "options": "Contract Start"
             },
             "properties": [
               {
@@ -290,36 +290,13 @@
               },
               {
                 "id": "custom.minWidth",
-                "value": 80
-              },
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "auto",
-                  "wrapText": true
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Contract End Date"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
                 "value": 140
               },
               {
-                "id": "custom.minWidth",
-                "value": 80
-              },
-              {
                 "id": "custom.cellOptions",
                 "value": {
                   "type": "auto",
-                  "wrapText": true
+                  "wrapText": false
                 }
               }
             ]
@@ -327,22 +304,22 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Days Since Contract"
+              "options": "Contract End"
             },
             "properties": [
               {
                 "id": "custom.width",
-                "value": 120
+                "value": 130
               },
               {
                 "id": "custom.minWidth",
-                "value": 80
+                "value": 130
               },
               {
                 "id": "custom.cellOptions",
                 "value": {
                   "type": "auto",
-                  "wrapText": true
+                  "wrapText": false
                 }
               }
             ]
@@ -350,22 +327,45 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Selling Channel/Partner"
+              "options": "Elapsed"
             },
             "properties": [
               {
                 "id": "custom.width",
-                "value": 150
+                "value": 90
               },
               {
                 "id": "custom.minWidth",
-                "value": 80
+                "value": 90
               },
               {
                 "id": "custom.cellOptions",
                 "value": {
                   "type": "auto",
-                  "wrapText": true
+                  "wrapText": false
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Channel"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 110
+              },
+              {
+                "id": "custom.minWidth",
+                "value": 110
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "auto",
+                  "wrapText": false
                 }
               }
             ]
@@ -380,7 +380,7 @@
     {
       "type": "table",
       "gridPos": {
-        "h": 6,
+        "h": 4,
         "w": 5,
         "x": 19,
         "y": 0
@@ -450,17 +450,17 @@
             "properties": [
               {
                 "id": "custom.width",
-                "value": 110
+                "value": 100
               },
               {
                 "id": "custom.minWidth",
-                "value": 80
+                "value": 100
               },
               {
                 "id": "custom.cellOptions",
                 "value": {
                   "type": "auto",
-                  "wrapText": true
+                  "wrapText": false
                 }
               }
             ]
@@ -477,13 +477,13 @@
               },
               {
                 "id": "custom.minWidth",
-                "value": 80
+                "value": 110
               },
               {
                 "id": "custom.cellOptions",
                 "value": {
                   "type": "auto",
-                  "wrapText": true
+                  "wrapText": false
                 }
               }
             ]
@@ -496,17 +496,17 @@
             "properties": [
               {
                 "id": "custom.width",
-                "value": 110
+                "value": 100
               },
               {
                 "id": "custom.minWidth",
-                "value": 80
+                "value": 100
               },
               {
                 "id": "custom.cellOptions",
                 "value": {
                   "type": "auto",
-                  "wrapText": true
+                  "wrapText": false
                 }
               }
             ]
@@ -525,7 +525,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 6
+        "y": 4
       },
       "id": 7,
       "collapsed": false,
@@ -538,7 +538,7 @@
         "h": 5,
         "w": 4,
         "x": 0,
-        "y": 7
+        "y": 5
       },
       "id": 8,
       "targets": [
@@ -610,7 +610,7 @@
         "h": 5,
         "w": 4,
         "x": 4,
-        "y": 7
+        "y": 5
       },
       "id": 9,
       "targets": [
@@ -662,7 +662,7 @@
         "h": 5,
         "w": 4,
         "x": 8,
-        "y": 7
+        "y": 5
       },
       "id": 10,
       "targets": [
@@ -714,7 +714,7 @@
         "h": 5,
         "w": 3,
         "x": 12,
-        "y": 7
+        "y": 5
       },
       "id": 11,
       "targets": [
@@ -766,7 +766,7 @@
         "h": 5,
         "w": 4,
         "x": 15,
-        "y": 7
+        "y": 5
       },
       "id": 12,
       "targets": [
@@ -818,7 +818,7 @@
         "h": 5,
         "w": 5,
         "x": 19,
-        "y": 7
+        "y": 5
       },
       "id": 13,
       "targets": [
@@ -892,7 +892,7 @@
         "h": 5,
         "w": 24,
         "x": 0,
-        "y": 12
+        "y": 10
       },
       "id": 14,
       "targets": [
@@ -1151,7 +1151,7 @@
         "h": 5,
         "w": 24,
         "x": 0,
-        "y": 17
+        "y": 15
       },
       "id": 15,
       "targets": [
@@ -1312,7 +1312,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 22
+        "y": 20
       },
       "id": 16,
       "collapsed": false,
@@ -1325,7 +1325,7 @@
         "h": 5,
         "w": 5,
         "x": 0,
-        "y": 23
+        "y": 21
       },
       "id": 17,
       "targets": [
@@ -1397,7 +1397,7 @@
         "h": 5,
         "w": 5,
         "x": 5,
-        "y": 23
+        "y": 21
       },
       "id": 18,
       "targets": [
@@ -1449,7 +1449,7 @@
         "h": 5,
         "w": 5,
         "x": 10,
-        "y": 23
+        "y": 21
       },
       "id": 19,
       "targets": [
@@ -1501,7 +1501,7 @@
         "h": 5,
         "w": 5,
         "x": 15,
-        "y": 23
+        "y": 21
       },
       "id": 20,
       "targets": [
@@ -1575,7 +1575,7 @@
         "h": 5,
         "w": 24,
         "x": 0,
-        "y": 28
+        "y": 26
       },
       "id": 21,
       "targets": [
@@ -1834,7 +1834,7 @@
         "h": 5,
         "w": 24,
         "x": 0,
-        "y": 33
+        "y": 31
       },
       "id": 22,
       "targets": [
@@ -1995,7 +1995,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 38
+        "y": 36
       },
       "id": 23,
       "collapsed": false,
@@ -2008,7 +2008,7 @@
         "h": 5,
         "w": 4,
         "x": 0,
-        "y": 39
+        "y": 37
       },
       "id": 24,
       "targets": [
@@ -2080,7 +2080,7 @@
         "h": 5,
         "w": 4,
         "x": 4,
-        "y": 39
+        "y": 37
       },
       "id": 25,
       "targets": [
@@ -2132,7 +2132,7 @@
         "h": 5,
         "w": 4,
         "x": 8,
-        "y": 39
+        "y": 37
       },
       "id": 26,
       "targets": [
@@ -2184,7 +2184,7 @@
         "h": 5,
         "w": 3,
         "x": 12,
-        "y": 39
+        "y": 37
       },
       "id": 27,
       "targets": [
@@ -2236,7 +2236,7 @@
         "h": 5,
         "w": 4,
         "x": 15,
-        "y": 39
+        "y": 37
       },
       "id": 28,
       "targets": [
@@ -2288,7 +2288,7 @@
         "h": 5,
         "w": 5,
         "x": 19,
-        "y": 39
+        "y": 37
       },
       "id": 29,
       "targets": [
@@ -2362,7 +2362,7 @@
         "h": 5,
         "w": 24,
         "x": 0,
-        "y": 44
+        "y": 42
       },
       "id": 30,
       "targets": [
@@ -2621,7 +2621,7 @@
         "h": 5,
         "w": 24,
         "x": 0,
-        "y": 49
+        "y": 47
       },
       "id": 31,
       "targets": [
@@ -2782,7 +2782,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 54
+        "y": 52
       },
       "id": 32,
       "collapsed": false,
@@ -2795,7 +2795,7 @@
         "h": 5,
         "w": 4,
         "x": 0,
-        "y": 55
+        "y": 53
       },
       "id": 33,
       "targets": [
@@ -2867,7 +2867,7 @@
         "h": 5,
         "w": 4,
         "x": 4,
-        "y": 55
+        "y": 53
       },
       "id": 34,
       "targets": [
@@ -2919,7 +2919,7 @@
         "h": 5,
         "w": 4,
         "x": 8,
-        "y": 55
+        "y": 53
       },
       "id": 35,
       "targets": [
@@ -2971,7 +2971,7 @@
         "h": 5,
         "w": 3,
         "x": 12,
-        "y": 55
+        "y": 53
       },
       "id": 36,
       "targets": [
@@ -3023,7 +3023,7 @@
         "h": 5,
         "w": 4,
         "x": 15,
-        "y": 55
+        "y": 53
       },
       "id": 37,
       "targets": [
@@ -3075,7 +3075,7 @@
         "h": 5,
         "w": 5,
         "x": 19,
-        "y": 55
+        "y": 53
       },
       "id": 38,
       "targets": [
@@ -3149,7 +3149,7 @@
         "h": 5,
         "w": 24,
         "x": 0,
-        "y": 60
+        "y": 58
       },
       "id": 39,
       "targets": [
@@ -3408,7 +3408,7 @@
         "h": 5,
         "w": 24,
         "x": 0,
-        "y": 65
+        "y": 63
       },
       "id": 40,
       "targets": [
@@ -3569,7 +3569,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 70
+        "y": 68
       },
       "id": 41,
       "collapsed": false,
@@ -3583,7 +3583,7 @@
         "h": 18,
         "w": 24,
         "x": 0,
-        "y": 71
+        "y": 69
       },
       "id": 42,
       "targets": [
@@ -3712,7 +3712,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 89
+        "y": 87
       },
       "id": 43,
       "collapsed": false,
@@ -3725,7 +3725,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 90
+        "y": 88
       },
       "id": 44,
       "targets": [
@@ -3778,7 +3778,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 98
+        "y": 96
       },
       "id": 45,
       "targets": [
@@ -3941,7 +3941,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 106
+        "y": 104
       },
       "id": 46,
       "targets": [
@@ -4045,7 +4045,7 @@
         "h": 4,
         "w": 8,
         "x": 0,
-        "y": 116
+        "y": 114
       },
       "id": 47,
       "targets": [
@@ -4099,7 +4099,7 @@
         "h": 4,
         "w": 8,
         "x": 8,
-        "y": 116
+        "y": 114
       },
       "id": 48,
       "targets": [
@@ -4153,7 +4153,7 @@
         "h": 4,
         "w": 8,
         "x": 16,
-        "y": 116
+        "y": 114
       },
       "id": 49,
       "targets": [
@@ -4223,7 +4223,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 120
+        "y": 118
       },
       "id": 50,
       "targets": [
@@ -4307,7 +4307,7 @@
         "h": 8,
         "w": 16,
         "x": 8,
-        "y": 120
+        "y": 118
       },
       "id": 51,
       "targets": [
@@ -4423,7 +4423,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 128
+        "y": 126
       },
       "id": 52,
       "collapsed": false,
@@ -4436,7 +4436,7 @@
         "h": 6,
         "w": 8,
         "x": 0,
-        "y": 129
+        "y": 127
       },
       "id": 53,
       "targets": [
@@ -4519,7 +4519,7 @@
         "h": 6,
         "w": 16,
         "x": 8,
-        "y": 129
+        "y": 127
       },
       "id": 54,
       "targets": [
@@ -4602,7 +4602,7 @@
         "h": 5,
         "w": 24,
         "x": 0,
-        "y": 135
+        "y": 133
       },
       "id": 55,
       "targets": [
@@ -4824,7 +4824,7 @@
         "h": 6,
         "w": 12,
         "x": 0,
-        "y": 140
+        "y": 138
       },
       "id": 56,
       "targets": [
@@ -5060,7 +5060,7 @@
         "h": 6,
         "w": 12,
         "x": 12,
-        "y": 140
+        "y": 138
       },
       "id": 57,
       "targets": [
@@ -5296,7 +5296,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 146
+        "y": 144
       },
       "id": 58,
       "collapsed": false,
@@ -5309,7 +5309,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 147
+        "y": 145
       },
       "id": 59,
       "targets": [
@@ -5405,7 +5405,7 @@
         "h": 6,
         "w": 24,
         "x": 0,
-        "y": 155
+        "y": 153
       },
       "id": 60,
       "targets": [
@@ -5554,7 +5554,7 @@
         "h": 6,
         "w": 24,
         "x": 0,
-        "y": 161
+        "y": 159
       },
       "id": 61,
       "targets": [
@@ -5708,7 +5708,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 167
+        "y": 165
       },
       "id": 62,
       "targets": [
@@ -5856,7 +5856,7 @@
         "h": 6,
         "w": 24,
         "x": 0,
-        "y": 175
+        "y": 173
       },
       "id": 63,
       "targets": [

@@ -3514,35 +3514,6 @@ CROSS JOIN Used u
 """
 
 
-def summary_transactions_sql():
-    """Latest KMS report per account. Encryption transactions plus signer transactions."""
-    start = time_range_start_sql()
-    end = time_range_end_sql()
-    return f"""WITH {summary_company_accounts_cte()},
-Latest AS (
-    SELECT LOWER(r.account_id) AS account_key, MAX(date(r.report_date)) AS report_date
-    FROM reports r
-    INNER JOIN CompanyAccounts ca ON r.account_id = ca.account_id
-    WHERE r.report_type = 'KMSUsageMonthlyReport'
-      AND date(r.report_date) >= date({start})
-      AND date(r.report_date) <= date({end})
-    GROUP BY LOWER(r.account_id)
-),
-PerAccount AS (
-    SELECT l.account_key,
-           MAX(COALESCE(r.kms_txn_encryption, 0) + COALESCE(r.kms_txn_signer, 0)) AS used
-    FROM Latest l
-    INNER JOIN reports r
-        ON LOWER(r.account_id) = l.account_key
-       AND date(r.report_date) = l.report_date
-       AND r.report_type = 'KMSUsageMonthlyReport'
-    GROUP BY l.account_key
-)
-SELECT COALESCE(SUM(used), 0) AS value
-FROM PerAccount
-"""
-
-
 def summary_counts_stat(sql, x, y, w, h, description):
     return {
         "type": "stat",
@@ -3593,13 +3564,11 @@ def summary_counts_stat(sql, x, y, w, h, description):
 
 
 def product_summary_overview(y):
-    """Lightweight usage snapshot above Secrets Management.
+    """Usage cards under the Home header. No section row.
 
-    Each product reads the latest report in the Time Range once. KMS contributes
-    only the transactions count.
+    Each product reads the latest report in the Time Range once.
     """
-    panels = [row_panel("Summary", y)]
-    y += 1
+    panels = []
     cards = (
         (
             "SM - Usage",
@@ -3635,9 +3604,10 @@ def product_summary_overview(y):
     )
     gauge_h = 5
     stat_h = 4
-    width = 4
-    for index, (title, metrics_for, detail) in enumerate(cards):
-        x = index * width
+    # 24 columns across five cards. MVG keeps the extra width for its longer title.
+    widths = (4, 4, 4, 4, 8)
+    x = 0
+    for (title, metrics_for, detail), width in zip(cards, widths):
         gauge = gauge_panel(
             title,
             f"SELECT usage_pct AS value FROM (\n{metrics_for(True)}\n) summary_metrics",
@@ -3655,16 +3625,7 @@ def product_summary_overview(y):
         panels.append(
             summary_counts_stat(metrics_for(False), x, y + gauge_h, width, stat_h, detail)
         )
-    txn = kms_count_stat(
-        "Transactions",
-        summary_transactions_sql(),
-        20,
-        y,
-        w=4,
-        h=gauge_h + stat_h,
-        description="KMS encryption transactions plus signer transactions on the latest report in the Time Range.",
-    )
-    panels.append(txn)
+        x += width
     return panels, y + gauge_h + stat_h
 
 

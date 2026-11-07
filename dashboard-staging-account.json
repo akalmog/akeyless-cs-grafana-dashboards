@@ -3405,16 +3405,89 @@
       "collapsed": true,
       "panels": [
         {
+          "type": "gauge",
+          "title": "TDE %",
+          "gridPos": {
+            "h": 5,
+            "w": 2,
+            "x": 0,
+            "y": 92
+          },
+          "id": 42,
+          "targets": [
+            {
+              "datasource": {
+                "type": "frser-sqlite-datasource",
+                "uid": null
+              },
+              "queryText": "WITH CompanyAccounts AS (\n    SELECT DISTINCT account_id\n    FROM companies\n    WHERE name = '${company_name}' AND account_id IS NOT NULL AND account_id != '' AND ('${account_id:raw}' IN ('All', '%', '$__all') OR account_id = '${account_id}')\n),\nFiltered AS (\n    SELECT LOWER(r.account_id) AS account_key,\n           date(r.report_date) AS report_date,\n           MAX(COALESCE(r.kms_tde_actual, 0)) AS metric_used\n    FROM reports r\n    INNER JOIN CompanyAccounts ca ON r.account_id = ca.account_id\n    WHERE r.report_type = 'KMSUsageMonthlyReport'\n      AND date(r.report_date) >= date(CASE\n        WHEN '${period_months}' = 'Current Month' THEN strftime('%Y-%m-%d', 'now', 'start of month')\n        WHEN '${period_months}' = 'Last 3 Months' OR '${period_months}' LIKE '3 Months' THEN strftime('%Y-%m-%d', 'now', '-3 months')\n        WHEN '${period_months}' = 'Last 6 Months' THEN strftime('%Y-%m-%d', 'now', '-6 months')\n        WHEN '${period_months}' = 'Last 9 Months' THEN strftime('%Y-%m-%d', 'now', '-9 months')\n        WHEN '${period_months}' = 'Last 12 Months' OR '${period_months}' LIKE '12 Months' THEN strftime('%Y-%m-%d', 'now', '-12 months')\n        WHEN '${period_months}' = 'Last 24 Months' THEN strftime('%Y-%m-%d', 'now', '-24 months')\n        WHEN '${period_months}' = 'From Contract Start' THEN\n            COALESCE((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), strftime('%Y-%m-%d', 'now', '-12 months'))\n        WHEN '${period_months}' = 'From Contract Start Last 12 Months' THEN\n            CASE WHEN (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) IS NOT NULL AND (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) != '' THEN\n                CASE WHEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10))) > date('now')\n                    THEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)), '-1 year')\n                    ELSE date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)))\n                END\n            ELSE strftime('%Y-%m-%d', 'now', 'start of month', '-11 months')\n            END\n        ELSE strftime('%Y-%m-%d', 'now', '-12 months')\n    END)\n      AND date(r.report_date) <= date(CASE\n        WHEN '${period_months}' = 'From Contract Start Last 12 Months' THEN\n            CASE WHEN (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) IS NOT NULL AND (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) != '' THEN\n                CASE WHEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10))) > date('now')\n                    THEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)))\n                    ELSE date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)), '+1 year')\n                END\n            ELSE strftime('%Y-%m-%d', 'now')\n            END\n        ELSE strftime('%Y-%m-%d', 'now')\n    END)\n    GROUP BY LOWER(r.account_id), date(r.report_date)\n),\nLatestPerAccount AS (\n    SELECT f.metric_used\n    FROM Filtered f\n    INNER JOIN (\n        SELECT account_key, MAX(report_date) AS report_date\n        FROM Filtered\n        GROUP BY account_key\n    ) m ON m.account_key = f.account_key AND m.report_date = f.report_date\n),\nLatestUsed AS (\n    SELECT COALESCE(SUM(metric_used), 0) AS metric_used\n    FROM LatestPerAccount\n)\nSELECT CASE\n    WHEN COALESCE((\n        SELECT CAST(MAX(CAST(c.kms_tde AS INTEGER)) AS INTEGER)\n        FROM companies c\n        INNER JOIN CompanyAccounts ca ON c.account_id = ca.account_id\n        WHERE c.kms_tde IS NOT NULL AND TRIM(c.kms_tde) != ''\n    ), 0) > 0 THEN ROUND(\n        100.0 * COALESCE((SELECT metric_used FROM LatestUsed LIMIT 1), 0) / ((\n        SELECT CAST(MAX(CAST(c.kms_tde AS INTEGER)) AS INTEGER)\n        FROM companies c\n        INNER JOIN CompanyAccounts ca ON c.account_id = ca.account_id\n        WHERE c.kms_tde IS NOT NULL AND TRIM(c.kms_tde) != ''\n    )),\n        1\n    )\n    WHEN COALESCE((SELECT metric_used FROM LatestUsed LIMIT 1), 0) > 0 THEN 100\n    ELSE 0\nEND AS value;",
+              "rawQueryText": "WITH CompanyAccounts AS (\n    SELECT DISTINCT account_id\n    FROM companies\n    WHERE name = '${company_name}' AND account_id IS NOT NULL AND account_id != '' AND ('${account_id:raw}' IN ('All', '%', '$__all') OR account_id = '${account_id}')\n),\nFiltered AS (\n    SELECT LOWER(r.account_id) AS account_key,\n           date(r.report_date) AS report_date,\n           MAX(COALESCE(r.kms_tde_actual, 0)) AS metric_used\n    FROM reports r\n    INNER JOIN CompanyAccounts ca ON r.account_id = ca.account_id\n    WHERE r.report_type = 'KMSUsageMonthlyReport'\n      AND date(r.report_date) >= date(CASE\n        WHEN '${period_months}' = 'Current Month' THEN strftime('%Y-%m-%d', 'now', 'start of month')\n        WHEN '${period_months}' = 'Last 3 Months' OR '${period_months}' LIKE '3 Months' THEN strftime('%Y-%m-%d', 'now', '-3 months')\n        WHEN '${period_months}' = 'Last 6 Months' THEN strftime('%Y-%m-%d', 'now', '-6 months')\n        WHEN '${period_months}' = 'Last 9 Months' THEN strftime('%Y-%m-%d', 'now', '-9 months')\n        WHEN '${period_months}' = 'Last 12 Months' OR '${period_months}' LIKE '12 Months' THEN strftime('%Y-%m-%d', 'now', '-12 months')\n        WHEN '${period_months}' = 'Last 24 Months' THEN strftime('%Y-%m-%d', 'now', '-24 months')\n        WHEN '${period_months}' = 'From Contract Start' THEN\n            COALESCE((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), strftime('%Y-%m-%d', 'now', '-12 months'))\n        WHEN '${period_months}' = 'From Contract Start Last 12 Months' THEN\n            CASE WHEN (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) IS NOT NULL AND (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) != '' THEN\n                CASE WHEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10))) > date('now')\n                    THEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)), '-1 year')\n                    ELSE date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)))\n                END\n            ELSE strftime('%Y-%m-%d', 'now', 'start of month', '-11 months')\n            END\n        ELSE strftime('%Y-%m-%d', 'now', '-12 months')\n    END)\n      AND date(r.report_date) <= date(CASE\n        WHEN '${period_months}' = 'From Contract Start Last 12 Months' THEN\n            CASE WHEN (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) IS NOT NULL AND (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) != '' THEN\n                CASE WHEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10))) > date('now')\n                    THEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)))\n                    ELSE date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)), '+1 year')\n                END\n            ELSE strftime('%Y-%m-%d', 'now')\n            END\n        ELSE strftime('%Y-%m-%d', 'now')\n    END)\n    GROUP BY LOWER(r.account_id), date(r.report_date)\n),\nLatestPerAccount AS (\n    SELECT f.metric_used\n    FROM Filtered f\n    INNER JOIN (\n        SELECT account_key, MAX(report_date) AS report_date\n        FROM Filtered\n        GROUP BY account_key\n    ) m ON m.account_key = f.account_key AND m.report_date = f.report_date\n),\nLatestUsed AS (\n    SELECT COALESCE(SUM(metric_used), 0) AS metric_used\n    FROM LatestPerAccount\n)\nSELECT CASE\n    WHEN COALESCE((\n        SELECT CAST(MAX(CAST(c.kms_tde AS INTEGER)) AS INTEGER)\n        FROM companies c\n        INNER JOIN CompanyAccounts ca ON c.account_id = ca.account_id\n        WHERE c.kms_tde IS NOT NULL AND TRIM(c.kms_tde) != ''\n    ), 0) > 0 THEN ROUND(\n        100.0 * COALESCE((SELECT metric_used FROM LatestUsed LIMIT 1), 0) / ((\n        SELECT CAST(MAX(CAST(c.kms_tde AS INTEGER)) AS INTEGER)\n        FROM companies c\n        INNER JOIN CompanyAccounts ca ON c.account_id = ca.account_id\n        WHERE c.kms_tde IS NOT NULL AND TRIM(c.kms_tde) != ''\n    )),\n        1\n    )\n    WHEN COALESCE((SELECT metric_used FROM LatestUsed LIMIT 1), 0) > 0 THEN 100\n    ELSE 0\nEND AS value;",
+              "queryType": "table",
+              "timeColumns": [],
+              "refId": "A"
+            }
+          ],
+          "options": {
+            "minVizHeight": 75,
+            "minVizWidth": 75,
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "/.*/",
+              "values": true
+            },
+            "showThresholdLabels": false,
+            "showThresholdMarkers": true
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "max": 100,
+              "min": 0,
+              "noValue": "0%",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "orange",
+                    "value": 80
+                  },
+                  {
+                    "color": "red",
+                    "value": 100
+                  }
+                ]
+              },
+              "unit": "percent"
+            },
+            "overrides": []
+          },
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": null
+          },
+          "description": "Used divided by purchased, from the latest KMS monthly report in the Time Range. The gauge turns red at 100%. A full red gauge with purchased 0 means there is usage and no contract limit."
+        },
+        {
           "type": "stat",
           "title": "TDE",
           "description": "Purchased is the highest contract quantity across the selected accounts. Used is the latest KMS monthly report in the Time Range, summed across those accounts.",
           "gridPos": {
             "h": 5,
-            "w": 6,
-            "x": 0,
+            "w": 4,
+            "x": 2,
             "y": 92
           },
-          "id": 42,
+          "id": 43,
           "targets": [
             {
               "datasource": {
@@ -3464,16 +3537,89 @@
           }
         },
         {
+          "type": "gauge",
+          "title": "Tokenizers %",
+          "gridPos": {
+            "h": 5,
+            "w": 2,
+            "x": 6,
+            "y": 92
+          },
+          "id": 44,
+          "targets": [
+            {
+              "datasource": {
+                "type": "frser-sqlite-datasource",
+                "uid": null
+              },
+              "queryText": "WITH CompanyAccounts AS (\n    SELECT DISTINCT account_id\n    FROM companies\n    WHERE name = '${company_name}' AND account_id IS NOT NULL AND account_id != '' AND ('${account_id:raw}' IN ('All', '%', '$__all') OR account_id = '${account_id}')\n),\nFiltered AS (\n    SELECT LOWER(r.account_id) AS account_key,\n           date(r.report_date) AS report_date,\n           MAX(COALESCE(r.kms_tokenizers_actual, 0)) AS metric_used\n    FROM reports r\n    INNER JOIN CompanyAccounts ca ON r.account_id = ca.account_id\n    WHERE r.report_type = 'KMSUsageMonthlyReport'\n      AND date(r.report_date) >= date(CASE\n        WHEN '${period_months}' = 'Current Month' THEN strftime('%Y-%m-%d', 'now', 'start of month')\n        WHEN '${period_months}' = 'Last 3 Months' OR '${period_months}' LIKE '3 Months' THEN strftime('%Y-%m-%d', 'now', '-3 months')\n        WHEN '${period_months}' = 'Last 6 Months' THEN strftime('%Y-%m-%d', 'now', '-6 months')\n        WHEN '${period_months}' = 'Last 9 Months' THEN strftime('%Y-%m-%d', 'now', '-9 months')\n        WHEN '${period_months}' = 'Last 12 Months' OR '${period_months}' LIKE '12 Months' THEN strftime('%Y-%m-%d', 'now', '-12 months')\n        WHEN '${period_months}' = 'Last 24 Months' THEN strftime('%Y-%m-%d', 'now', '-24 months')\n        WHEN '${period_months}' = 'From Contract Start' THEN\n            COALESCE((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), strftime('%Y-%m-%d', 'now', '-12 months'))\n        WHEN '${period_months}' = 'From Contract Start Last 12 Months' THEN\n            CASE WHEN (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) IS NOT NULL AND (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) != '' THEN\n                CASE WHEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10))) > date('now')\n                    THEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)), '-1 year')\n                    ELSE date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)))\n                END\n            ELSE strftime('%Y-%m-%d', 'now', 'start of month', '-11 months')\n            END\n        ELSE strftime('%Y-%m-%d', 'now', '-12 months')\n    END)\n      AND date(r.report_date) <= date(CASE\n        WHEN '${period_months}' = 'From Contract Start Last 12 Months' THEN\n            CASE WHEN (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) IS NOT NULL AND (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) != '' THEN\n                CASE WHEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10))) > date('now')\n                    THEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)))\n                    ELSE date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)), '+1 year')\n                END\n            ELSE strftime('%Y-%m-%d', 'now')\n            END\n        ELSE strftime('%Y-%m-%d', 'now')\n    END)\n    GROUP BY LOWER(r.account_id), date(r.report_date)\n),\nLatestPerAccount AS (\n    SELECT f.metric_used\n    FROM Filtered f\n    INNER JOIN (\n        SELECT account_key, MAX(report_date) AS report_date\n        FROM Filtered\n        GROUP BY account_key\n    ) m ON m.account_key = f.account_key AND m.report_date = f.report_date\n),\nLatestUsed AS (\n    SELECT COALESCE(SUM(metric_used), 0) AS metric_used\n    FROM LatestPerAccount\n)\nSELECT CASE\n    WHEN COALESCE((\n        SELECT CAST(MAX(CAST(c.kms_tokenizers AS INTEGER)) AS INTEGER)\n        FROM companies c\n        INNER JOIN CompanyAccounts ca ON c.account_id = ca.account_id\n        WHERE c.kms_tokenizers IS NOT NULL AND TRIM(c.kms_tokenizers) != ''\n    ), 0) > 0 THEN ROUND(\n        100.0 * COALESCE((SELECT metric_used FROM LatestUsed LIMIT 1), 0) / ((\n        SELECT CAST(MAX(CAST(c.kms_tokenizers AS INTEGER)) AS INTEGER)\n        FROM companies c\n        INNER JOIN CompanyAccounts ca ON c.account_id = ca.account_id\n        WHERE c.kms_tokenizers IS NOT NULL AND TRIM(c.kms_tokenizers) != ''\n    )),\n        1\n    )\n    WHEN COALESCE((SELECT metric_used FROM LatestUsed LIMIT 1), 0) > 0 THEN 100\n    ELSE 0\nEND AS value;",
+              "rawQueryText": "WITH CompanyAccounts AS (\n    SELECT DISTINCT account_id\n    FROM companies\n    WHERE name = '${company_name}' AND account_id IS NOT NULL AND account_id != '' AND ('${account_id:raw}' IN ('All', '%', '$__all') OR account_id = '${account_id}')\n),\nFiltered AS (\n    SELECT LOWER(r.account_id) AS account_key,\n           date(r.report_date) AS report_date,\n           MAX(COALESCE(r.kms_tokenizers_actual, 0)) AS metric_used\n    FROM reports r\n    INNER JOIN CompanyAccounts ca ON r.account_id = ca.account_id\n    WHERE r.report_type = 'KMSUsageMonthlyReport'\n      AND date(r.report_date) >= date(CASE\n        WHEN '${period_months}' = 'Current Month' THEN strftime('%Y-%m-%d', 'now', 'start of month')\n        WHEN '${period_months}' = 'Last 3 Months' OR '${period_months}' LIKE '3 Months' THEN strftime('%Y-%m-%d', 'now', '-3 months')\n        WHEN '${period_months}' = 'Last 6 Months' THEN strftime('%Y-%m-%d', 'now', '-6 months')\n        WHEN '${period_months}' = 'Last 9 Months' THEN strftime('%Y-%m-%d', 'now', '-9 months')\n        WHEN '${period_months}' = 'Last 12 Months' OR '${period_months}' LIKE '12 Months' THEN strftime('%Y-%m-%d', 'now', '-12 months')\n        WHEN '${period_months}' = 'Last 24 Months' THEN strftime('%Y-%m-%d', 'now', '-24 months')\n        WHEN '${period_months}' = 'From Contract Start' THEN\n            COALESCE((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), strftime('%Y-%m-%d', 'now', '-12 months'))\n        WHEN '${period_months}' = 'From Contract Start Last 12 Months' THEN\n            CASE WHEN (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) IS NOT NULL AND (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) != '' THEN\n                CASE WHEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10))) > date('now')\n                    THEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)), '-1 year')\n                    ELSE date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)))\n                END\n            ELSE strftime('%Y-%m-%d', 'now', 'start of month', '-11 months')\n            END\n        ELSE strftime('%Y-%m-%d', 'now', '-12 months')\n    END)\n      AND date(r.report_date) <= date(CASE\n        WHEN '${period_months}' = 'From Contract Start Last 12 Months' THEN\n            CASE WHEN (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) IS NOT NULL AND (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) != '' THEN\n                CASE WHEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10))) > date('now')\n                    THEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)))\n                    ELSE date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)), '+1 year')\n                END\n            ELSE strftime('%Y-%m-%d', 'now')\n            END\n        ELSE strftime('%Y-%m-%d', 'now')\n    END)\n    GROUP BY LOWER(r.account_id), date(r.report_date)\n),\nLatestPerAccount AS (\n    SELECT f.metric_used\n    FROM Filtered f\n    INNER JOIN (\n        SELECT account_key, MAX(report_date) AS report_date\n        FROM Filtered\n        GROUP BY account_key\n    ) m ON m.account_key = f.account_key AND m.report_date = f.report_date\n),\nLatestUsed AS (\n    SELECT COALESCE(SUM(metric_used), 0) AS metric_used\n    FROM LatestPerAccount\n)\nSELECT CASE\n    WHEN COALESCE((\n        SELECT CAST(MAX(CAST(c.kms_tokenizers AS INTEGER)) AS INTEGER)\n        FROM companies c\n        INNER JOIN CompanyAccounts ca ON c.account_id = ca.account_id\n        WHERE c.kms_tokenizers IS NOT NULL AND TRIM(c.kms_tokenizers) != ''\n    ), 0) > 0 THEN ROUND(\n        100.0 * COALESCE((SELECT metric_used FROM LatestUsed LIMIT 1), 0) / ((\n        SELECT CAST(MAX(CAST(c.kms_tokenizers AS INTEGER)) AS INTEGER)\n        FROM companies c\n        INNER JOIN CompanyAccounts ca ON c.account_id = ca.account_id\n        WHERE c.kms_tokenizers IS NOT NULL AND TRIM(c.kms_tokenizers) != ''\n    )),\n        1\n    )\n    WHEN COALESCE((SELECT metric_used FROM LatestUsed LIMIT 1), 0) > 0 THEN 100\n    ELSE 0\nEND AS value;",
+              "queryType": "table",
+              "timeColumns": [],
+              "refId": "A"
+            }
+          ],
+          "options": {
+            "minVizHeight": 75,
+            "minVizWidth": 75,
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "/.*/",
+              "values": true
+            },
+            "showThresholdLabels": false,
+            "showThresholdMarkers": true
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "max": 100,
+              "min": 0,
+              "noValue": "0%",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "orange",
+                    "value": 80
+                  },
+                  {
+                    "color": "red",
+                    "value": 100
+                  }
+                ]
+              },
+              "unit": "percent"
+            },
+            "overrides": []
+          },
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": null
+          },
+          "description": "Used divided by purchased, from the latest KMS monthly report in the Time Range. The gauge turns red at 100%. A full red gauge with purchased 0 means there is usage and no contract limit."
+        },
+        {
           "type": "stat",
           "title": "Tokenizers",
           "description": "Purchased is the highest contract quantity across the selected accounts. Used is the latest KMS monthly report in the Time Range, summed across those accounts.",
           "gridPos": {
             "h": 5,
-            "w": 6,
-            "x": 6,
+            "w": 4,
+            "x": 8,
             "y": 92
           },
-          "id": 43,
+          "id": 45,
           "targets": [
             {
               "datasource": {
@@ -3523,16 +3669,89 @@
           }
         },
         {
+          "type": "gauge",
+          "title": "KMIP Servers %",
+          "gridPos": {
+            "h": 5,
+            "w": 2,
+            "x": 12,
+            "y": 92
+          },
+          "id": 46,
+          "targets": [
+            {
+              "datasource": {
+                "type": "frser-sqlite-datasource",
+                "uid": null
+              },
+              "queryText": "WITH CompanyAccounts AS (\n    SELECT DISTINCT account_id\n    FROM companies\n    WHERE name = '${company_name}' AND account_id IS NOT NULL AND account_id != '' AND ('${account_id:raw}' IN ('All', '%', '$__all') OR account_id = '${account_id}')\n),\nFiltered AS (\n    SELECT LOWER(r.account_id) AS account_key,\n           date(r.report_date) AS report_date,\n           MAX(COALESCE(r.kms_kmip_servers_actual, 0)) AS metric_used\n    FROM reports r\n    INNER JOIN CompanyAccounts ca ON r.account_id = ca.account_id\n    WHERE r.report_type = 'KMSUsageMonthlyReport'\n      AND date(r.report_date) >= date(CASE\n        WHEN '${period_months}' = 'Current Month' THEN strftime('%Y-%m-%d', 'now', 'start of month')\n        WHEN '${period_months}' = 'Last 3 Months' OR '${period_months}' LIKE '3 Months' THEN strftime('%Y-%m-%d', 'now', '-3 months')\n        WHEN '${period_months}' = 'Last 6 Months' THEN strftime('%Y-%m-%d', 'now', '-6 months')\n        WHEN '${period_months}' = 'Last 9 Months' THEN strftime('%Y-%m-%d', 'now', '-9 months')\n        WHEN '${period_months}' = 'Last 12 Months' OR '${period_months}' LIKE '12 Months' THEN strftime('%Y-%m-%d', 'now', '-12 months')\n        WHEN '${period_months}' = 'Last 24 Months' THEN strftime('%Y-%m-%d', 'now', '-24 months')\n        WHEN '${period_months}' = 'From Contract Start' THEN\n            COALESCE((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), strftime('%Y-%m-%d', 'now', '-12 months'))\n        WHEN '${period_months}' = 'From Contract Start Last 12 Months' THEN\n            CASE WHEN (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) IS NOT NULL AND (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) != '' THEN\n                CASE WHEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10))) > date('now')\n                    THEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)), '-1 year')\n                    ELSE date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)))\n                END\n            ELSE strftime('%Y-%m-%d', 'now', 'start of month', '-11 months')\n            END\n        ELSE strftime('%Y-%m-%d', 'now', '-12 months')\n    END)\n      AND date(r.report_date) <= date(CASE\n        WHEN '${period_months}' = 'From Contract Start Last 12 Months' THEN\n            CASE WHEN (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) IS NOT NULL AND (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) != '' THEN\n                CASE WHEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10))) > date('now')\n                    THEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)))\n                    ELSE date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)), '+1 year')\n                END\n            ELSE strftime('%Y-%m-%d', 'now')\n            END\n        ELSE strftime('%Y-%m-%d', 'now')\n    END)\n    GROUP BY LOWER(r.account_id), date(r.report_date)\n),\nLatestPerAccount AS (\n    SELECT f.metric_used\n    FROM Filtered f\n    INNER JOIN (\n        SELECT account_key, MAX(report_date) AS report_date\n        FROM Filtered\n        GROUP BY account_key\n    ) m ON m.account_key = f.account_key AND m.report_date = f.report_date\n),\nLatestUsed AS (\n    SELECT COALESCE(SUM(metric_used), 0) AS metric_used\n    FROM LatestPerAccount\n)\nSELECT CASE\n    WHEN COALESCE((\n        SELECT CAST(MAX(CAST(c.kms_kmip AS INTEGER)) AS INTEGER)\n        FROM companies c\n        INNER JOIN CompanyAccounts ca ON c.account_id = ca.account_id\n        WHERE c.kms_kmip IS NOT NULL AND TRIM(c.kms_kmip) != ''\n    ), 0) > 0 THEN ROUND(\n        100.0 * COALESCE((SELECT metric_used FROM LatestUsed LIMIT 1), 0) / ((\n        SELECT CAST(MAX(CAST(c.kms_kmip AS INTEGER)) AS INTEGER)\n        FROM companies c\n        INNER JOIN CompanyAccounts ca ON c.account_id = ca.account_id\n        WHERE c.kms_kmip IS NOT NULL AND TRIM(c.kms_kmip) != ''\n    )),\n        1\n    )\n    WHEN COALESCE((SELECT metric_used FROM LatestUsed LIMIT 1), 0) > 0 THEN 100\n    ELSE 0\nEND AS value;",
+              "rawQueryText": "WITH CompanyAccounts AS (\n    SELECT DISTINCT account_id\n    FROM companies\n    WHERE name = '${company_name}' AND account_id IS NOT NULL AND account_id != '' AND ('${account_id:raw}' IN ('All', '%', '$__all') OR account_id = '${account_id}')\n),\nFiltered AS (\n    SELECT LOWER(r.account_id) AS account_key,\n           date(r.report_date) AS report_date,\n           MAX(COALESCE(r.kms_kmip_servers_actual, 0)) AS metric_used\n    FROM reports r\n    INNER JOIN CompanyAccounts ca ON r.account_id = ca.account_id\n    WHERE r.report_type = 'KMSUsageMonthlyReport'\n      AND date(r.report_date) >= date(CASE\n        WHEN '${period_months}' = 'Current Month' THEN strftime('%Y-%m-%d', 'now', 'start of month')\n        WHEN '${period_months}' = 'Last 3 Months' OR '${period_months}' LIKE '3 Months' THEN strftime('%Y-%m-%d', 'now', '-3 months')\n        WHEN '${period_months}' = 'Last 6 Months' THEN strftime('%Y-%m-%d', 'now', '-6 months')\n        WHEN '${period_months}' = 'Last 9 Months' THEN strftime('%Y-%m-%d', 'now', '-9 months')\n        WHEN '${period_months}' = 'Last 12 Months' OR '${period_months}' LIKE '12 Months' THEN strftime('%Y-%m-%d', 'now', '-12 months')\n        WHEN '${period_months}' = 'Last 24 Months' THEN strftime('%Y-%m-%d', 'now', '-24 months')\n        WHEN '${period_months}' = 'From Contract Start' THEN\n            COALESCE((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), strftime('%Y-%m-%d', 'now', '-12 months'))\n        WHEN '${period_months}' = 'From Contract Start Last 12 Months' THEN\n            CASE WHEN (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) IS NOT NULL AND (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) != '' THEN\n                CASE WHEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10))) > date('now')\n                    THEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)), '-1 year')\n                    ELSE date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)))\n                END\n            ELSE strftime('%Y-%m-%d', 'now', 'start of month', '-11 months')\n            END\n        ELSE strftime('%Y-%m-%d', 'now', '-12 months')\n    END)\n      AND date(r.report_date) <= date(CASE\n        WHEN '${period_months}' = 'From Contract Start Last 12 Months' THEN\n            CASE WHEN (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) IS NOT NULL AND (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) != '' THEN\n                CASE WHEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10))) > date('now')\n                    THEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)))\n                    ELSE date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)), '+1 year')\n                END\n            ELSE strftime('%Y-%m-%d', 'now')\n            END\n        ELSE strftime('%Y-%m-%d', 'now')\n    END)\n    GROUP BY LOWER(r.account_id), date(r.report_date)\n),\nLatestPerAccount AS (\n    SELECT f.metric_used\n    FROM Filtered f\n    INNER JOIN (\n        SELECT account_key, MAX(report_date) AS report_date\n        FROM Filtered\n        GROUP BY account_key\n    ) m ON m.account_key = f.account_key AND m.report_date = f.report_date\n),\nLatestUsed AS (\n    SELECT COALESCE(SUM(metric_used), 0) AS metric_used\n    FROM LatestPerAccount\n)\nSELECT CASE\n    WHEN COALESCE((\n        SELECT CAST(MAX(CAST(c.kms_kmip AS INTEGER)) AS INTEGER)\n        FROM companies c\n        INNER JOIN CompanyAccounts ca ON c.account_id = ca.account_id\n        WHERE c.kms_kmip IS NOT NULL AND TRIM(c.kms_kmip) != ''\n    ), 0) > 0 THEN ROUND(\n        100.0 * COALESCE((SELECT metric_used FROM LatestUsed LIMIT 1), 0) / ((\n        SELECT CAST(MAX(CAST(c.kms_kmip AS INTEGER)) AS INTEGER)\n        FROM companies c\n        INNER JOIN CompanyAccounts ca ON c.account_id = ca.account_id\n        WHERE c.kms_kmip IS NOT NULL AND TRIM(c.kms_kmip) != ''\n    )),\n        1\n    )\n    WHEN COALESCE((SELECT metric_used FROM LatestUsed LIMIT 1), 0) > 0 THEN 100\n    ELSE 0\nEND AS value;",
+              "queryType": "table",
+              "timeColumns": [],
+              "refId": "A"
+            }
+          ],
+          "options": {
+            "minVizHeight": 75,
+            "minVizWidth": 75,
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "/.*/",
+              "values": true
+            },
+            "showThresholdLabels": false,
+            "showThresholdMarkers": true
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "max": 100,
+              "min": 0,
+              "noValue": "0%",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "orange",
+                    "value": 80
+                  },
+                  {
+                    "color": "red",
+                    "value": 100
+                  }
+                ]
+              },
+              "unit": "percent"
+            },
+            "overrides": []
+          },
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": null
+          },
+          "description": "Used divided by purchased, from the latest KMS monthly report in the Time Range. The gauge turns red at 100%. A full red gauge with purchased 0 means there is usage and no contract limit."
+        },
+        {
           "type": "stat",
           "title": "KMIP Servers",
           "description": "Purchased is the highest contract quantity across the selected accounts. Used is the latest KMS monthly report in the Time Range, summed across those accounts.",
           "gridPos": {
             "h": 5,
-            "w": 6,
-            "x": 12,
+            "w": 4,
+            "x": 14,
             "y": 92
           },
-          "id": 44,
+          "id": 47,
           "targets": [
             {
               "datasource": {
@@ -3582,16 +3801,89 @@
           }
         },
         {
+          "type": "gauge",
+          "title": "Cloud KMS Targets %",
+          "gridPos": {
+            "h": 5,
+            "w": 2,
+            "x": 18,
+            "y": 92
+          },
+          "id": 48,
+          "targets": [
+            {
+              "datasource": {
+                "type": "frser-sqlite-datasource",
+                "uid": null
+              },
+              "queryText": "WITH CompanyAccounts AS (\n    SELECT DISTINCT account_id\n    FROM companies\n    WHERE name = '${company_name}' AND account_id IS NOT NULL AND account_id != '' AND ('${account_id:raw}' IN ('All', '%', '$__all') OR account_id = '${account_id}')\n),\nFiltered AS (\n    SELECT LOWER(r.account_id) AS account_key,\n           date(r.report_date) AS report_date,\n           MAX(COALESCE(r.kms_cloud_targets_actual, 0)) AS metric_used\n    FROM reports r\n    INNER JOIN CompanyAccounts ca ON r.account_id = ca.account_id\n    WHERE r.report_type = 'KMSUsageMonthlyReport'\n      AND date(r.report_date) >= date(CASE\n        WHEN '${period_months}' = 'Current Month' THEN strftime('%Y-%m-%d', 'now', 'start of month')\n        WHEN '${period_months}' = 'Last 3 Months' OR '${period_months}' LIKE '3 Months' THEN strftime('%Y-%m-%d', 'now', '-3 months')\n        WHEN '${period_months}' = 'Last 6 Months' THEN strftime('%Y-%m-%d', 'now', '-6 months')\n        WHEN '${period_months}' = 'Last 9 Months' THEN strftime('%Y-%m-%d', 'now', '-9 months')\n        WHEN '${period_months}' = 'Last 12 Months' OR '${period_months}' LIKE '12 Months' THEN strftime('%Y-%m-%d', 'now', '-12 months')\n        WHEN '${period_months}' = 'Last 24 Months' THEN strftime('%Y-%m-%d', 'now', '-24 months')\n        WHEN '${period_months}' = 'From Contract Start' THEN\n            COALESCE((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), strftime('%Y-%m-%d', 'now', '-12 months'))\n        WHEN '${period_months}' = 'From Contract Start Last 12 Months' THEN\n            CASE WHEN (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) IS NOT NULL AND (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) != '' THEN\n                CASE WHEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10))) > date('now')\n                    THEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)), '-1 year')\n                    ELSE date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)))\n                END\n            ELSE strftime('%Y-%m-%d', 'now', 'start of month', '-11 months')\n            END\n        ELSE strftime('%Y-%m-%d', 'now', '-12 months')\n    END)\n      AND date(r.report_date) <= date(CASE\n        WHEN '${period_months}' = 'From Contract Start Last 12 Months' THEN\n            CASE WHEN (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) IS NOT NULL AND (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) != '' THEN\n                CASE WHEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10))) > date('now')\n                    THEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)))\n                    ELSE date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)), '+1 year')\n                END\n            ELSE strftime('%Y-%m-%d', 'now')\n            END\n        ELSE strftime('%Y-%m-%d', 'now')\n    END)\n    GROUP BY LOWER(r.account_id), date(r.report_date)\n),\nLatestPerAccount AS (\n    SELECT f.metric_used\n    FROM Filtered f\n    INNER JOIN (\n        SELECT account_key, MAX(report_date) AS report_date\n        FROM Filtered\n        GROUP BY account_key\n    ) m ON m.account_key = f.account_key AND m.report_date = f.report_date\n),\nLatestUsed AS (\n    SELECT COALESCE(SUM(metric_used), 0) AS metric_used\n    FROM LatestPerAccount\n)\nSELECT CASE\n    WHEN COALESCE((\n        SELECT CAST(MAX(CAST(c.kms_cloud_accounts AS INTEGER)) AS INTEGER)\n        FROM companies c\n        INNER JOIN CompanyAccounts ca ON c.account_id = ca.account_id\n        WHERE c.kms_cloud_accounts IS NOT NULL AND TRIM(c.kms_cloud_accounts) != ''\n    ), 0) > 0 THEN ROUND(\n        100.0 * COALESCE((SELECT metric_used FROM LatestUsed LIMIT 1), 0) / ((\n        SELECT CAST(MAX(CAST(c.kms_cloud_accounts AS INTEGER)) AS INTEGER)\n        FROM companies c\n        INNER JOIN CompanyAccounts ca ON c.account_id = ca.account_id\n        WHERE c.kms_cloud_accounts IS NOT NULL AND TRIM(c.kms_cloud_accounts) != ''\n    )),\n        1\n    )\n    WHEN COALESCE((SELECT metric_used FROM LatestUsed LIMIT 1), 0) > 0 THEN 100\n    ELSE 0\nEND AS value;",
+              "rawQueryText": "WITH CompanyAccounts AS (\n    SELECT DISTINCT account_id\n    FROM companies\n    WHERE name = '${company_name}' AND account_id IS NOT NULL AND account_id != '' AND ('${account_id:raw}' IN ('All', '%', '$__all') OR account_id = '${account_id}')\n),\nFiltered AS (\n    SELECT LOWER(r.account_id) AS account_key,\n           date(r.report_date) AS report_date,\n           MAX(COALESCE(r.kms_cloud_targets_actual, 0)) AS metric_used\n    FROM reports r\n    INNER JOIN CompanyAccounts ca ON r.account_id = ca.account_id\n    WHERE r.report_type = 'KMSUsageMonthlyReport'\n      AND date(r.report_date) >= date(CASE\n        WHEN '${period_months}' = 'Current Month' THEN strftime('%Y-%m-%d', 'now', 'start of month')\n        WHEN '${period_months}' = 'Last 3 Months' OR '${period_months}' LIKE '3 Months' THEN strftime('%Y-%m-%d', 'now', '-3 months')\n        WHEN '${period_months}' = 'Last 6 Months' THEN strftime('%Y-%m-%d', 'now', '-6 months')\n        WHEN '${period_months}' = 'Last 9 Months' THEN strftime('%Y-%m-%d', 'now', '-9 months')\n        WHEN '${period_months}' = 'Last 12 Months' OR '${period_months}' LIKE '12 Months' THEN strftime('%Y-%m-%d', 'now', '-12 months')\n        WHEN '${period_months}' = 'Last 24 Months' THEN strftime('%Y-%m-%d', 'now', '-24 months')\n        WHEN '${period_months}' = 'From Contract Start' THEN\n            COALESCE((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), strftime('%Y-%m-%d', 'now', '-12 months'))\n        WHEN '${period_months}' = 'From Contract Start Last 12 Months' THEN\n            CASE WHEN (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) IS NOT NULL AND (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) != '' THEN\n                CASE WHEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10))) > date('now')\n                    THEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)), '-1 year')\n                    ELSE date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)))\n                END\n            ELSE strftime('%Y-%m-%d', 'now', 'start of month', '-11 months')\n            END\n        ELSE strftime('%Y-%m-%d', 'now', '-12 months')\n    END)\n      AND date(r.report_date) <= date(CASE\n        WHEN '${period_months}' = 'From Contract Start Last 12 Months' THEN\n            CASE WHEN (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) IS NOT NULL AND (SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)) != '' THEN\n                CASE WHEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10))) > date('now')\n                    THEN date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)))\n                    ELSE date(strftime('%Y', 'now') || '-' || strftime('%m-%d', substr((SELECT MIN(substr(c.current_contract_start_date, 1, 10))\n        FROM companies c\n        WHERE c.current_contract_start_date IS NOT NULL AND c.current_contract_start_date != ''\n          AND c.account_id IS NOT NULL AND c.account_id != ''\n          AND (\n    '${company_name:raw}' IN ('All', '%', '$__all')\n    OR name IN (${company_name:sqlstring})\n    OR name = '${company_name}'\n)), 1, 10)), '+1 year')\n                END\n            ELSE strftime('%Y-%m-%d', 'now')\n            END\n        ELSE strftime('%Y-%m-%d', 'now')\n    END)\n    GROUP BY LOWER(r.account_id), date(r.report_date)\n),\nLatestPerAccount AS (\n    SELECT f.metric_used\n    FROM Filtered f\n    INNER JOIN (\n        SELECT account_key, MAX(report_date) AS report_date\n        FROM Filtered\n        GROUP BY account_key\n    ) m ON m.account_key = f.account_key AND m.report_date = f.report_date\n),\nLatestUsed AS (\n    SELECT COALESCE(SUM(metric_used), 0) AS metric_used\n    FROM LatestPerAccount\n)\nSELECT CASE\n    WHEN COALESCE((\n        SELECT CAST(MAX(CAST(c.kms_cloud_accounts AS INTEGER)) AS INTEGER)\n        FROM companies c\n        INNER JOIN CompanyAccounts ca ON c.account_id = ca.account_id\n        WHERE c.kms_cloud_accounts IS NOT NULL AND TRIM(c.kms_cloud_accounts) != ''\n    ), 0) > 0 THEN ROUND(\n        100.0 * COALESCE((SELECT metric_used FROM LatestUsed LIMIT 1), 0) / ((\n        SELECT CAST(MAX(CAST(c.kms_cloud_accounts AS INTEGER)) AS INTEGER)\n        FROM companies c\n        INNER JOIN CompanyAccounts ca ON c.account_id = ca.account_id\n        WHERE c.kms_cloud_accounts IS NOT NULL AND TRIM(c.kms_cloud_accounts) != ''\n    )),\n        1\n    )\n    WHEN COALESCE((SELECT metric_used FROM LatestUsed LIMIT 1), 0) > 0 THEN 100\n    ELSE 0\nEND AS value;",
+              "queryType": "table",
+              "timeColumns": [],
+              "refId": "A"
+            }
+          ],
+          "options": {
+            "minVizHeight": 75,
+            "minVizWidth": 75,
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "/.*/",
+              "values": true
+            },
+            "showThresholdLabels": false,
+            "showThresholdMarkers": true
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "max": 100,
+              "min": 0,
+              "noValue": "0%",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "orange",
+                    "value": 80
+                  },
+                  {
+                    "color": "red",
+                    "value": 100
+                  }
+                ]
+              },
+              "unit": "percent"
+            },
+            "overrides": []
+          },
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": null
+          },
+          "description": "Used divided by purchased, from the latest KMS monthly report in the Time Range. The gauge turns red at 100%. A full red gauge with purchased 0 means there is usage and no contract limit."
+        },
+        {
           "type": "stat",
           "title": "Cloud KMS Targets",
           "description": "Purchased is the highest contract quantity across the selected accounts. Used is the latest KMS monthly report in the Time Range, summed across those accounts. Purchased is Cloud Accounts. Used is Cloud KMS targets.",
           "gridPos": {
             "h": 5,
-            "w": 6,
-            "x": 18,
+            "w": 4,
+            "x": 20,
             "y": 92
           },
-          "id": 45,
+          "id": 49,
           "targets": [
             {
               "datasource": {
@@ -3650,7 +3942,7 @@
             "x": 0,
             "y": 97
           },
-          "id": 46,
+          "id": 50,
           "targets": [
             {
               "datasource": {
@@ -3709,7 +4001,7 @@
             "x": 8,
             "y": 97
           },
-          "id": 47,
+          "id": 51,
           "targets": [
             {
               "datasource": {
@@ -3768,7 +4060,7 @@
             "x": 16,
             "y": 97
           },
-          "id": 48,
+          "id": 52,
           "targets": [
             {
               "datasource": {
@@ -3827,7 +4119,7 @@
             "x": 0,
             "y": 101
           },
-          "id": 49,
+          "id": 53,
           "targets": [
             {
               "datasource": {
@@ -4166,7 +4458,7 @@
             "x": 0,
             "y": 111
           },
-          "id": 50,
+          "id": 54,
           "targets": [
             {
               "datasource": {
@@ -4305,7 +4597,7 @@
         "x": 0,
         "y": 8
       },
-      "id": 51,
+      "id": 55,
       "collapsed": true,
       "panels": [
         {
@@ -4318,7 +4610,7 @@
             "x": 0,
             "y": 120
           },
-          "id": 52,
+          "id": 56,
           "targets": [
             {
               "datasource": {
@@ -4449,7 +4741,7 @@
         "x": 0,
         "y": 9
       },
-      "id": 53,
+      "id": 57,
       "collapsed": true,
       "panels": [
         {
@@ -4461,7 +4753,7 @@
             "x": 0,
             "y": 139
           },
-          "id": 54,
+          "id": 58,
           "targets": [
             {
               "datasource": {
@@ -4514,7 +4806,7 @@
             "x": 0,
             "y": 147
           },
-          "id": 55,
+          "id": 59,
           "targets": [
             {
               "datasource": {
@@ -4677,7 +4969,7 @@
             "x": 0,
             "y": 155
           },
-          "id": 56,
+          "id": 60,
           "targets": [
             {
               "datasource": {
@@ -4781,7 +5073,7 @@
             "x": 0,
             "y": 165
           },
-          "id": 57,
+          "id": 61,
           "targets": [
             {
               "datasource": {
@@ -4835,7 +5127,7 @@
             "x": 8,
             "y": 165
           },
-          "id": 58,
+          "id": 62,
           "targets": [
             {
               "datasource": {
@@ -4889,7 +5181,7 @@
             "x": 16,
             "y": 165
           },
-          "id": 59,
+          "id": 63,
           "targets": [
             {
               "datasource": {
@@ -4959,7 +5251,7 @@
             "x": 0,
             "y": 169
           },
-          "id": 60,
+          "id": 64,
           "targets": [
             {
               "datasource": {
@@ -5043,7 +5335,7 @@
             "x": 8,
             "y": 169
           },
-          "id": 61,
+          "id": 65,
           "targets": [
             {
               "datasource": {
@@ -5161,7 +5453,7 @@
         "x": 0,
         "y": 10
       },
-      "id": 62,
+      "id": 66,
       "collapsed": true,
       "panels": [
         {
@@ -5173,7 +5465,7 @@
             "x": 0,
             "y": 178
           },
-          "id": 63,
+          "id": 67,
           "targets": [
             {
               "datasource": {
@@ -5256,7 +5548,7 @@
             "x": 8,
             "y": 178
           },
-          "id": 64,
+          "id": 68,
           "targets": [
             {
               "datasource": {
@@ -5339,7 +5631,7 @@
             "x": 0,
             "y": 184
           },
-          "id": 65,
+          "id": 69,
           "targets": [
             {
               "datasource": {
@@ -5561,7 +5853,7 @@
             "x": 0,
             "y": 189
           },
-          "id": 66,
+          "id": 70,
           "targets": [
             {
               "datasource": {
@@ -5797,7 +6089,7 @@
             "x": 12,
             "y": 189
           },
-          "id": 67,
+          "id": 71,
           "targets": [
             {
               "datasource": {
@@ -6035,7 +6327,7 @@
         "x": 0,
         "y": 11
       },
-      "id": 68,
+      "id": 72,
       "collapsed": true,
       "panels": [
         {
@@ -6047,7 +6339,7 @@
             "x": 0,
             "y": 196
           },
-          "id": 69,
+          "id": 73,
           "targets": [
             {
               "datasource": {
@@ -6143,7 +6435,7 @@
             "x": 0,
             "y": 204
           },
-          "id": 70,
+          "id": 74,
           "targets": [
             {
               "datasource": {
@@ -6292,7 +6584,7 @@
             "x": 0,
             "y": 210
           },
-          "id": 71,
+          "id": 75,
           "targets": [
             {
               "datasource": {
@@ -6446,7 +6738,7 @@
             "x": 0,
             "y": 216
           },
-          "id": 72,
+          "id": 76,
           "targets": [
             {
               "datasource": {
@@ -6594,7 +6886,7 @@
             "x": 0,
             "y": 224
           },
-          "id": 73,
+          "id": 77,
           "targets": [
             {
               "datasource": {

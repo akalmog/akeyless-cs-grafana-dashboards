@@ -3051,6 +3051,15 @@ def product_section(
     return panels, y + util_height
 
 
+KMS_CAPACITY_THRESHOLDS = {
+    "mode": "absolute",
+    "steps": [
+        {"color": "green", "value": None},
+        {"color": "orange", "value": 80},
+        {"color": "red", "value": 100},
+    ],
+}
+
 # (key, panel title, companies purchased column or None, reports used aggregate, purchased field, used field)
 KMS_CAPACITY_METRICS = (
     ("tde", "TDE", "kms_tde", "MAX(COALESCE(r.kms_tde_actual, 0))", "TDE - purchased", "TDE - used"),
@@ -3168,6 +3177,20 @@ def kms_pair_sql(purchased_col, purchased_label, used_expr, used_label):
 SELECT
     COALESCE({purchased}, 0) AS "{purchased_label}",
     COALESCE((SELECT metric_used FROM LatestUsed LIMIT 1), 0) AS "{used_label}";
+"""
+
+
+def kms_utilization_sql(purchased_col, used_expr):
+    purchased = kms_purchased_expr(purchased_col)
+    return f"""WITH {kms_used_ctes(used_expr)}
+SELECT CASE
+    WHEN COALESCE({purchased}, 0) > 0 THEN ROUND(
+        100.0 * COALESCE((SELECT metric_used FROM LatestUsed LIMIT 1), 0) / ({purchased}),
+        1
+    )
+    WHEN COALESCE((SELECT metric_used FROM LatestUsed LIMIT 1), 0) > 0 THEN 100
+    ELSE 0
+END AS value;
 """
 
 
@@ -3361,17 +3384,34 @@ def kms_section(y):
     cloud_desc = (
         pair_desc + " Purchased is Cloud Accounts. Used is Cloud KMS targets."
     )
+    gauge_desc = (
+        "Used divided by purchased, from the latest KMS monthly report in the Time Range. "
+        "The gauge turns red at 100%. A full red gauge with purchased 0 means there is usage and no contract limit."
+    )
     row_h = 5
     for index, (_key, title, purchased_col, used_expr, purchased_label, used_label) in enumerate(
         KMS_CAPACITY_METRICS
     ):
+        x = index * 6
+        panels.append(
+            gauge_panel(
+                f"{title} %",
+                kms_utilization_sql(purchased_col, used_expr),
+                x,
+                y,
+                w=2,
+                h=row_h,
+                thresholds=KMS_CAPACITY_THRESHOLDS,
+                description=gauge_desc,
+            )
+        )
         panels.append(
             kms_pair_stat(
                 title,
                 kms_pair_sql(purchased_col, purchased_label, used_expr, used_label),
-                index * 6,
+                x + 2,
                 y,
-                w=6,
+                w=4,
                 h=row_h,
                 description=cloud_desc if title == "Cloud KMS Targets" else pair_desc,
             )

@@ -3051,6 +3051,433 @@ def product_section(
     return panels, y + util_height
 
 
+KMS_CAPACITY_THRESHOLDS = {
+    "mode": "absolute",
+    "steps": [
+        {"color": "green", "value": None},
+        {"color": "orange", "value": 80},
+        {"color": "red", "value": 100},
+    ],
+}
+
+# (key, panel title, companies purchased column or None, reports used aggregate, purchased field, used field)
+KMS_CAPACITY_METRICS = (
+    ("tde", "TDE", "kms_tde", "MAX(COALESCE(r.kms_tde_actual, 0))", "TDE - purchased", "TDE - used"),
+    (
+        "tokenizers",
+        "Tokenizers",
+        "kms_tokenizers",
+        "MAX(COALESCE(r.kms_tokenizers_actual, 0))",
+        "Tokenizers - purchased",
+        "Tokenizers - used",
+    ),
+    (
+        "kmip_servers",
+        "KMIP Servers",
+        "kms_kmip",
+        "MAX(COALESCE(r.kms_kmip_servers_actual, 0))",
+        "KMIP Servers - purchased",
+        "KMIP Servers - used",
+    ),
+    (
+        "cloud_targets",
+        "Cloud KMS Targets",
+        "kms_cloud_accounts",
+        "MAX(COALESCE(r.kms_cloud_targets_actual, 0))",
+        "Cloud Accounts - purchased",
+        "Cloud KMS Targets - used",
+    ),
+)
+
+KMS_ACTIVITY_METRICS = (
+    ("kmip_clients", "KMIP Clients", "MAX(COALESCE(r.kms_kmip_clients_actual, 0))"),
+    ("code_signers", "Code Signers", "MAX(COALESCE(r.kms_signer_keys_actual, 0))"),
+    (
+        "transactions",
+        "Transactions",
+        "MAX(COALESCE(r.kms_txn_encryption, 0) + COALESCE(r.kms_txn_signer, 0))",
+    ),
+)
+
+KMS_TREND_SERIES = (
+    ("tde", "TDE", "MAX(COALESCE(r.kms_tde_actual, 0))"),
+    ("tokenizers", "Tokenizers", "MAX(COALESCE(r.kms_tokenizers_actual, 0))"),
+    ("kmip_clients", "KMIP Clients", "MAX(COALESCE(r.kms_kmip_clients_actual, 0))"),
+    ("kmip_servers", "KMIP Servers", "MAX(COALESCE(r.kms_kmip_servers_actual, 0))"),
+    ("cloud_targets", "Cloud KMS Targets", "MAX(COALESCE(r.kms_cloud_targets_actual, 0))"),
+    ("code_signers", "Code Signers", "MAX(COALESCE(r.kms_signer_keys_actual, 0))"),
+    (
+        "transactions",
+        "Transactions",
+        "MAX(COALESCE(r.kms_txn_encryption, 0) + COALESCE(r.kms_txn_signer, 0))",
+    ),
+)
+
+KMS_TREND_COLORS = {
+    "TDE": "#5794F2",
+    "Tokenizers": "#B877D9",
+    "KMIP Clients": "#73BF69",
+    "KMIP Servers": "#FF9830",
+    "Cloud KMS Targets": "#FADE2A",
+    "Code Signers": "#F2495C",
+    "Transactions": "#5794F2",
+}
+
+
+def kms_company_accounts_cte():
+    return f"""CompanyAccounts AS (
+    SELECT DISTINCT account_id
+    FROM companies
+    WHERE {company_accounts_filter(False)}
+)"""
+
+
+def kms_used_ctes(used_expr):
+    start = time_range_start_sql()
+    end = time_range_end_sql()
+    return f"""{kms_company_accounts_cte()},
+Filtered AS (
+    SELECT LOWER(r.account_id) AS account_key,
+           date(r.report_date) AS report_date,
+           {used_expr} AS metric_used
+    FROM reports r
+    INNER JOIN CompanyAccounts ca ON r.account_id = ca.account_id
+    WHERE r.report_type = 'KMSUsageMonthlyReport'
+      AND date(r.report_date) >= date({start})
+      AND date(r.report_date) <= date({end})
+    GROUP BY LOWER(r.account_id), date(r.report_date)
+),
+LatestPerAccount AS (
+    SELECT f.metric_used
+    FROM Filtered f
+    INNER JOIN (
+        SELECT account_key, MAX(report_date) AS report_date
+        FROM Filtered
+        GROUP BY account_key
+    ) m ON m.account_key = f.account_key AND m.report_date = f.report_date
+),
+LatestUsed AS (
+    SELECT COALESCE(SUM(metric_used), 0) AS metric_used
+    FROM LatestPerAccount
+)"""
+
+
+def kms_purchased_expr(column):
+    return f"""(
+        SELECT CAST(MAX(CAST(c.{column} AS INTEGER)) AS INTEGER)
+        FROM companies c
+        INNER JOIN CompanyAccounts ca ON c.account_id = ca.account_id
+        WHERE c.{column} IS NOT NULL AND TRIM(c.{column}) != ''
+    )"""
+
+
+def kms_pair_sql(purchased_col, purchased_label, used_expr, used_label):
+    purchased = kms_purchased_expr(purchased_col)
+    return f"""WITH {kms_used_ctes(used_expr)}
+SELECT
+    COALESCE({purchased}, 0) AS "{purchased_label}",
+    COALESCE((SELECT metric_used FROM LatestUsed LIMIT 1), 0) AS "{used_label}";
+"""
+
+
+def kms_utilization_sql(purchased_col, used_expr):
+    purchased = kms_purchased_expr(purchased_col)
+    return f"""WITH {kms_used_ctes(used_expr)}
+SELECT CASE
+    WHEN COALESCE({purchased}, 0) > 0 THEN ROUND(
+        100.0 * COALESCE((SELECT metric_used FROM LatestUsed LIMIT 1), 0) / ({purchased}),
+        1
+    )
+    WHEN COALESCE((SELECT metric_used FROM LatestUsed LIMIT 1), 0) > 0 THEN 100
+    ELSE 0
+END AS value;
+"""
+
+
+def kms_activity_sql(used_expr):
+    return f"""WITH {kms_used_ctes(used_expr)}
+SELECT COALESCE((SELECT metric_used FROM LatestUsed LIMIT 1), 0) AS value;
+"""
+
+
+def kms_monthly_sql(series):
+    """Latest KMS report in each month, summed across the selected accounts."""
+    start = time_range_start_sql()
+    end = time_range_end_sql()
+    daily_cols = ",\n           ".join(f"{expr} AS {key}" for key, _label, expr in series)
+    sums = ",\n       ".join(f'SUM({key}) AS "{label}"' for key, label, _expr in series)
+    return f"""WITH {kms_company_accounts_cte()},
+Daily AS (
+    SELECT strftime('%Y-%m', date(r.report_date)) AS ym,
+           date(r.report_date) AS report_date,
+           LOWER(r.account_id) AS account_key,
+           {daily_cols}
+    FROM reports r
+    INNER JOIN CompanyAccounts ca ON r.account_id = ca.account_id
+    WHERE r.report_type = 'KMSUsageMonthlyReport'
+      AND date(r.report_date) >= date({start})
+      AND date(r.report_date) <= date({end})
+    GROUP BY ym, date(r.report_date), LOWER(r.account_id)
+),
+LatestInMonth AS (
+    SELECT d.*
+    FROM Daily d
+    INNER JOIN (
+        SELECT ym, account_key, MAX(report_date) AS report_date
+        FROM Daily
+        GROUP BY ym, account_key
+    ) m ON m.ym = d.ym AND m.account_key = d.account_key AND m.report_date = d.report_date
+)
+SELECT d.ym || '-01T00:00:00Z' AS time,
+       {sums}
+FROM LatestInMonth d
+GROUP BY d.ym
+ORDER BY d.ym;
+"""
+
+
+def kms_pair_stat(title, sql, x, y, w, h, description):
+    return {
+        "type": "stat",
+        "title": title,
+        "description": description,
+        "gridPos": {"h": h, "w": w, "x": x, "y": y},
+        "id": next_id(),
+        "targets": [sql_target(sql)],
+        "options": {
+            "reduceOptions": {"values": False, "calcs": ["lastNotNull"], "fields": ""},
+            "orientation": "horizontal",
+            "textMode": "auto",
+            "wideLayout": True,
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "showPercentChange": False,
+            "percentChangeColorMode": "standard",
+        },
+        "fieldConfig": {
+            "defaults": {
+                "mappings": [],
+                "color": {"fixedColor": "text", "mode": "fixed"},
+                "noValue": "0",
+                "unit": "none",
+                "decimals": 0,
+            },
+            "overrides": [],
+        },
+        "datasource": DS,
+    }
+
+
+def kms_count_stat(title, sql, x, y, w, h, description):
+    return {
+        "type": "stat",
+        "title": title,
+        "description": description,
+        "gridPos": {"h": h, "w": w, "x": x, "y": y},
+        "id": next_id(),
+        "targets": [sql_target(sql)],
+        "options": {
+            "reduceOptions": {"values": False, "calcs": ["lastNotNull"], "fields": "/^value$/"},
+            "orientation": "auto",
+            "textMode": "value",
+            "wideLayout": True,
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "center",
+            "showPercentChange": False,
+            "percentChangeColorMode": "standard",
+        },
+        "fieldConfig": {
+            "defaults": {
+                "mappings": [],
+                "color": {"fixedColor": "text", "mode": "fixed"},
+                "noValue": "0",
+                "unit": "none",
+                "decimals": 0,
+            },
+            "overrides": [],
+        },
+        "datasource": DS,
+    }
+
+
+def kms_timeseries_panel(title, sql, x, y, w, h, series_labels, description, bars=False):
+    overrides = []
+    for label in series_labels:
+        custom = [
+            {"id": "custom.axisPlacement", "value": "left"},
+            {"id": "custom.stacking", "value": {"mode": "none"}},
+            {"id": "color", "value": {"fixedColor": KMS_TREND_COLORS[label], "mode": "fixed"}},
+        ]
+        if bars:
+            custom.extend(
+                [
+                    {"id": "custom.drawStyle", "value": "bars"},
+                    {"id": "custom.fillOpacity", "value": 80},
+                    {"id": "custom.lineWidth", "value": 0},
+                    {"id": "custom.barWidthFactor", "value": 0.6},
+                    {"id": "custom.barMaxWidth", "value": 36},
+                ]
+            )
+        else:
+            custom.extend(
+                [
+                    {"id": "custom.drawStyle", "value": "line"},
+                    {"id": "custom.lineWidth", "value": 2},
+                    {"id": "custom.fillOpacity", "value": 12},
+                    {"id": "custom.showPoints", "value": "auto"},
+                ]
+            )
+        overrides.append({"matcher": {"id": "byName", "options": label}, "properties": custom})
+    return {
+        "type": "timeseries",
+        "title": title,
+        "description": description,
+        "gridPos": {"h": h, "w": w, "x": x, "y": y},
+        "id": next_id(),
+        "targets": [sql_target(sql, query_type="table", time_columns=["time", "ts"])],
+        "options": {
+            "legend": {"showLegend": True, "displayMode": "list", "placement": "bottom", "calcs": []},
+            "tooltip": {"mode": "multi", "sort": "desc"},
+        },
+        "fieldConfig": {
+            "defaults": {
+                "custom": {
+                    "drawStyle": "line" if not bars else "bars",
+                    "lineInterpolation": "linear",
+                    "lineWidth": 2,
+                    "fillOpacity": 12,
+                    "showPoints": "auto",
+                    "pointSize": 5,
+                    "stacking": {"mode": "none"},
+                    "axisPlacement": "left",
+                    "axisLabel": "",
+                    "axisColorMode": "text",
+                    "scaleDistribution": {"type": "linear"},
+                    "axisCenteredZero": False,
+                    "hideFrom": {"tooltip": False, "viz": False, "legend": False},
+                    "thresholdsStyle": {"mode": "off"},
+                    "barWidthFactor": 0.6,
+                    "barMaxWidth": 36,
+                },
+                "color": {"mode": "palette-classic"},
+                "min": 0,
+                "decimals": 0,
+                "mappings": [],
+                "thresholds": {"mode": "absolute", "steps": [{"color": "text", "value": None}]},
+            },
+            "overrides": overrides,
+        },
+        "datasource": DS,
+    }
+
+
+def kms_section(y):
+    """Staging single-account KMS block. Sits after Password Management."""
+    panels = [row_panel("KMS — Key Management System", y)]
+    y += 1
+    pair_desc = (
+        "Purchased is the highest contract quantity across the selected accounts. "
+        "Used is the latest KMS monthly report in the Time Range, summed across those accounts."
+    )
+    cloud_desc = (
+        pair_desc + " Purchased is Cloud Accounts. Used is Cloud KMS targets."
+    )
+    gauge_desc = (
+        "Used divided by purchased, from the latest KMS monthly report in the Time Range. "
+        "The gauge turns red at 100%. A full red gauge with purchased 0 means there is usage and no contract limit."
+    )
+    row_h = 5
+    for index, (_key, title, purchased_col, used_expr, purchased_label, used_label) in enumerate(
+        KMS_CAPACITY_METRICS
+    ):
+        x = index * 6
+        panels.append(
+            gauge_panel(
+                f"{title} %",
+                kms_utilization_sql(purchased_col, used_expr),
+                x,
+                y,
+                w=2,
+                h=row_h,
+                thresholds=KMS_CAPACITY_THRESHOLDS,
+                description=gauge_desc,
+            )
+        )
+        panels.append(
+            kms_pair_stat(
+                title,
+                kms_pair_sql(purchased_col, purchased_label, used_expr, used_label),
+                x + 2,
+                y,
+                w=4,
+                h=row_h,
+                description=cloud_desc if title == "Cloud KMS Targets" else pair_desc,
+            )
+        )
+    y += row_h
+
+    activity_h = 4
+    activity_desc = (
+        "Latest value in the Time Range, summed across the selected accounts. "
+        "This metric has no purchased limit."
+    )
+    txn_desc = (
+        "Encryption transactions plus signer transactions on the latest KMS monthly report "
+        "in the Time Range, summed across the selected accounts."
+    )
+    for index, (_key, title, used_expr) in enumerate(KMS_ACTIVITY_METRICS):
+        panels.append(
+            kms_count_stat(
+                title,
+                kms_activity_sql(used_expr),
+                index * 8,
+                y,
+                w=8,
+                h=activity_h,
+                description=txn_desc if title == "Transactions" else activity_desc,
+            )
+        )
+    y += activity_h
+
+    trend_h = 10
+    trend_desc = (
+        "Latest KMS monthly report in each month, summed across the selected accounts. "
+        "The Time Range filter chooses which months are drawn. The chart axis stays wide."
+    )
+    inventory = [item for item in KMS_TREND_SERIES if item[0] != "transactions"]
+    transactions = [item for item in KMS_TREND_SERIES if item[0] == "transactions"]
+    panels.append(
+        kms_timeseries_panel(
+            "KMS inventory per month",
+            kms_monthly_sql(inventory),
+            0,
+            y,
+            24,
+            trend_h,
+            [label for _key, label, _expr in inventory],
+            trend_desc,
+        )
+    )
+    y += trend_h
+    txn_h = 8
+    panels.append(
+        kms_timeseries_panel(
+            "KMS transactions per month",
+            kms_monthly_sql(transactions),
+            0,
+            y,
+            24,
+            txn_h,
+            ["Transactions"],
+            trend_desc,
+            bars=True,
+        )
+    )
+    return panels, y + txn_h
+
+
 def objects_info_panel(y):
     sql = load_query("objects_info.sql", time_range_contract_col="")
     return {
@@ -3857,6 +4284,10 @@ def _build_dashboard(
             usage_chart=staging and not multi_account and not portfolio,
         )
         panels.extend(section)
+
+    if staging and not multi_account and not portfolio:
+        kms_panels, y = kms_section(y)
+        panels.extend(kms_panels)
 
     use_customer_tables = (multi_account or portfolio) and experimental
     obj_panels, y = objects_section(y, multi_account=use_customer_tables)

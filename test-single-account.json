@@ -10,60 +10,22 @@
   "liveNow": false,
   "panels": [
     {
-      "type": "stat",
-      "title": "Home",
+      "type": "text",
       "gridPos": {
-        "h": 4,
+        "h": 3,
         "w": 2,
         "x": 0,
         "y": 0
       },
       "id": 1,
-      "targets": [
-        {
-          "datasource": {
-            "type": "frser-sqlite-datasource",
-            "uid": null
-          },
-          "queryText": "SELECT 'Home' AS value",
-          "rawQueryText": "SELECT 'Home' AS value",
-          "queryType": "table",
-          "timeColumns": [],
-          "refId": "A"
-        }
-      ],
       "options": {
-        "reduceOptions": {
-          "values": false,
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "/.*/"
+        "mode": "html",
+        "code": {
+          "language": "plaintext",
+          "showLineNumbers": false,
+          "showMiniMap": false
         },
-        "orientation": "auto",
-        "textMode": "value",
-        "wideLayout": true,
-        "colorMode": "none",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "showPercentChange": false
-      },
-      "fieldConfig": {
-        "defaults": {
-          "mappings": [],
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "text"
-          },
-          "links": [
-            {
-              "title": "Home",
-              "url": "https://akeyless-analytics.com/d/af7l8pm3w7e9sd/v2-draft-all-customer?orgId=1",
-              "targetBlank": true
-            }
-          ]
-        },
-        "overrides": []
+        "content": "<div style=\"\n  display:flex;\n  align-items:center;\n  justify-content:center;\n  height:100%;\n\">\n  <a href=\"https://akeyless-analytics.com/d/af7l8pm3w7e9sd/v2-draft-all-customer?orgId=1\"\n   target=\"_blank\"\n   style=\"\n     display:inline-flex;\n     align-items:center;\n     justify-content:center;\n     padding:12px 22px;\n     font-size:16px;\n     font-weight:600;\n     border:1.5px solid #ccc;\n     border-radius:8px;\n     text-decoration:none;\n   \">\n  \u2302 Home\n</a>\n\n</div>\n"
       },
       "datasource": {
         "type": "frser-sqlite-datasource",
@@ -74,7 +36,7 @@
       "type": "stat",
       "title": "SLA",
       "gridPos": {
-        "h": 4,
+        "h": 3,
         "w": 2,
         "x": 2,
         "y": 0
@@ -167,11 +129,11 @@
       }
     },
     {
-      "type": "stat",
+      "type": "table",
       "title": "Account IDs",
       "gridPos": {
-        "h": 4,
-        "w": 3,
+        "h": 3,
+        "w": 2,
         "x": 4,
         "y": 0
       },
@@ -182,36 +144,42 @@
             "type": "frser-sqlite-datasource",
             "uid": null
           },
-          "queryText": "SELECT account_id AS value FROM (SELECT account_id\nFROM companies\nWHERE name = '${company_name}'\n    AND account_id IS NOT NULL\n    AND account_id != ''\nORDER BY account_id)",
-          "rawQueryText": "SELECT account_id AS value FROM (SELECT account_id\nFROM companies\nWHERE name = '${company_name}'\n    AND account_id IS NOT NULL\n    AND account_id != ''\nORDER BY account_id)",
+          "queryText": "SELECT account_id\nFROM companies\nWHERE name = '${company_name}'\n    AND account_id IS NOT NULL\n    AND account_id != ''\nORDER BY account_id;",
+          "rawQueryText": "SELECT account_id\nFROM companies\nWHERE name = '${company_name}'\n    AND account_id IS NOT NULL\n    AND account_id != ''\nORDER BY account_id;",
           "queryType": "table",
           "timeColumns": [],
           "refId": "A"
         }
       ],
       "options": {
-        "reduceOptions": {
-          "values": true,
-          "calcs": [
-            "lastNotNull"
+        "showHeader": false,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
           ],
-          "fields": "/.*/"
+          "countRows": false,
+          "fields": ""
         },
-        "orientation": "auto",
-        "textMode": "value",
-        "wideLayout": true,
-        "colorMode": "none",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "showPercentChange": false
+        "sortBy": []
       },
       "fieldConfig": {
         "defaults": {
-          "mappings": [],
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto",
+              "wrapText": false
+            },
+            "inspect": false,
+            "filterable": false
+          },
           "color": {
-            "mode": "fixed",
-            "fixedColor": "text"
-          }
+            "fixedColor": "text",
+            "mode": "fixed"
+          },
+          "mappings": []
         },
         "overrides": []
       },
@@ -221,65 +189,46 @@
       }
     },
     {
-      "type": "stat",
-      "title": "Company",
+      "type": "text",
       "gridPos": {
-        "h": 4,
-        "w": 3,
-        "x": 7,
+        "h": 3,
+        "w": 4,
+        "x": 6,
         "y": 0
       },
       "id": 4,
+      "options": {
+        "mode": "html",
+        "code": {
+          "language": "plaintext",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        },
+        "content": "<div style=\"text-align: center; font-size: 36px; font-weight: bold; display: flex; align-items: center; justify-content: center; height: 100%;\">\n${company_name}\n</div>"
+      },
       "targets": [
         {
           "datasource": {
             "type": "frser-sqlite-datasource",
             "uid": null
           },
-          "queryText": "SELECT name AS value FROM companies WHERE name = '${company_name}' LIMIT 1",
-          "rawQueryText": "SELECT name AS value FROM companies WHERE name = '${company_name}' LIMIT 1",
+          "queryText": "SELECT name AS \"Company Name\" FROM companies WHERE name = '${company_name}' LIMIT 1;",
+          "rawQueryText": "SELECT name AS \"Company Name\" FROM companies WHERE name = '${company_name}' LIMIT 1;",
           "queryType": "table",
           "timeColumns": [],
           "refId": "A"
         }
       ],
-      "options": {
-        "reduceOptions": {
-          "values": false,
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "/.*/"
-        },
-        "orientation": "auto",
-        "textMode": "value",
-        "wideLayout": true,
-        "colorMode": "none",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "showPercentChange": false
-      },
-      "fieldConfig": {
-        "defaults": {
-          "mappings": [],
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "text"
-          }
-        },
-        "overrides": []
-      },
       "datasource": {
         "type": "frser-sqlite-datasource",
         "uid": null
       }
     },
     {
-      "type": "stat",
-      "title": "Contract Start",
+      "type": "table",
       "gridPos": {
-        "h": 4,
-        "w": 2,
+        "h": 3,
+        "w": 8,
         "x": 10,
         "y": 0
       },
@@ -290,35 +239,50 @@
             "type": "frser-sqlite-datasource",
             "uid": null
           },
-          "queryText": "SELECT \"Contract Start\" AS value FROM (SELECT\n    COALESCE(MAX(current_contract_start_date), MAX(contract_start_date)) AS \"Contract Start\",\n    MAX(current_contract_end_date) AS \"Contract End\",\n    CASE\n        WHEN COALESCE(MAX(current_contract_start_date), MAX(contract_start_date)) IS NOT NULL\n            AND MAX(current_contract_end_date) IS NOT NULL\n        THEN ROUND(\n            ((julianday('now') - julianday(COALESCE(MAX(current_contract_start_date), MAX(contract_start_date))))\n             /\n             (julianday(MAX(current_contract_end_date)) - julianday(COALESCE(MAX(current_contract_start_date), MAX(contract_start_date)))))\n            * 100,\n            2\n        ) || '%'\n        ELSE NULL\n    END AS \"Elapsed\",\n    COALESCE(MAX(partner), 'N/A') AS \"Channel\"\nFROM companies\nWHERE name = '${company_name}'\n    AND account_id IS NOT NULL\nGROUP BY name\nORDER BY name ASC)",
-          "rawQueryText": "SELECT \"Contract Start\" AS value FROM (SELECT\n    COALESCE(MAX(current_contract_start_date), MAX(contract_start_date)) AS \"Contract Start\",\n    MAX(current_contract_end_date) AS \"Contract End\",\n    CASE\n        WHEN COALESCE(MAX(current_contract_start_date), MAX(contract_start_date)) IS NOT NULL\n            AND MAX(current_contract_end_date) IS NOT NULL\n        THEN ROUND(\n            ((julianday('now') - julianday(COALESCE(MAX(current_contract_start_date), MAX(contract_start_date))))\n             /\n             (julianday(MAX(current_contract_end_date)) - julianday(COALESCE(MAX(current_contract_start_date), MAX(contract_start_date)))))\n            * 100,\n            2\n        ) || '%'\n        ELSE NULL\n    END AS \"Elapsed\",\n    COALESCE(MAX(partner), 'N/A') AS \"Channel\"\nFROM companies\nWHERE name = '${company_name}'\n    AND account_id IS NOT NULL\nGROUP BY name\nORDER BY name ASC)",
+          "queryText": "SELECT\n    COALESCE(MAX(current_contract_start_date), MAX(contract_start_date)) AS \"Contract Start Date\",\n    MAX(current_contract_end_date) AS \"Contract End Date\",\n    CASE\n        WHEN COALESCE(MAX(current_contract_start_date), MAX(contract_start_date)) IS NOT NULL\n            AND MAX(current_contract_end_date) IS NOT NULL\n        THEN ROUND(\n            ((julianday('now') - julianday(COALESCE(MAX(current_contract_start_date), MAX(contract_start_date))))\n             /\n             (julianday(MAX(current_contract_end_date)) - julianday(COALESCE(MAX(current_contract_start_date), MAX(contract_start_date)))))\n            * 100,\n            2\n        ) || '%'\n        ELSE NULL\n    END AS \"Days Since Contract\",\n    COALESCE(MAX(partner), 'N/A') AS \"Selling Channel/Partner\"\nFROM companies\nWHERE name = '${company_name}'\n    AND account_id IS NOT NULL\nGROUP BY name\nORDER BY name ASC;",
+          "rawQueryText": "SELECT\n    COALESCE(MAX(current_contract_start_date), MAX(contract_start_date)) AS \"Contract Start Date\",\n    MAX(current_contract_end_date) AS \"Contract End Date\",\n    CASE\n        WHEN COALESCE(MAX(current_contract_start_date), MAX(contract_start_date)) IS NOT NULL\n            AND MAX(current_contract_end_date) IS NOT NULL\n        THEN ROUND(\n            ((julianday('now') - julianday(COALESCE(MAX(current_contract_start_date), MAX(contract_start_date))))\n             /\n             (julianday(MAX(current_contract_end_date)) - julianday(COALESCE(MAX(current_contract_start_date), MAX(contract_start_date)))))\n            * 100,\n            2\n        ) || '%'\n        ELSE NULL\n    END AS \"Days Since Contract\",\n    COALESCE(MAX(partner), 'N/A') AS \"Selling Channel/Partner\"\nFROM companies\nWHERE name = '${company_name}'\n    AND account_id IS NOT NULL\nGROUP BY name\nORDER BY name ASC;",
           "queryType": "table",
           "timeColumns": [],
           "refId": "A"
         }
       ],
       "options": {
-        "reduceOptions": {
-          "values": false,
-          "calcs": [
-            "lastNotNull"
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
           ],
-          "fields": "/.*/"
-        },
-        "orientation": "auto",
-        "textMode": "value",
-        "wideLayout": true,
-        "colorMode": "none",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "showPercentChange": false
+          "countRows": false,
+          "fields": ""
+        }
       },
       "fieldConfig": {
         "defaults": {
+          "custom": {
+            "align": "center",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
           "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
           "color": {
-            "mode": "fixed",
-            "fixedColor": "text"
+            "mode": "thresholds"
           }
         },
         "overrides": []
@@ -329,12 +293,11 @@
       }
     },
     {
-      "type": "stat",
-      "title": "Contract End",
+      "type": "table",
       "gridPos": {
-        "h": 4,
-        "w": 2,
-        "x": 12,
+        "h": 3,
+        "w": 6,
+        "x": 18,
         "y": 0
       },
       "id": 6,
@@ -344,305 +307,50 @@
             "type": "frser-sqlite-datasource",
             "uid": null
           },
-          "queryText": "SELECT \"Contract End\" AS value FROM (SELECT\n    COALESCE(MAX(current_contract_start_date), MAX(contract_start_date)) AS \"Contract Start\",\n    MAX(current_contract_end_date) AS \"Contract End\",\n    CASE\n        WHEN COALESCE(MAX(current_contract_start_date), MAX(contract_start_date)) IS NOT NULL\n            AND MAX(current_contract_end_date) IS NOT NULL\n        THEN ROUND(\n            ((julianday('now') - julianday(COALESCE(MAX(current_contract_start_date), MAX(contract_start_date))))\n             /\n             (julianday(MAX(current_contract_end_date)) - julianday(COALESCE(MAX(current_contract_start_date), MAX(contract_start_date)))))\n            * 100,\n            2\n        ) || '%'\n        ELSE NULL\n    END AS \"Elapsed\",\n    COALESCE(MAX(partner), 'N/A') AS \"Channel\"\nFROM companies\nWHERE name = '${company_name}'\n    AND account_id IS NOT NULL\nGROUP BY name\nORDER BY name ASC)",
-          "rawQueryText": "SELECT \"Contract End\" AS value FROM (SELECT\n    COALESCE(MAX(current_contract_start_date), MAX(contract_start_date)) AS \"Contract Start\",\n    MAX(current_contract_end_date) AS \"Contract End\",\n    CASE\n        WHEN COALESCE(MAX(current_contract_start_date), MAX(contract_start_date)) IS NOT NULL\n            AND MAX(current_contract_end_date) IS NOT NULL\n        THEN ROUND(\n            ((julianday('now') - julianday(COALESCE(MAX(current_contract_start_date), MAX(contract_start_date))))\n             /\n             (julianday(MAX(current_contract_end_date)) - julianday(COALESCE(MAX(current_contract_start_date), MAX(contract_start_date)))))\n            * 100,\n            2\n        ) || '%'\n        ELSE NULL\n    END AS \"Elapsed\",\n    COALESCE(MAX(partner), 'N/A') AS \"Channel\"\nFROM companies\nWHERE name = '${company_name}'\n    AND account_id IS NOT NULL\nGROUP BY name\nORDER BY name ASC)",
+          "queryText": "-- Company owners: CSM, Sales, CSE (TAM)\nSELECT\n    CASE CAST(MAX(customer_success_cs_owner) AS TEXT)\n        WHEN '158042717' THEN 'Shahar Inbar'\n        WHEN '179958286' THEN 'Brian Contarino'\n        WHEN '680488501' THEN 'Thomas French'\n        WHEN '205988120' THEN 'Mark Hines'\n        WHEN '217665327' THEN 'Joe Ryan'\n        WHEN '120086533' THEN 'Fahmy Kadiri'\n        WHEN '994271699' THEN 'Brian Contarino'\n        WHEN '657705138' THEN 'Ionathan Dayan'\n        WHEN '392468806' THEN 'Kyle Cowan'\n        WHEN '586164271' THEN 'Jennifer Ai'\n        WHEN '586171211' THEN 'Jennifer Ai'\n        WHEN '78220367' THEN 'Barak Abekasis'\n        WHEN '376856634' THEN 'Asaf Gardosh'\n        WHEN '414393387' THEN 'Emanuel Abulov'\n        WHEN '230936990' THEN 'Lewis Miller'\n        WHEN '231396148' THEN 'Netser Heruty'\n        WHEN '77048390' THEN 'Mallika Dasanoor'\n        WHEN '191785333' THEN 'Inbal Pearlson'\n        WHEN '237150512' THEN 'Dan Fidler'\n        WHEN '529614438' THEN 'Alexandra Weissman'\n        WHEN '79169201' THEN 'Tom Zohar'\n        WHEN '81436110' THEN 'Almog Ron'\n        WHEN '77244724' THEN 'Wayne Zhu'\n        WHEN '86058996' THEN 'Pavel Jimanov'\n        WHEN '107890348' THEN 'Charlie Nugent'\n        WHEN '83876821' THEN 'Janet Kassab'\n        WHEN '80199576' THEN 'Nicholas Luciano'\n        ELSE COALESCE(MAX(customer_success_cs_owner), 'N/A')\n    END AS \"CSM\",\n    CASE CAST(MAX(hubspot_owner_id) AS TEXT)\n        WHEN '158042717' THEN 'Shahar Inbar'\n        WHEN '179958286' THEN 'Brian Contarino'\n        WHEN '680488501' THEN 'Thomas French'\n        WHEN '205988120' THEN 'Mark Hines'\n        WHEN '217665327' THEN 'Joe Ryan'\n        WHEN '120086533' THEN 'Fahmy Kadiri'\n        WHEN '994271699' THEN 'Brian Contarino'\n        WHEN '657705138' THEN 'Ionathan Dayan'\n        WHEN '392468806' THEN 'Kyle Cowan'\n        WHEN '586164271' THEN 'Jennifer Ai'\n        WHEN '586171211' THEN 'Jennifer Ai'\n        WHEN '78220367' THEN 'Barak Abekasis'\n        WHEN '376856634' THEN 'Asaf Gardosh'\n        WHEN '414393387' THEN 'Emanuel Abulov'\n        WHEN '230936990' THEN 'Lewis Miller'\n        WHEN '231396148' THEN 'Netser Heruty'\n        WHEN '77048390' THEN 'Mallika Dasanoor'\n        WHEN '191785333' THEN 'Inbal Pearlson'\n        WHEN '237150512' THEN 'Dan Fidler'\n        WHEN '529614438' THEN 'Alexandra Weissman'\n        WHEN '79169201' THEN 'Tom Zohar'\n        WHEN '81436110' THEN 'Almog Ron'\n        WHEN '77244724' THEN 'Wayne Zhu'\n        WHEN '86058996' THEN 'Pavel Jimanov'\n        WHEN '107890348' THEN 'Charlie Nugent'\n        WHEN '83876821' THEN 'Janet Kassab'\n        WHEN '80199576' THEN 'Nicholas Luciano'\n        ELSE COALESCE(MAX(hubspot_owner_id), 'N/A')\n    END AS \"Sales\",\n    CASE CAST(MAX(technical_account_manager_tam) AS TEXT)\n        WHEN '158042717' THEN 'Shahar Inbar'\n        WHEN '179958286' THEN 'Brian Contarino'\n        WHEN '680488501' THEN 'Thomas French'\n        WHEN '205988120' THEN 'Mark Hines'\n        WHEN '217665327' THEN 'Joe Ryan'\n        WHEN '120086533' THEN 'Fahmy Kadiri'\n        WHEN '994271699' THEN 'Brian Contarino'\n        WHEN '657705138' THEN 'Ionathan Dayan'\n        WHEN '392468806' THEN 'Kyle Cowan'\n        WHEN '586164271' THEN 'Jennifer Ai'\n        WHEN '586171211' THEN 'Jennifer Ai'\n        WHEN '78220367' THEN 'Barak Abekasis'\n        WHEN '376856634' THEN 'Asaf Gardosh'\n        WHEN '414393387' THEN 'Emanuel Abulov'\n        WHEN '230936990' THEN 'Lewis Miller'\n        WHEN '231396148' THEN 'Netser Heruty'\n        WHEN '77048390' THEN 'Mallika Dasanoor'\n        WHEN '191785333' THEN 'Inbal Pearlson'\n        WHEN '237150512' THEN 'Dan Fidler'\n        WHEN '529614438' THEN 'Alexandra Weissman'\n        WHEN '79169201' THEN 'Tom Zohar'\n        WHEN '81436110' THEN 'Almog Ron'\n        WHEN '77244724' THEN 'Wayne Zhu'\n        WHEN '86058996' THEN 'Pavel Jimanov'\n        WHEN '107890348' THEN 'Charlie Nugent'\n        WHEN '83876821' THEN 'Janet Kassab'\n        WHEN '80199576' THEN 'Nicholas Luciano'\n        ELSE COALESCE(MAX(technical_account_manager_tam), 'N/A')\n    END AS \"CSE\"\nFROM companies\nWHERE name = '${company_name}'\n    AND account_id IS NOT NULL\nGROUP BY name\nORDER BY name ASC;",
+          "rawQueryText": "-- Company owners: CSM, Sales, CSE (TAM)\nSELECT\n    CASE CAST(MAX(customer_success_cs_owner) AS TEXT)\n        WHEN '158042717' THEN 'Shahar Inbar'\n        WHEN '179958286' THEN 'Brian Contarino'\n        WHEN '680488501' THEN 'Thomas French'\n        WHEN '205988120' THEN 'Mark Hines'\n        WHEN '217665327' THEN 'Joe Ryan'\n        WHEN '120086533' THEN 'Fahmy Kadiri'\n        WHEN '994271699' THEN 'Brian Contarino'\n        WHEN '657705138' THEN 'Ionathan Dayan'\n        WHEN '392468806' THEN 'Kyle Cowan'\n        WHEN '586164271' THEN 'Jennifer Ai'\n        WHEN '586171211' THEN 'Jennifer Ai'\n        WHEN '78220367' THEN 'Barak Abekasis'\n        WHEN '376856634' THEN 'Asaf Gardosh'\n        WHEN '414393387' THEN 'Emanuel Abulov'\n        WHEN '230936990' THEN 'Lewis Miller'\n        WHEN '231396148' THEN 'Netser Heruty'\n        WHEN '77048390' THEN 'Mallika Dasanoor'\n        WHEN '191785333' THEN 'Inbal Pearlson'\n        WHEN '237150512' THEN 'Dan Fidler'\n        WHEN '529614438' THEN 'Alexandra Weissman'\n        WHEN '79169201' THEN 'Tom Zohar'\n        WHEN '81436110' THEN 'Almog Ron'\n        WHEN '77244724' THEN 'Wayne Zhu'\n        WHEN '86058996' THEN 'Pavel Jimanov'\n        WHEN '107890348' THEN 'Charlie Nugent'\n        WHEN '83876821' THEN 'Janet Kassab'\n        WHEN '80199576' THEN 'Nicholas Luciano'\n        ELSE COALESCE(MAX(customer_success_cs_owner), 'N/A')\n    END AS \"CSM\",\n    CASE CAST(MAX(hubspot_owner_id) AS TEXT)\n        WHEN '158042717' THEN 'Shahar Inbar'\n        WHEN '179958286' THEN 'Brian Contarino'\n        WHEN '680488501' THEN 'Thomas French'\n        WHEN '205988120' THEN 'Mark Hines'\n        WHEN '217665327' THEN 'Joe Ryan'\n        WHEN '120086533' THEN 'Fahmy Kadiri'\n        WHEN '994271699' THEN 'Brian Contarino'\n        WHEN '657705138' THEN 'Ionathan Dayan'\n        WHEN '392468806' THEN 'Kyle Cowan'\n        WHEN '586164271' THEN 'Jennifer Ai'\n        WHEN '586171211' THEN 'Jennifer Ai'\n        WHEN '78220367' THEN 'Barak Abekasis'\n        WHEN '376856634' THEN 'Asaf Gardosh'\n        WHEN '414393387' THEN 'Emanuel Abulov'\n        WHEN '230936990' THEN 'Lewis Miller'\n        WHEN '231396148' THEN 'Netser Heruty'\n        WHEN '77048390' THEN 'Mallika Dasanoor'\n        WHEN '191785333' THEN 'Inbal Pearlson'\n        WHEN '237150512' THEN 'Dan Fidler'\n        WHEN '529614438' THEN 'Alexandra Weissman'\n        WHEN '79169201' THEN 'Tom Zohar'\n        WHEN '81436110' THEN 'Almog Ron'\n        WHEN '77244724' THEN 'Wayne Zhu'\n        WHEN '86058996' THEN 'Pavel Jimanov'\n        WHEN '107890348' THEN 'Charlie Nugent'\n        WHEN '83876821' THEN 'Janet Kassab'\n        WHEN '80199576' THEN 'Nicholas Luciano'\n        ELSE COALESCE(MAX(hubspot_owner_id), 'N/A')\n    END AS \"Sales\",\n    CASE CAST(MAX(technical_account_manager_tam) AS TEXT)\n        WHEN '158042717' THEN 'Shahar Inbar'\n        WHEN '179958286' THEN 'Brian Contarino'\n        WHEN '680488501' THEN 'Thomas French'\n        WHEN '205988120' THEN 'Mark Hines'\n        WHEN '217665327' THEN 'Joe Ryan'\n        WHEN '120086533' THEN 'Fahmy Kadiri'\n        WHEN '994271699' THEN 'Brian Contarino'\n        WHEN '657705138' THEN 'Ionathan Dayan'\n        WHEN '392468806' THEN 'Kyle Cowan'\n        WHEN '586164271' THEN 'Jennifer Ai'\n        WHEN '586171211' THEN 'Jennifer Ai'\n        WHEN '78220367' THEN 'Barak Abekasis'\n        WHEN '376856634' THEN 'Asaf Gardosh'\n        WHEN '414393387' THEN 'Emanuel Abulov'\n        WHEN '230936990' THEN 'Lewis Miller'\n        WHEN '231396148' THEN 'Netser Heruty'\n        WHEN '77048390' THEN 'Mallika Dasanoor'\n        WHEN '191785333' THEN 'Inbal Pearlson'\n        WHEN '237150512' THEN 'Dan Fidler'\n        WHEN '529614438' THEN 'Alexandra Weissman'\n        WHEN '79169201' THEN 'Tom Zohar'\n        WHEN '81436110' THEN 'Almog Ron'\n        WHEN '77244724' THEN 'Wayne Zhu'\n        WHEN '86058996' THEN 'Pavel Jimanov'\n        WHEN '107890348' THEN 'Charlie Nugent'\n        WHEN '83876821' THEN 'Janet Kassab'\n        WHEN '80199576' THEN 'Nicholas Luciano'\n        ELSE COALESCE(MAX(technical_account_manager_tam), 'N/A')\n    END AS \"CSE\"\nFROM companies\nWHERE name = '${company_name}'\n    AND account_id IS NOT NULL\nGROUP BY name\nORDER BY name ASC;",
           "queryType": "table",
           "timeColumns": [],
           "refId": "A"
         }
       ],
       "options": {
-        "reduceOptions": {
-          "values": false,
-          "calcs": [
-            "lastNotNull"
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
           ],
-          "fields": "/.*/"
-        },
-        "orientation": "auto",
-        "textMode": "value",
-        "wideLayout": true,
-        "colorMode": "none",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "showPercentChange": false
+          "countRows": false,
+          "fields": ""
+        }
       },
       "fieldConfig": {
         "defaults": {
-          "mappings": [],
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "text"
-          }
-        },
-        "overrides": []
-      },
-      "datasource": {
-        "type": "frser-sqlite-datasource",
-        "uid": null
-      }
-    },
-    {
-      "type": "stat",
-      "title": "Elapsed",
-      "gridPos": {
-        "h": 4,
-        "w": 2,
-        "x": 14,
-        "y": 0
-      },
-      "id": 7,
-      "targets": [
-        {
-          "datasource": {
-            "type": "frser-sqlite-datasource",
-            "uid": null
+          "custom": {
+            "align": "center",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
           },
-          "queryText": "SELECT \"Elapsed\" AS value FROM (SELECT\n    COALESCE(MAX(current_contract_start_date), MAX(contract_start_date)) AS \"Contract Start\",\n    MAX(current_contract_end_date) AS \"Contract End\",\n    CASE\n        WHEN COALESCE(MAX(current_contract_start_date), MAX(contract_start_date)) IS NOT NULL\n            AND MAX(current_contract_end_date) IS NOT NULL\n        THEN ROUND(\n            ((julianday('now') - julianday(COALESCE(MAX(current_contract_start_date), MAX(contract_start_date))))\n             /\n             (julianday(MAX(current_contract_end_date)) - julianday(COALESCE(MAX(current_contract_start_date), MAX(contract_start_date)))))\n            * 100,\n            2\n        ) || '%'\n        ELSE NULL\n    END AS \"Elapsed\",\n    COALESCE(MAX(partner), 'N/A') AS \"Channel\"\nFROM companies\nWHERE name = '${company_name}'\n    AND account_id IS NOT NULL\nGROUP BY name\nORDER BY name ASC)",
-          "rawQueryText": "SELECT \"Elapsed\" AS value FROM (SELECT\n    COALESCE(MAX(current_contract_start_date), MAX(contract_start_date)) AS \"Contract Start\",\n    MAX(current_contract_end_date) AS \"Contract End\",\n    CASE\n        WHEN COALESCE(MAX(current_contract_start_date), MAX(contract_start_date)) IS NOT NULL\n            AND MAX(current_contract_end_date) IS NOT NULL\n        THEN ROUND(\n            ((julianday('now') - julianday(COALESCE(MAX(current_contract_start_date), MAX(contract_start_date))))\n             /\n             (julianday(MAX(current_contract_end_date)) - julianday(COALESCE(MAX(current_contract_start_date), MAX(contract_start_date)))))\n            * 100,\n            2\n        ) || '%'\n        ELSE NULL\n    END AS \"Elapsed\",\n    COALESCE(MAX(partner), 'N/A') AS \"Channel\"\nFROM companies\nWHERE name = '${company_name}'\n    AND account_id IS NOT NULL\nGROUP BY name\nORDER BY name ASC)",
-          "queryType": "table",
-          "timeColumns": [],
-          "refId": "A"
-        }
-      ],
-      "options": {
-        "reduceOptions": {
-          "values": false,
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "/.*/"
-        },
-        "orientation": "auto",
-        "textMode": "value",
-        "wideLayout": true,
-        "colorMode": "none",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "showPercentChange": false
-      },
-      "fieldConfig": {
-        "defaults": {
           "mappings": [],
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "text"
-          }
-        },
-        "overrides": []
-      },
-      "datasource": {
-        "type": "frser-sqlite-datasource",
-        "uid": null
-      }
-    },
-    {
-      "type": "stat",
-      "title": "Channel",
-      "gridPos": {
-        "h": 4,
-        "w": 2,
-        "x": 16,
-        "y": 0
-      },
-      "id": 8,
-      "targets": [
-        {
-          "datasource": {
-            "type": "frser-sqlite-datasource",
-            "uid": null
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
           },
-          "queryText": "SELECT \"Channel\" AS value FROM (SELECT\n    COALESCE(MAX(current_contract_start_date), MAX(contract_start_date)) AS \"Contract Start\",\n    MAX(current_contract_end_date) AS \"Contract End\",\n    CASE\n        WHEN COALESCE(MAX(current_contract_start_date), MAX(contract_start_date)) IS NOT NULL\n            AND MAX(current_contract_end_date) IS NOT NULL\n        THEN ROUND(\n            ((julianday('now') - julianday(COALESCE(MAX(current_contract_start_date), MAX(contract_start_date))))\n             /\n             (julianday(MAX(current_contract_end_date)) - julianday(COALESCE(MAX(current_contract_start_date), MAX(contract_start_date)))))\n            * 100,\n            2\n        ) || '%'\n        ELSE NULL\n    END AS \"Elapsed\",\n    COALESCE(MAX(partner), 'N/A') AS \"Channel\"\nFROM companies\nWHERE name = '${company_name}'\n    AND account_id IS NOT NULL\nGROUP BY name\nORDER BY name ASC)",
-          "rawQueryText": "SELECT \"Channel\" AS value FROM (SELECT\n    COALESCE(MAX(current_contract_start_date), MAX(contract_start_date)) AS \"Contract Start\",\n    MAX(current_contract_end_date) AS \"Contract End\",\n    CASE\n        WHEN COALESCE(MAX(current_contract_start_date), MAX(contract_start_date)) IS NOT NULL\n            AND MAX(current_contract_end_date) IS NOT NULL\n        THEN ROUND(\n            ((julianday('now') - julianday(COALESCE(MAX(current_contract_start_date), MAX(contract_start_date))))\n             /\n             (julianday(MAX(current_contract_end_date)) - julianday(COALESCE(MAX(current_contract_start_date), MAX(contract_start_date)))))\n            * 100,\n            2\n        ) || '%'\n        ELSE NULL\n    END AS \"Elapsed\",\n    COALESCE(MAX(partner), 'N/A') AS \"Channel\"\nFROM companies\nWHERE name = '${company_name}'\n    AND account_id IS NOT NULL\nGROUP BY name\nORDER BY name ASC)",
-          "queryType": "table",
-          "timeColumns": [],
-          "refId": "A"
-        }
-      ],
-      "options": {
-        "reduceOptions": {
-          "values": false,
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "/.*/"
-        },
-        "orientation": "auto",
-        "textMode": "value",
-        "wideLayout": true,
-        "colorMode": "none",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "showPercentChange": false
-      },
-      "fieldConfig": {
-        "defaults": {
-          "mappings": [],
           "color": {
-            "mode": "fixed",
-            "fixedColor": "text"
-          }
-        },
-        "overrides": []
-      },
-      "datasource": {
-        "type": "frser-sqlite-datasource",
-        "uid": null
-      }
-    },
-    {
-      "type": "stat",
-      "title": "CSM",
-      "gridPos": {
-        "h": 4,
-        "w": 2,
-        "x": 18,
-        "y": 0
-      },
-      "id": 9,
-      "targets": [
-        {
-          "datasource": {
-            "type": "frser-sqlite-datasource",
-            "uid": null
-          },
-          "queryText": "SELECT \"CSM\" AS value FROM (-- Company owners: CSM, Sales, CSE (TAM)\nSELECT\n    CASE CAST(MAX(customer_success_cs_owner) AS TEXT)\n        WHEN '158042717' THEN 'Shahar Inbar'\n        WHEN '179958286' THEN 'Brian Contarino'\n        WHEN '680488501' THEN 'Thomas French'\n        WHEN '205988120' THEN 'Mark Hines'\n        WHEN '217665327' THEN 'Joe Ryan'\n        WHEN '120086533' THEN 'Fahmy Kadiri'\n        WHEN '994271699' THEN 'Brian Contarino'\n        WHEN '657705138' THEN 'Ionathan Dayan'\n        WHEN '392468806' THEN 'Kyle Cowan'\n        WHEN '586164271' THEN 'Jennifer Ai'\n        WHEN '586171211' THEN 'Jennifer Ai'\n        WHEN '78220367' THEN 'Barak Abekasis'\n        WHEN '376856634' THEN 'Asaf Gardosh'\n        WHEN '414393387' THEN 'Emanuel Abulov'\n        WHEN '230936990' THEN 'Lewis Miller'\n        WHEN '231396148' THEN 'Netser Heruty'\n        WHEN '77048390' THEN 'Mallika Dasanoor'\n        WHEN '191785333' THEN 'Inbal Pearlson'\n        WHEN '237150512' THEN 'Dan Fidler'\n        WHEN '529614438' THEN 'Alexandra Weissman'\n        WHEN '79169201' THEN 'Tom Zohar'\n        WHEN '81436110' THEN 'Almog Ron'\n        WHEN '77244724' THEN 'Wayne Zhu'\n        WHEN '86058996' THEN 'Pavel Jimanov'\n        WHEN '107890348' THEN 'Charlie Nugent'\n        WHEN '83876821' THEN 'Janet Kassab'\n        WHEN '80199576' THEN 'Nicholas Luciano'\n        ELSE COALESCE(MAX(customer_success_cs_owner), 'N/A')\n    END AS \"CSM\",\n    CASE CAST(MAX(hubspot_owner_id) AS TEXT)\n        WHEN '158042717' THEN 'Shahar Inbar'\n        WHEN '179958286' THEN 'Brian Contarino'\n        WHEN '680488501' THEN 'Thomas French'\n        WHEN '205988120' THEN 'Mark Hines'\n        WHEN '217665327' THEN 'Joe Ryan'\n        WHEN '120086533' THEN 'Fahmy Kadiri'\n        WHEN '994271699' THEN 'Brian Contarino'\n        WHEN '657705138' THEN 'Ionathan Dayan'\n        WHEN '392468806' THEN 'Kyle Cowan'\n        WHEN '586164271' THEN 'Jennifer Ai'\n        WHEN '586171211' THEN 'Jennifer Ai'\n        WHEN '78220367' THEN 'Barak Abekasis'\n        WHEN '376856634' THEN 'Asaf Gardosh'\n        WHEN '414393387' THEN 'Emanuel Abulov'\n        WHEN '230936990' THEN 'Lewis Miller'\n        WHEN '231396148' THEN 'Netser Heruty'\n        WHEN '77048390' THEN 'Mallika Dasanoor'\n        WHEN '191785333' THEN 'Inbal Pearlson'\n        WHEN '237150512' THEN 'Dan Fidler'\n        WHEN '529614438' THEN 'Alexandra Weissman'\n        WHEN '79169201' THEN 'Tom Zohar'\n        WHEN '81436110' THEN 'Almog Ron'\n        WHEN '77244724' THEN 'Wayne Zhu'\n        WHEN '86058996' THEN 'Pavel Jimanov'\n        WHEN '107890348' THEN 'Charlie Nugent'\n        WHEN '83876821' THEN 'Janet Kassab'\n        WHEN '80199576' THEN 'Nicholas Luciano'\n        ELSE COALESCE(MAX(hubspot_owner_id), 'N/A')\n    END AS \"Sales\",\n    CASE CAST(MAX(technical_account_manager_tam) AS TEXT)\n        WHEN '158042717' THEN 'Shahar Inbar'\n        WHEN '179958286' THEN 'Brian Contarino'\n        WHEN '680488501' THEN 'Thomas French'\n        WHEN '205988120' THEN 'Mark Hines'\n        WHEN '217665327' THEN 'Joe Ryan'\n        WHEN '120086533' THEN 'Fahmy Kadiri'\n        WHEN '994271699' THEN 'Brian Contarino'\n        WHEN '657705138' THEN 'Ionathan Dayan'\n        WHEN '392468806' THEN 'Kyle Cowan'\n        WHEN '586164271' THEN 'Jennifer Ai'\n        WHEN '586171211' THEN 'Jennifer Ai'\n        WHEN '78220367' THEN 'Barak Abekasis'\n        WHEN '376856634' THEN 'Asaf Gardosh'\n        WHEN '414393387' THEN 'Emanuel Abulov'\n        WHEN '230936990' THEN 'Lewis Miller'\n        WHEN '231396148' THEN 'Netser Heruty'\n        WHEN '77048390' THEN 'Mallika Dasanoor'\n        WHEN '191785333' THEN 'Inbal Pearlson'\n        WHEN '237150512' THEN 'Dan Fidler'\n        WHEN '529614438' THEN 'Alexandra Weissman'\n        WHEN '79169201' THEN 'Tom Zohar'\n        WHEN '81436110' THEN 'Almog Ron'\n        WHEN '77244724' THEN 'Wayne Zhu'\n        WHEN '86058996' THEN 'Pavel Jimanov'\n        WHEN '107890348' THEN 'Charlie Nugent'\n        WHEN '83876821' THEN 'Janet Kassab'\n        WHEN '80199576' THEN 'Nicholas Luciano'\n        ELSE COALESCE(MAX(technical_account_manager_tam), 'N/A')\n    END AS \"CSE\"\nFROM companies\nWHERE name = '${company_name}'\n    AND account_id IS NOT NULL\nGROUP BY name\nORDER BY name ASC)",
-          "rawQueryText": "SELECT \"CSM\" AS value FROM (-- Company owners: CSM, Sales, CSE (TAM)\nSELECT\n    CASE CAST(MAX(customer_success_cs_owner) AS TEXT)\n        WHEN '158042717' THEN 'Shahar Inbar'\n        WHEN '179958286' THEN 'Brian Contarino'\n        WHEN '680488501' THEN 'Thomas French'\n        WHEN '205988120' THEN 'Mark Hines'\n        WHEN '217665327' THEN 'Joe Ryan'\n        WHEN '120086533' THEN 'Fahmy Kadiri'\n        WHEN '994271699' THEN 'Brian Contarino'\n        WHEN '657705138' THEN 'Ionathan Dayan'\n        WHEN '392468806' THEN 'Kyle Cowan'\n        WHEN '586164271' THEN 'Jennifer Ai'\n        WHEN '586171211' THEN 'Jennifer Ai'\n        WHEN '78220367' THEN 'Barak Abekasis'\n        WHEN '376856634' THEN 'Asaf Gardosh'\n        WHEN '414393387' THEN 'Emanuel Abulov'\n        WHEN '230936990' THEN 'Lewis Miller'\n        WHEN '231396148' THEN 'Netser Heruty'\n        WHEN '77048390' THEN 'Mallika Dasanoor'\n        WHEN '191785333' THEN 'Inbal Pearlson'\n        WHEN '237150512' THEN 'Dan Fidler'\n        WHEN '529614438' THEN 'Alexandra Weissman'\n        WHEN '79169201' THEN 'Tom Zohar'\n        WHEN '81436110' THEN 'Almog Ron'\n        WHEN '77244724' THEN 'Wayne Zhu'\n        WHEN '86058996' THEN 'Pavel Jimanov'\n        WHEN '107890348' THEN 'Charlie Nugent'\n        WHEN '83876821' THEN 'Janet Kassab'\n        WHEN '80199576' THEN 'Nicholas Luciano'\n        ELSE COALESCE(MAX(customer_success_cs_owner), 'N/A')\n    END AS \"CSM\",\n    CASE CAST(MAX(hubspot_owner_id) AS TEXT)\n        WHEN '158042717' THEN 'Shahar Inbar'\n        WHEN '179958286' THEN 'Brian Contarino'\n        WHEN '680488501' THEN 'Thomas French'\n        WHEN '205988120' THEN 'Mark Hines'\n        WHEN '217665327' THEN 'Joe Ryan'\n        WHEN '120086533' THEN 'Fahmy Kadiri'\n        WHEN '994271699' THEN 'Brian Contarino'\n        WHEN '657705138' THEN 'Ionathan Dayan'\n        WHEN '392468806' THEN 'Kyle Cowan'\n        WHEN '586164271' THEN 'Jennifer Ai'\n        WHEN '586171211' THEN 'Jennifer Ai'\n        WHEN '78220367' THEN 'Barak Abekasis'\n        WHEN '376856634' THEN 'Asaf Gardosh'\n        WHEN '414393387' THEN 'Emanuel Abulov'\n        WHEN '230936990' THEN 'Lewis Miller'\n        WHEN '231396148' THEN 'Netser Heruty'\n        WHEN '77048390' THEN 'Mallika Dasanoor'\n        WHEN '191785333' THEN 'Inbal Pearlson'\n        WHEN '237150512' THEN 'Dan Fidler'\n        WHEN '529614438' THEN 'Alexandra Weissman'\n        WHEN '79169201' THEN 'Tom Zohar'\n        WHEN '81436110' THEN 'Almog Ron'\n        WHEN '77244724' THEN 'Wayne Zhu'\n        WHEN '86058996' THEN 'Pavel Jimanov'\n        WHEN '107890348' THEN 'Charlie Nugent'\n        WHEN '83876821' THEN 'Janet Kassab'\n        WHEN '80199576' THEN 'Nicholas Luciano'\n        ELSE COALESCE(MAX(hubspot_owner_id), 'N/A')\n    END AS \"Sales\",\n    CASE CAST(MAX(technical_account_manager_tam) AS TEXT)\n        WHEN '158042717' THEN 'Shahar Inbar'\n        WHEN '179958286' THEN 'Brian Contarino'\n        WHEN '680488501' THEN 'Thomas French'\n        WHEN '205988120' THEN 'Mark Hines'\n        WHEN '217665327' THEN 'Joe Ryan'\n        WHEN '120086533' THEN 'Fahmy Kadiri'\n        WHEN '994271699' THEN 'Brian Contarino'\n        WHEN '657705138' THEN 'Ionathan Dayan'\n        WHEN '392468806' THEN 'Kyle Cowan'\n        WHEN '586164271' THEN 'Jennifer Ai'\n        WHEN '586171211' THEN 'Jennifer Ai'\n        WHEN '78220367' THEN 'Barak Abekasis'\n        WHEN '376856634' THEN 'Asaf Gardosh'\n        WHEN '414393387' THEN 'Emanuel Abulov'\n        WHEN '230936990' THEN 'Lewis Miller'\n        WHEN '231396148' THEN 'Netser Heruty'\n        WHEN '77048390' THEN 'Mallika Dasanoor'\n        WHEN '191785333' THEN 'Inbal Pearlson'\n        WHEN '237150512' THEN 'Dan Fidler'\n        WHEN '529614438' THEN 'Alexandra Weissman'\n        WHEN '79169201' THEN 'Tom Zohar'\n        WHEN '81436110' THEN 'Almog Ron'\n        WHEN '77244724' THEN 'Wayne Zhu'\n        WHEN '86058996' THEN 'Pavel Jimanov'\n        WHEN '107890348' THEN 'Charlie Nugent'\n        WHEN '83876821' THEN 'Janet Kassab'\n        WHEN '80199576' THEN 'Nicholas Luciano'\n        ELSE COALESCE(MAX(technical_account_manager_tam), 'N/A')\n    END AS \"CSE\"\nFROM companies\nWHERE name = '${company_name}'\n    AND account_id IS NOT NULL\nGROUP BY name\nORDER BY name ASC)",
-          "queryType": "table",
-          "timeColumns": [],
-          "refId": "A"
-        }
-      ],
-      "options": {
-        "reduceOptions": {
-          "values": false,
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "/.*/"
-        },
-        "orientation": "auto",
-        "textMode": "value",
-        "wideLayout": true,
-        "colorMode": "none",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "showPercentChange": false
-      },
-      "fieldConfig": {
-        "defaults": {
-          "mappings": [],
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "text"
-          }
-        },
-        "overrides": []
-      },
-      "datasource": {
-        "type": "frser-sqlite-datasource",
-        "uid": null
-      }
-    },
-    {
-      "type": "stat",
-      "title": "Sales",
-      "gridPos": {
-        "h": 4,
-        "w": 2,
-        "x": 20,
-        "y": 0
-      },
-      "id": 10,
-      "targets": [
-        {
-          "datasource": {
-            "type": "frser-sqlite-datasource",
-            "uid": null
-          },
-          "queryText": "SELECT \"Sales\" AS value FROM (-- Company owners: CSM, Sales, CSE (TAM)\nSELECT\n    CASE CAST(MAX(customer_success_cs_owner) AS TEXT)\n        WHEN '158042717' THEN 'Shahar Inbar'\n        WHEN '179958286' THEN 'Brian Contarino'\n        WHEN '680488501' THEN 'Thomas French'\n        WHEN '205988120' THEN 'Mark Hines'\n        WHEN '217665327' THEN 'Joe Ryan'\n        WHEN '120086533' THEN 'Fahmy Kadiri'\n        WHEN '994271699' THEN 'Brian Contarino'\n        WHEN '657705138' THEN 'Ionathan Dayan'\n        WHEN '392468806' THEN 'Kyle Cowan'\n        WHEN '586164271' THEN 'Jennifer Ai'\n        WHEN '586171211' THEN 'Jennifer Ai'\n        WHEN '78220367' THEN 'Barak Abekasis'\n        WHEN '376856634' THEN 'Asaf Gardosh'\n        WHEN '414393387' THEN 'Emanuel Abulov'\n        WHEN '230936990' THEN 'Lewis Miller'\n        WHEN '231396148' THEN 'Netser Heruty'\n        WHEN '77048390' THEN 'Mallika Dasanoor'\n        WHEN '191785333' THEN 'Inbal Pearlson'\n        WHEN '237150512' THEN 'Dan Fidler'\n        WHEN '529614438' THEN 'Alexandra Weissman'\n        WHEN '79169201' THEN 'Tom Zohar'\n        WHEN '81436110' THEN 'Almog Ron'\n        WHEN '77244724' THEN 'Wayne Zhu'\n        WHEN '86058996' THEN 'Pavel Jimanov'\n        WHEN '107890348' THEN 'Charlie Nugent'\n        WHEN '83876821' THEN 'Janet Kassab'\n        WHEN '80199576' THEN 'Nicholas Luciano'\n        ELSE COALESCE(MAX(customer_success_cs_owner), 'N/A')\n    END AS \"CSM\",\n    CASE CAST(MAX(hubspot_owner_id) AS TEXT)\n        WHEN '158042717' THEN 'Shahar Inbar'\n        WHEN '179958286' THEN 'Brian Contarino'\n        WHEN '680488501' THEN 'Thomas French'\n        WHEN '205988120' THEN 'Mark Hines'\n        WHEN '217665327' THEN 'Joe Ryan'\n        WHEN '120086533' THEN 'Fahmy Kadiri'\n        WHEN '994271699' THEN 'Brian Contarino'\n        WHEN '657705138' THEN 'Ionathan Dayan'\n        WHEN '392468806' THEN 'Kyle Cowan'\n        WHEN '586164271' THEN 'Jennifer Ai'\n        WHEN '586171211' THEN 'Jennifer Ai'\n        WHEN '78220367' THEN 'Barak Abekasis'\n        WHEN '376856634' THEN 'Asaf Gardosh'\n        WHEN '414393387' THEN 'Emanuel Abulov'\n        WHEN '230936990' THEN 'Lewis Miller'\n        WHEN '231396148' THEN 'Netser Heruty'\n        WHEN '77048390' THEN 'Mallika Dasanoor'\n        WHEN '191785333' THEN 'Inbal Pearlson'\n        WHEN '237150512' THEN 'Dan Fidler'\n        WHEN '529614438' THEN 'Alexandra Weissman'\n        WHEN '79169201' THEN 'Tom Zohar'\n        WHEN '81436110' THEN 'Almog Ron'\n        WHEN '77244724' THEN 'Wayne Zhu'\n        WHEN '86058996' THEN 'Pavel Jimanov'\n        WHEN '107890348' THEN 'Charlie Nugent'\n        WHEN '83876821' THEN 'Janet Kassab'\n        WHEN '80199576' THEN 'Nicholas Luciano'\n        ELSE COALESCE(MAX(hubspot_owner_id), 'N/A')\n    END AS \"Sales\",\n    CASE CAST(MAX(technical_account_manager_tam) AS TEXT)\n        WHEN '158042717' THEN 'Shahar Inbar'\n        WHEN '179958286' THEN 'Brian Contarino'\n        WHEN '680488501' THEN 'Thomas French'\n        WHEN '205988120' THEN 'Mark Hines'\n        WHEN '217665327' THEN 'Joe Ryan'\n        WHEN '120086533' THEN 'Fahmy Kadiri'\n        WHEN '994271699' THEN 'Brian Contarino'\n        WHEN '657705138' THEN 'Ionathan Dayan'\n        WHEN '392468806' THEN 'Kyle Cowan'\n        WHEN '586164271' THEN 'Jennifer Ai'\n        WHEN '586171211' THEN 'Jennifer Ai'\n        WHEN '78220367' THEN 'Barak Abekasis'\n        WHEN '376856634' THEN 'Asaf Gardosh'\n        WHEN '414393387' THEN 'Emanuel Abulov'\n        WHEN '230936990' THEN 'Lewis Miller'\n        WHEN '231396148' THEN 'Netser Heruty'\n        WHEN '77048390' THEN 'Mallika Dasanoor'\n        WHEN '191785333' THEN 'Inbal Pearlson'\n        WHEN '237150512' THEN 'Dan Fidler'\n        WHEN '529614438' THEN 'Alexandra Weissman'\n        WHEN '79169201' THEN 'Tom Zohar'\n        WHEN '81436110' THEN 'Almog Ron'\n        WHEN '77244724' THEN 'Wayne Zhu'\n        WHEN '86058996' THEN 'Pavel Jimanov'\n        WHEN '107890348' THEN 'Charlie Nugent'\n        WHEN '83876821' THEN 'Janet Kassab'\n        WHEN '80199576' THEN 'Nicholas Luciano'\n        ELSE COALESCE(MAX(technical_account_manager_tam), 'N/A')\n    END AS \"CSE\"\nFROM companies\nWHERE name = '${company_name}'\n    AND account_id IS NOT NULL\nGROUP BY name\nORDER BY name ASC)",
-          "rawQueryText": "SELECT \"Sales\" AS value FROM (-- Company owners: CSM, Sales, CSE (TAM)\nSELECT\n    CASE CAST(MAX(customer_success_cs_owner) AS TEXT)\n        WHEN '158042717' THEN 'Shahar Inbar'\n        WHEN '179958286' THEN 'Brian Contarino'\n        WHEN '680488501' THEN 'Thomas French'\n        WHEN '205988120' THEN 'Mark Hines'\n        WHEN '217665327' THEN 'Joe Ryan'\n        WHEN '120086533' THEN 'Fahmy Kadiri'\n        WHEN '994271699' THEN 'Brian Contarino'\n        WHEN '657705138' THEN 'Ionathan Dayan'\n        WHEN '392468806' THEN 'Kyle Cowan'\n        WHEN '586164271' THEN 'Jennifer Ai'\n        WHEN '586171211' THEN 'Jennifer Ai'\n        WHEN '78220367' THEN 'Barak Abekasis'\n        WHEN '376856634' THEN 'Asaf Gardosh'\n        WHEN '414393387' THEN 'Emanuel Abulov'\n        WHEN '230936990' THEN 'Lewis Miller'\n        WHEN '231396148' THEN 'Netser Heruty'\n        WHEN '77048390' THEN 'Mallika Dasanoor'\n        WHEN '191785333' THEN 'Inbal Pearlson'\n        WHEN '237150512' THEN 'Dan Fidler'\n        WHEN '529614438' THEN 'Alexandra Weissman'\n        WHEN '79169201' THEN 'Tom Zohar'\n        WHEN '81436110' THEN 'Almog Ron'\n        WHEN '77244724' THEN 'Wayne Zhu'\n        WHEN '86058996' THEN 'Pavel Jimanov'\n        WHEN '107890348' THEN 'Charlie Nugent'\n        WHEN '83876821' THEN 'Janet Kassab'\n        WHEN '80199576' THEN 'Nicholas Luciano'\n        ELSE COALESCE(MAX(customer_success_cs_owner), 'N/A')\n    END AS \"CSM\",\n    CASE CAST(MAX(hubspot_owner_id) AS TEXT)\n        WHEN '158042717' THEN 'Shahar Inbar'\n        WHEN '179958286' THEN 'Brian Contarino'\n        WHEN '680488501' THEN 'Thomas French'\n        WHEN '205988120' THEN 'Mark Hines'\n        WHEN '217665327' THEN 'Joe Ryan'\n        WHEN '120086533' THEN 'Fahmy Kadiri'\n        WHEN '994271699' THEN 'Brian Contarino'\n        WHEN '657705138' THEN 'Ionathan Dayan'\n        WHEN '392468806' THEN 'Kyle Cowan'\n        WHEN '586164271' THEN 'Jennifer Ai'\n        WHEN '586171211' THEN 'Jennifer Ai'\n        WHEN '78220367' THEN 'Barak Abekasis'\n        WHEN '376856634' THEN 'Asaf Gardosh'\n        WHEN '414393387' THEN 'Emanuel Abulov'\n        WHEN '230936990' THEN 'Lewis Miller'\n        WHEN '231396148' THEN 'Netser Heruty'\n        WHEN '77048390' THEN 'Mallika Dasanoor'\n        WHEN '191785333' THEN 'Inbal Pearlson'\n        WHEN '237150512' THEN 'Dan Fidler'\n        WHEN '529614438' THEN 'Alexandra Weissman'\n        WHEN '79169201' THEN 'Tom Zohar'\n        WHEN '81436110' THEN 'Almog Ron'\n        WHEN '77244724' THEN 'Wayne Zhu'\n        WHEN '86058996' THEN 'Pavel Jimanov'\n        WHEN '107890348' THEN 'Charlie Nugent'\n        WHEN '83876821' THEN 'Janet Kassab'\n        WHEN '80199576' THEN 'Nicholas Luciano'\n        ELSE COALESCE(MAX(hubspot_owner_id), 'N/A')\n    END AS \"Sales\",\n    CASE CAST(MAX(technical_account_manager_tam) AS TEXT)\n        WHEN '158042717' THEN 'Shahar Inbar'\n        WHEN '179958286' THEN 'Brian Contarino'\n        WHEN '680488501' THEN 'Thomas French'\n        WHEN '205988120' THEN 'Mark Hines'\n        WHEN '217665327' THEN 'Joe Ryan'\n        WHEN '120086533' THEN 'Fahmy Kadiri'\n        WHEN '994271699' THEN 'Brian Contarino'\n        WHEN '657705138' THEN 'Ionathan Dayan'\n        WHEN '392468806' THEN 'Kyle Cowan'\n        WHEN '586164271' THEN 'Jennifer Ai'\n        WHEN '586171211' THEN 'Jennifer Ai'\n        WHEN '78220367' THEN 'Barak Abekasis'\n        WHEN '376856634' THEN 'Asaf Gardosh'\n        WHEN '414393387' THEN 'Emanuel Abulov'\n        WHEN '230936990' THEN 'Lewis Miller'\n        WHEN '231396148' THEN 'Netser Heruty'\n        WHEN '77048390' THEN 'Mallika Dasanoor'\n        WHEN '191785333' THEN 'Inbal Pearlson'\n        WHEN '237150512' THEN 'Dan Fidler'\n        WHEN '529614438' THEN 'Alexandra Weissman'\n        WHEN '79169201' THEN 'Tom Zohar'\n        WHEN '81436110' THEN 'Almog Ron'\n        WHEN '77244724' THEN 'Wayne Zhu'\n        WHEN '86058996' THEN 'Pavel Jimanov'\n        WHEN '107890348' THEN 'Charlie Nugent'\n        WHEN '83876821' THEN 'Janet Kassab'\n        WHEN '80199576' THEN 'Nicholas Luciano'\n        ELSE COALESCE(MAX(technical_account_manager_tam), 'N/A')\n    END AS \"CSE\"\nFROM companies\nWHERE name = '${company_name}'\n    AND account_id IS NOT NULL\nGROUP BY name\nORDER BY name ASC)",
-          "queryType": "table",
-          "timeColumns": [],
-          "refId": "A"
-        }
-      ],
-      "options": {
-        "reduceOptions": {
-          "values": false,
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "/.*/"
-        },
-        "orientation": "auto",
-        "textMode": "value",
-        "wideLayout": true,
-        "colorMode": "none",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "showPercentChange": false
-      },
-      "fieldConfig": {
-        "defaults": {
-          "mappings": [],
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "text"
-          }
-        },
-        "overrides": []
-      },
-      "datasource": {
-        "type": "frser-sqlite-datasource",
-        "uid": null
-      }
-    },
-    {
-      "type": "stat",
-      "title": "CSE",
-      "gridPos": {
-        "h": 4,
-        "w": 2,
-        "x": 22,
-        "y": 0
-      },
-      "id": 11,
-      "targets": [
-        {
-          "datasource": {
-            "type": "frser-sqlite-datasource",
-            "uid": null
-          },
-          "queryText": "SELECT \"CSE\" AS value FROM (-- Company owners: CSM, Sales, CSE (TAM)\nSELECT\n    CASE CAST(MAX(customer_success_cs_owner) AS TEXT)\n        WHEN '158042717' THEN 'Shahar Inbar'\n        WHEN '179958286' THEN 'Brian Contarino'\n        WHEN '680488501' THEN 'Thomas French'\n        WHEN '205988120' THEN 'Mark Hines'\n        WHEN '217665327' THEN 'Joe Ryan'\n        WHEN '120086533' THEN 'Fahmy Kadiri'\n        WHEN '994271699' THEN 'Brian Contarino'\n        WHEN '657705138' THEN 'Ionathan Dayan'\n        WHEN '392468806' THEN 'Kyle Cowan'\n        WHEN '586164271' THEN 'Jennifer Ai'\n        WHEN '586171211' THEN 'Jennifer Ai'\n        WHEN '78220367' THEN 'Barak Abekasis'\n        WHEN '376856634' THEN 'Asaf Gardosh'\n        WHEN '414393387' THEN 'Emanuel Abulov'\n        WHEN '230936990' THEN 'Lewis Miller'\n        WHEN '231396148' THEN 'Netser Heruty'\n        WHEN '77048390' THEN 'Mallika Dasanoor'\n        WHEN '191785333' THEN 'Inbal Pearlson'\n        WHEN '237150512' THEN 'Dan Fidler'\n        WHEN '529614438' THEN 'Alexandra Weissman'\n        WHEN '79169201' THEN 'Tom Zohar'\n        WHEN '81436110' THEN 'Almog Ron'\n        WHEN '77244724' THEN 'Wayne Zhu'\n        WHEN '86058996' THEN 'Pavel Jimanov'\n        WHEN '107890348' THEN 'Charlie Nugent'\n        WHEN '83876821' THEN 'Janet Kassab'\n        WHEN '80199576' THEN 'Nicholas Luciano'\n        ELSE COALESCE(MAX(customer_success_cs_owner), 'N/A')\n    END AS \"CSM\",\n    CASE CAST(MAX(hubspot_owner_id) AS TEXT)\n        WHEN '158042717' THEN 'Shahar Inbar'\n        WHEN '179958286' THEN 'Brian Contarino'\n        WHEN '680488501' THEN 'Thomas French'\n        WHEN '205988120' THEN 'Mark Hines'\n        WHEN '217665327' THEN 'Joe Ryan'\n        WHEN '120086533' THEN 'Fahmy Kadiri'\n        WHEN '994271699' THEN 'Brian Contarino'\n        WHEN '657705138' THEN 'Ionathan Dayan'\n        WHEN '392468806' THEN 'Kyle Cowan'\n        WHEN '586164271' THEN 'Jennifer Ai'\n        WHEN '586171211' THEN 'Jennifer Ai'\n        WHEN '78220367' THEN 'Barak Abekasis'\n        WHEN '376856634' THEN 'Asaf Gardosh'\n        WHEN '414393387' THEN 'Emanuel Abulov'\n        WHEN '230936990' THEN 'Lewis Miller'\n        WHEN '231396148' THEN 'Netser Heruty'\n        WHEN '77048390' THEN 'Mallika Dasanoor'\n        WHEN '191785333' THEN 'Inbal Pearlson'\n        WHEN '237150512' THEN 'Dan Fidler'\n        WHEN '529614438' THEN 'Alexandra Weissman'\n        WHEN '79169201' THEN 'Tom Zohar'\n        WHEN '81436110' THEN 'Almog Ron'\n        WHEN '77244724' THEN 'Wayne Zhu'\n        WHEN '86058996' THEN 'Pavel Jimanov'\n        WHEN '107890348' THEN 'Charlie Nugent'\n        WHEN '83876821' THEN 'Janet Kassab'\n        WHEN '80199576' THEN 'Nicholas Luciano'\n        ELSE COALESCE(MAX(hubspot_owner_id), 'N/A')\n    END AS \"Sales\",\n    CASE CAST(MAX(technical_account_manager_tam) AS TEXT)\n        WHEN '158042717' THEN 'Shahar Inbar'\n        WHEN '179958286' THEN 'Brian Contarino'\n        WHEN '680488501' THEN 'Thomas French'\n        WHEN '205988120' THEN 'Mark Hines'\n        WHEN '217665327' THEN 'Joe Ryan'\n        WHEN '120086533' THEN 'Fahmy Kadiri'\n        WHEN '994271699' THEN 'Brian Contarino'\n        WHEN '657705138' THEN 'Ionathan Dayan'\n        WHEN '392468806' THEN 'Kyle Cowan'\n        WHEN '586164271' THEN 'Jennifer Ai'\n        WHEN '586171211' THEN 'Jennifer Ai'\n        WHEN '78220367' THEN 'Barak Abekasis'\n        WHEN '376856634' THEN 'Asaf Gardosh'\n        WHEN '414393387' THEN 'Emanuel Abulov'\n        WHEN '230936990' THEN 'Lewis Miller'\n        WHEN '231396148' THEN 'Netser Heruty'\n        WHEN '77048390' THEN 'Mallika Dasanoor'\n        WHEN '191785333' THEN 'Inbal Pearlson'\n        WHEN '237150512' THEN 'Dan Fidler'\n        WHEN '529614438' THEN 'Alexandra Weissman'\n        WHEN '79169201' THEN 'Tom Zohar'\n        WHEN '81436110' THEN 'Almog Ron'\n        WHEN '77244724' THEN 'Wayne Zhu'\n        WHEN '86058996' THEN 'Pavel Jimanov'\n        WHEN '107890348' THEN 'Charlie Nugent'\n        WHEN '83876821' THEN 'Janet Kassab'\n        WHEN '80199576' THEN 'Nicholas Luciano'\n        ELSE COALESCE(MAX(technical_account_manager_tam), 'N/A')\n    END AS \"CSE\"\nFROM companies\nWHERE name = '${company_name}'\n    AND account_id IS NOT NULL\nGROUP BY name\nORDER BY name ASC)",
-          "rawQueryText": "SELECT \"CSE\" AS value FROM (-- Company owners: CSM, Sales, CSE (TAM)\nSELECT\n    CASE CAST(MAX(customer_success_cs_owner) AS TEXT)\n        WHEN '158042717' THEN 'Shahar Inbar'\n        WHEN '179958286' THEN 'Brian Contarino'\n        WHEN '680488501' THEN 'Thomas French'\n        WHEN '205988120' THEN 'Mark Hines'\n        WHEN '217665327' THEN 'Joe Ryan'\n        WHEN '120086533' THEN 'Fahmy Kadiri'\n        WHEN '994271699' THEN 'Brian Contarino'\n        WHEN '657705138' THEN 'Ionathan Dayan'\n        WHEN '392468806' THEN 'Kyle Cowan'\n        WHEN '586164271' THEN 'Jennifer Ai'\n        WHEN '586171211' THEN 'Jennifer Ai'\n        WHEN '78220367' THEN 'Barak Abekasis'\n        WHEN '376856634' THEN 'Asaf Gardosh'\n        WHEN '414393387' THEN 'Emanuel Abulov'\n        WHEN '230936990' THEN 'Lewis Miller'\n        WHEN '231396148' THEN 'Netser Heruty'\n        WHEN '77048390' THEN 'Mallika Dasanoor'\n        WHEN '191785333' THEN 'Inbal Pearlson'\n        WHEN '237150512' THEN 'Dan Fidler'\n        WHEN '529614438' THEN 'Alexandra Weissman'\n        WHEN '79169201' THEN 'Tom Zohar'\n        WHEN '81436110' THEN 'Almog Ron'\n        WHEN '77244724' THEN 'Wayne Zhu'\n        WHEN '86058996' THEN 'Pavel Jimanov'\n        WHEN '107890348' THEN 'Charlie Nugent'\n        WHEN '83876821' THEN 'Janet Kassab'\n        WHEN '80199576' THEN 'Nicholas Luciano'\n        ELSE COALESCE(MAX(customer_success_cs_owner), 'N/A')\n    END AS \"CSM\",\n    CASE CAST(MAX(hubspot_owner_id) AS TEXT)\n        WHEN '158042717' THEN 'Shahar Inbar'\n        WHEN '179958286' THEN 'Brian Contarino'\n        WHEN '680488501' THEN 'Thomas French'\n        WHEN '205988120' THEN 'Mark Hines'\n        WHEN '217665327' THEN 'Joe Ryan'\n        WHEN '120086533' THEN 'Fahmy Kadiri'\n        WHEN '994271699' THEN 'Brian Contarino'\n        WHEN '657705138' THEN 'Ionathan Dayan'\n        WHEN '392468806' THEN 'Kyle Cowan'\n        WHEN '586164271' THEN 'Jennifer Ai'\n        WHEN '586171211' THEN 'Jennifer Ai'\n        WHEN '78220367' THEN 'Barak Abekasis'\n        WHEN '376856634' THEN 'Asaf Gardosh'\n        WHEN '414393387' THEN 'Emanuel Abulov'\n        WHEN '230936990' THEN 'Lewis Miller'\n        WHEN '231396148' THEN 'Netser Heruty'\n        WHEN '77048390' THEN 'Mallika Dasanoor'\n        WHEN '191785333' THEN 'Inbal Pearlson'\n        WHEN '237150512' THEN 'Dan Fidler'\n        WHEN '529614438' THEN 'Alexandra Weissman'\n        WHEN '79169201' THEN 'Tom Zohar'\n        WHEN '81436110' THEN 'Almog Ron'\n        WHEN '77244724' THEN 'Wayne Zhu'\n        WHEN '86058996' THEN 'Pavel Jimanov'\n        WHEN '107890348' THEN 'Charlie Nugent'\n        WHEN '83876821' THEN 'Janet Kassab'\n        WHEN '80199576' THEN 'Nicholas Luciano'\n        ELSE COALESCE(MAX(hubspot_owner_id), 'N/A')\n    END AS \"Sales\",\n    CASE CAST(MAX(technical_account_manager_tam) AS TEXT)\n        WHEN '158042717' THEN 'Shahar Inbar'\n        WHEN '179958286' THEN 'Brian Contarino'\n        WHEN '680488501' THEN 'Thomas French'\n        WHEN '205988120' THEN 'Mark Hines'\n        WHEN '217665327' THEN 'Joe Ryan'\n        WHEN '120086533' THEN 'Fahmy Kadiri'\n        WHEN '994271699' THEN 'Brian Contarino'\n        WHEN '657705138' THEN 'Ionathan Dayan'\n        WHEN '392468806' THEN 'Kyle Cowan'\n        WHEN '586164271' THEN 'Jennifer Ai'\n        WHEN '586171211' THEN 'Jennifer Ai'\n        WHEN '78220367' THEN 'Barak Abekasis'\n        WHEN '376856634' THEN 'Asaf Gardosh'\n        WHEN '414393387' THEN 'Emanuel Abulov'\n        WHEN '230936990' THEN 'Lewis Miller'\n        WHEN '231396148' THEN 'Netser Heruty'\n        WHEN '77048390' THEN 'Mallika Dasanoor'\n        WHEN '191785333' THEN 'Inbal Pearlson'\n        WHEN '237150512' THEN 'Dan Fidler'\n        WHEN '529614438' THEN 'Alexandra Weissman'\n        WHEN '79169201' THEN 'Tom Zohar'\n        WHEN '81436110' THEN 'Almog Ron'\n        WHEN '77244724' THEN 'Wayne Zhu'\n        WHEN '86058996' THEN 'Pavel Jimanov'\n        WHEN '107890348' THEN 'Charlie Nugent'\n        WHEN '83876821' THEN 'Janet Kassab'\n        WHEN '80199576' THEN 'Nicholas Luciano'\n        ELSE COALESCE(MAX(technical_account_manager_tam), 'N/A')\n    END AS \"CSE\"\nFROM companies\nWHERE name = '${company_name}'\n    AND account_id IS NOT NULL\nGROUP BY name\nORDER BY name ASC)",
-          "queryType": "table",
-          "timeColumns": [],
-          "refId": "A"
-        }
-      ],
-      "options": {
-        "reduceOptions": {
-          "values": false,
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "/.*/"
-        },
-        "orientation": "auto",
-        "textMode": "value",
-        "wideLayout": true,
-        "colorMode": "none",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "showPercentChange": false
-      },
-      "fieldConfig": {
-        "defaults": {
-          "mappings": [],
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "text"
+            "mode": "thresholds"
           }
         },
         "overrides": []
@@ -659,9 +367,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 4
+        "y": 3
       },
-      "id": 12,
+      "id": 7,
       "collapsed": false,
       "panels": []
     },
@@ -672,9 +380,9 @@
         "h": 5,
         "w": 4,
         "x": 0,
-        "y": 5
+        "y": 4
       },
-      "id": 13,
+      "id": 8,
       "targets": [
         {
           "datasource": {
@@ -744,9 +452,9 @@
         "h": 5,
         "w": 4,
         "x": 4,
-        "y": 5
+        "y": 4
       },
-      "id": 14,
+      "id": 9,
       "targets": [
         {
           "datasource": {
@@ -796,9 +504,9 @@
         "h": 5,
         "w": 4,
         "x": 8,
-        "y": 5
+        "y": 4
       },
-      "id": 15,
+      "id": 10,
       "targets": [
         {
           "datasource": {
@@ -848,9 +556,9 @@
         "h": 5,
         "w": 3,
         "x": 12,
-        "y": 5
+        "y": 4
       },
-      "id": 16,
+      "id": 11,
       "targets": [
         {
           "datasource": {
@@ -900,9 +608,9 @@
         "h": 5,
         "w": 4,
         "x": 15,
-        "y": 5
+        "y": 4
       },
-      "id": 17,
+      "id": 12,
       "targets": [
         {
           "datasource": {
@@ -952,9 +660,9 @@
         "h": 5,
         "w": 5,
         "x": 19,
-        "y": 5
+        "y": 4
       },
-      "id": 18,
+      "id": 13,
       "targets": [
         {
           "datasource": {
@@ -1026,9 +734,9 @@
         "h": 5,
         "w": 24,
         "x": 0,
-        "y": 10
+        "y": 9
       },
-      "id": 19,
+      "id": 14,
       "targets": [
         {
           "datasource": {
@@ -1285,9 +993,9 @@
         "h": 5,
         "w": 24,
         "x": 0,
-        "y": 15
+        "y": 14
       },
-      "id": 20,
+      "id": 15,
       "targets": [
         {
           "datasource": {
@@ -1446,9 +1154,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 20
+        "y": 19
       },
-      "id": 21,
+      "id": 16,
       "collapsed": false,
       "panels": []
     },
@@ -1459,9 +1167,9 @@
         "h": 5,
         "w": 5,
         "x": 0,
-        "y": 21
+        "y": 20
       },
-      "id": 22,
+      "id": 17,
       "targets": [
         {
           "datasource": {
@@ -1531,9 +1239,9 @@
         "h": 5,
         "w": 5,
         "x": 5,
-        "y": 21
+        "y": 20
       },
-      "id": 23,
+      "id": 18,
       "targets": [
         {
           "datasource": {
@@ -1583,9 +1291,9 @@
         "h": 5,
         "w": 5,
         "x": 10,
-        "y": 21
+        "y": 20
       },
-      "id": 24,
+      "id": 19,
       "targets": [
         {
           "datasource": {
@@ -1635,9 +1343,9 @@
         "h": 5,
         "w": 5,
         "x": 15,
-        "y": 21
+        "y": 20
       },
-      "id": 25,
+      "id": 20,
       "targets": [
         {
           "datasource": {
@@ -1709,9 +1417,9 @@
         "h": 5,
         "w": 24,
         "x": 0,
-        "y": 26
+        "y": 25
       },
-      "id": 26,
+      "id": 21,
       "targets": [
         {
           "datasource": {
@@ -1968,9 +1676,9 @@
         "h": 5,
         "w": 24,
         "x": 0,
-        "y": 31
+        "y": 30
       },
-      "id": 27,
+      "id": 22,
       "targets": [
         {
           "datasource": {
@@ -2129,9 +1837,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 36
+        "y": 35
       },
-      "id": 28,
+      "id": 23,
       "collapsed": false,
       "panels": []
     },
@@ -2142,9 +1850,9 @@
         "h": 5,
         "w": 4,
         "x": 0,
-        "y": 37
+        "y": 36
       },
-      "id": 29,
+      "id": 24,
       "targets": [
         {
           "datasource": {
@@ -2214,9 +1922,9 @@
         "h": 5,
         "w": 4,
         "x": 4,
-        "y": 37
+        "y": 36
       },
-      "id": 30,
+      "id": 25,
       "targets": [
         {
           "datasource": {
@@ -2266,9 +1974,9 @@
         "h": 5,
         "w": 4,
         "x": 8,
-        "y": 37
+        "y": 36
       },
-      "id": 31,
+      "id": 26,
       "targets": [
         {
           "datasource": {
@@ -2318,9 +2026,9 @@
         "h": 5,
         "w": 3,
         "x": 12,
-        "y": 37
+        "y": 36
       },
-      "id": 32,
+      "id": 27,
       "targets": [
         {
           "datasource": {
@@ -2370,9 +2078,9 @@
         "h": 5,
         "w": 4,
         "x": 15,
-        "y": 37
+        "y": 36
       },
-      "id": 33,
+      "id": 28,
       "targets": [
         {
           "datasource": {
@@ -2422,9 +2130,9 @@
         "h": 5,
         "w": 5,
         "x": 19,
-        "y": 37
+        "y": 36
       },
-      "id": 34,
+      "id": 29,
       "targets": [
         {
           "datasource": {
@@ -2496,9 +2204,9 @@
         "h": 5,
         "w": 24,
         "x": 0,
-        "y": 42
+        "y": 41
       },
-      "id": 35,
+      "id": 30,
       "targets": [
         {
           "datasource": {
@@ -2755,9 +2463,9 @@
         "h": 5,
         "w": 24,
         "x": 0,
-        "y": 47
+        "y": 46
       },
-      "id": 36,
+      "id": 31,
       "targets": [
         {
           "datasource": {
@@ -2916,9 +2624,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 52
+        "y": 51
       },
-      "id": 37,
+      "id": 32,
       "collapsed": false,
       "panels": []
     },
@@ -2929,9 +2637,9 @@
         "h": 5,
         "w": 4,
         "x": 0,
-        "y": 53
+        "y": 52
       },
-      "id": 38,
+      "id": 33,
       "targets": [
         {
           "datasource": {
@@ -3001,9 +2709,9 @@
         "h": 5,
         "w": 4,
         "x": 4,
-        "y": 53
+        "y": 52
       },
-      "id": 39,
+      "id": 34,
       "targets": [
         {
           "datasource": {
@@ -3053,9 +2761,9 @@
         "h": 5,
         "w": 4,
         "x": 8,
-        "y": 53
+        "y": 52
       },
-      "id": 40,
+      "id": 35,
       "targets": [
         {
           "datasource": {
@@ -3105,9 +2813,9 @@
         "h": 5,
         "w": 3,
         "x": 12,
-        "y": 53
+        "y": 52
       },
-      "id": 41,
+      "id": 36,
       "targets": [
         {
           "datasource": {
@@ -3157,9 +2865,9 @@
         "h": 5,
         "w": 4,
         "x": 15,
-        "y": 53
+        "y": 52
       },
-      "id": 42,
+      "id": 37,
       "targets": [
         {
           "datasource": {
@@ -3209,9 +2917,9 @@
         "h": 5,
         "w": 5,
         "x": 19,
-        "y": 53
+        "y": 52
       },
-      "id": 43,
+      "id": 38,
       "targets": [
         {
           "datasource": {
@@ -3283,9 +2991,9 @@
         "h": 5,
         "w": 24,
         "x": 0,
-        "y": 58
+        "y": 57
       },
-      "id": 44,
+      "id": 39,
       "targets": [
         {
           "datasource": {
@@ -3542,9 +3250,9 @@
         "h": 5,
         "w": 24,
         "x": 0,
-        "y": 63
+        "y": 62
       },
-      "id": 45,
+      "id": 40,
       "targets": [
         {
           "datasource": {
@@ -3703,9 +3411,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 68
+        "y": 67
       },
-      "id": 46,
+      "id": 41,
       "collapsed": false,
       "panels": []
     },
@@ -3717,9 +3425,9 @@
         "h": 18,
         "w": 24,
         "x": 0,
-        "y": 69
+        "y": 68
       },
-      "id": 47,
+      "id": 42,
       "targets": [
         {
           "datasource": {
@@ -3846,9 +3554,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 87
+        "y": 86
       },
-      "id": 48,
+      "id": 43,
       "collapsed": false,
       "panels": []
     },
@@ -3859,9 +3567,9 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 88
+        "y": 87
       },
-      "id": 49,
+      "id": 44,
       "targets": [
         {
           "datasource": {
@@ -3912,9 +3620,9 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 96
+        "y": 95
       },
-      "id": 50,
+      "id": 45,
       "targets": [
         {
           "datasource": {
@@ -4075,9 +3783,9 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 104
+        "y": 103
       },
-      "id": 51,
+      "id": 46,
       "targets": [
         {
           "datasource": {
@@ -4179,9 +3887,9 @@
         "h": 4,
         "w": 8,
         "x": 0,
-        "y": 114
+        "y": 113
       },
-      "id": 52,
+      "id": 47,
       "targets": [
         {
           "datasource": {
@@ -4233,9 +3941,9 @@
         "h": 4,
         "w": 8,
         "x": 8,
-        "y": 114
+        "y": 113
       },
-      "id": 53,
+      "id": 48,
       "targets": [
         {
           "datasource": {
@@ -4287,9 +3995,9 @@
         "h": 4,
         "w": 8,
         "x": 16,
-        "y": 114
+        "y": 113
       },
-      "id": 54,
+      "id": 49,
       "targets": [
         {
           "datasource": {
@@ -4357,9 +4065,9 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 118
+        "y": 117
       },
-      "id": 55,
+      "id": 50,
       "targets": [
         {
           "datasource": {
@@ -4441,9 +4149,9 @@
         "h": 8,
         "w": 16,
         "x": 8,
-        "y": 118
+        "y": 117
       },
-      "id": 56,
+      "id": 51,
       "targets": [
         {
           "datasource": {
@@ -4557,9 +4265,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 126
+        "y": 125
       },
-      "id": 57,
+      "id": 52,
       "collapsed": false,
       "panels": []
     },
@@ -4570,9 +4278,9 @@
         "h": 6,
         "w": 8,
         "x": 0,
-        "y": 127
+        "y": 126
       },
-      "id": 58,
+      "id": 53,
       "targets": [
         {
           "datasource": {
@@ -4653,9 +4361,9 @@
         "h": 6,
         "w": 16,
         "x": 8,
-        "y": 127
+        "y": 126
       },
-      "id": 59,
+      "id": 54,
       "targets": [
         {
           "datasource": {
@@ -4736,9 +4444,9 @@
         "h": 5,
         "w": 24,
         "x": 0,
-        "y": 133
+        "y": 132
       },
-      "id": 60,
+      "id": 55,
       "targets": [
         {
           "datasource": {
@@ -4958,9 +4666,9 @@
         "h": 6,
         "w": 12,
         "x": 0,
-        "y": 138
+        "y": 137
       },
-      "id": 61,
+      "id": 56,
       "targets": [
         {
           "datasource": {
@@ -5194,9 +4902,9 @@
         "h": 6,
         "w": 12,
         "x": 12,
-        "y": 138
+        "y": 137
       },
-      "id": 62,
+      "id": 57,
       "targets": [
         {
           "datasource": {
@@ -5430,9 +5138,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 144
+        "y": 143
       },
-      "id": 63,
+      "id": 58,
       "collapsed": false,
       "panels": []
     },
@@ -5443,9 +5151,9 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 145
+        "y": 144
       },
-      "id": 64,
+      "id": 59,
       "targets": [
         {
           "datasource": {
@@ -5539,9 +5247,9 @@
         "h": 6,
         "w": 24,
         "x": 0,
-        "y": 153
+        "y": 152
       },
-      "id": 65,
+      "id": 60,
       "targets": [
         {
           "datasource": {
@@ -5688,9 +5396,9 @@
         "h": 6,
         "w": 24,
         "x": 0,
-        "y": 159
+        "y": 158
       },
-      "id": 66,
+      "id": 61,
       "targets": [
         {
           "datasource": {
@@ -5842,9 +5550,9 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 165
+        "y": 164
       },
-      "id": 67,
+      "id": 62,
       "targets": [
         {
           "datasource": {
@@ -5990,9 +5698,9 @@
         "h": 6,
         "w": 24,
         "x": 0,
-        "y": 173
+        "y": 172
       },
-      "id": 68,
+      "id": 63,
       "targets": [
         {
           "datasource": {

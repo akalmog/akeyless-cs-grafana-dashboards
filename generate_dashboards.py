@@ -2605,13 +2605,7 @@ SLA_VALUE_MAPPINGS = [
 
 HEADER_TABLE_FIELD_CONFIG = {
     "defaults": {
-        "custom": {
-            "align": "auto",
-            "cellOptions": {"type": "auto", "wrapText": True},
-            "inspect": False,
-            "filterable": False,
-            "minWidth": 40,
-        },
+        "custom": {"align": "auto", "cellOptions": {"type": "auto"}, "inspect": False},
         "mappings": [],
         "thresholds": SLA_HEADER_THRESHOLDS,
         "color": {"mode": "thresholds"},
@@ -2626,26 +2620,14 @@ HEADER_TABLE_OPTIONS = {
 }
 
 
-def header_table_panel(sql, x, y, w, title="", align="auto", h=6, column_widths=None):
+def header_table_panel(sql, x, y, w, title="", align="auto"):
     fc = dict(HEADER_TABLE_FIELD_CONFIG)
     fc["defaults"] = dict(fc["defaults"])
     fc["defaults"]["custom"] = dict(fc["defaults"]["custom"])
     fc["defaults"]["custom"]["align"] = align
-    if column_widths:
-        fc["overrides"] = [
-            {
-                "matcher": {"id": "byName", "options": name},
-                "properties": [
-                    {"id": "custom.width", "value": width},
-                    {"id": "custom.minWidth", "value": width},
-                    {"id": "custom.cellOptions", "value": {"type": "auto", "wrapText": False}},
-                ],
-            }
-            for name, width in column_widths.items()
-        ]
     panel = {
         "type": "table",
-        "gridPos": {"h": h, "w": w, "x": x, "y": y},
+        "gridPos": {"h": 3, "w": w, "x": x, "y": y},
         "id": next_id(),
         "targets": [sql_target(sql)],
         "options": HEADER_TABLE_OPTIONS,
@@ -2657,12 +2639,12 @@ def header_table_panel(sql, x, y, w, title="", align="auto", h=6, column_widths=
     return panel
 
 
-def header_account_ids_panel(x, y, w=4, h=6):
-    """Account ids in a fixed-width column so the table does not grow a scrollbar."""
+def header_account_ids_panel(x, y, w=2):
+    """One account ID per row — readable at fixed table font size (no stat auto-shrink)."""
     return {
         "type": "table",
         "title": "Account IDs",
-        "gridPos": {"h": h, "w": w, "x": x, "y": y},
+        "gridPos": {"h": 3, "w": w, "x": x, "y": y},
         "id": next_id(),
         "targets": [sql_target(load_query("account_ids.sql"))],
         "options": {
@@ -2674,12 +2656,10 @@ def header_account_ids_panel(x, y, w=4, h=6):
         "fieldConfig": {
             "defaults": {
                 "custom": {
-                    "align": "left",
+                    "align": "auto",
                     "cellOptions": {"type": "auto", "wrapText": False},
                     "inspect": False,
                     "filterable": False,
-                    "minWidth": 160,
-                    "width": 160,
                 },
                 "color": {"fixedColor": "text", "mode": "fixed"},
                 "mappings": [],
@@ -2690,81 +2670,51 @@ def header_account_ids_panel(x, y, w=4, h=6):
     }
 
 
-HOME_BUTTON_HTML = """<div style="display:flex;align-items:center;justify-content:center;padding:10px 4px;">
+HOME_BUTTON_HTML = """<div style="
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  height:100%;
+">
   <a href="https://akeyless-analytics.com/d/af7l8pm3w7e9sd/v2-draft-all-customer?orgId=1"
    target="_blank"
-   style="display:inline-flex;align-items:center;justify-content:center;padding:8px 12px;font-size:14px;font-weight:600;border:1.5px solid #ccc;border-radius:8px;text-decoration:none;">
+   style="
+     display:inline-flex;
+     align-items:center;
+     justify-content:center;
+     padding:12px 22px;
+     font-size:16px;
+     font-weight:600;
+     border:1.5px solid #ccc;
+     border-radius:8px;
+     text-decoration:none;
+   ">
   ⌂ Home
 </a>
+
 </div>
 """
 
 
-def header_value_panel(title, sql, x, y, w, h=4, field=None, link=None, all_values=False):
-    """Stat tile. Grafana shrinks the text to the panel, so it does not open a scrollbar."""
-    panel = {
-        "type": "stat",
-        "title": title,
-        "gridPos": {"h": h, "w": w, "x": x, "y": y},
-        "id": next_id(),
-        "targets": [sql_target(sql)],
-        "options": {
-            "reduceOptions": {
-                "values": all_values,
-                "calcs": ["lastNotNull"],
-                "fields": field or "/.*/",
-            },
-            "orientation": "auto",
-            "textMode": "value",
-            "wideLayout": True,
-            "colorMode": "none",
-            "graphMode": "none",
-            "justifyMode": "center",
-            "showPercentChange": False,
-        },
-        "fieldConfig": {
-            "defaults": {
-                "mappings": [],
-                "color": {"mode": "fixed", "fixedColor": "text"},
-            },
-            "overrides": [],
-        },
-        "datasource": DS,
-    }
-    if link:
-        panel["fieldConfig"]["defaults"]["links"] = [link]
-    return panel
-
-
-def header_one_value_sql(source_sql, column):
-    """One column named value, so the stat tile cannot miss the field and show No data."""
-    inner = source_sql.strip().rstrip(";")
-    return f'SELECT "{column}" AS value FROM ({inner})'
-
-
 def original_account_header_panels(y=0):
-    """Header tiles. Stat panels shrink text to fit, so the row does not grow scrollbars."""
+    """Top header row matching the original By Customer dashboard."""
     sla_sql = load_query("account_sla.sql")
-    contract_sql = load_query("account_contract_info.sql")
-    owners_sql = load_query("account_owners.sql")
-    home_link = {
-        "title": "Home",
-        "url": "https://akeyless-analytics.com/d/af7l8pm3w7e9sd/v2-draft-all-customer?orgId=1",
-        "targetBlank": True,
-    }
     panels = [
-        header_value_panel(
-            "Home",
-            "SELECT 'Home' AS value",
-            x=0,
-            y=y,
-            w=2,
-            link=home_link,
-        ),
+        {
+            "type": "text",
+            "gridPos": {"h": 3, "w": 2, "x": 0, "y": y},
+            "id": next_id(),
+            "options": {
+                "mode": "html",
+                "code": {"language": "plaintext", "showLineNumbers": False, "showMiniMap": False},
+                "content": HOME_BUTTON_HTML,
+            },
+            "datasource": DS,
+        },
         {
             "type": "stat",
             "title": "SLA",
-            "gridPos": {"h": 4, "w": 2, "x": 2, "y": y},
+            "gridPos": {"h": 3, "w": 2, "x": 2, "y": y},
             "id": next_id(),
             "targets": [sql_target(sla_sql)],
             "options": {
@@ -2797,36 +2747,37 @@ def original_account_header_panels(y=0):
             },
             "datasource": DS,
         },
-        header_value_panel(
-            "Account IDs",
-            "SELECT account_id AS value FROM ("
-            + load_query("account_ids.sql").strip().rstrip(";")
-            + ")",
-            x=4,
+        header_account_ids_panel(x=4, y=y),
+        {
+            "type": "text",
+            "gridPos": {"h": 3, "w": 4, "x": 6, "y": y},
+            "id": next_id(),
+            "options": {
+                "mode": "html",
+                "code": {"language": "plaintext", "showLineNumbers": False, "showMiniMap": False},
+                "content": (
+                    '<div style="text-align: center; font-size: 36px; font-weight: bold; '
+                    'display: flex; align-items: center; justify-content: center; height: 100%;">\n'
+                    "${company_name}\n</div>"
+                ),
+            },
+            "targets": [
+                sql_target(
+                    "SELECT name AS \"Company Name\" FROM companies WHERE name = '${company_name}' LIMIT 1;"
+                )
+            ],
+            "datasource": DS,
+        },
+        header_table_panel(
+            load_query("account_contract_info.sql"),
+            x=10,
             y=y,
-            w=3,
-            all_values=True,
+            w=8,
+            align="center",
         ),
-        header_value_panel(
-            "Company",
-            "SELECT name AS value FROM companies WHERE name = '${company_name}' LIMIT 1",
-            x=7,
-            y=y,
-            w=3,
-        ),
-        header_value_panel(
-            "Contract Start", header_one_value_sql(contract_sql, "Contract Start"), x=10, y=y, w=2
-        ),
-        header_value_panel(
-            "Contract End", header_one_value_sql(contract_sql, "Contract End"), x=12, y=y, w=2
-        ),
-        header_value_panel("Elapsed", header_one_value_sql(contract_sql, "Elapsed"), x=14, y=y, w=2),
-        header_value_panel("Channel", header_one_value_sql(contract_sql, "Channel"), x=16, y=y, w=2),
-        header_value_panel("CSM", header_one_value_sql(owners_sql, "CSM"), x=18, y=y, w=2),
-        header_value_panel("Sales", header_one_value_sql(owners_sql, "Sales"), x=20, y=y, w=2),
-        header_value_panel("CSE", header_one_value_sql(owners_sql, "CSE"), x=22, y=y, w=2),
+        header_table_panel(load_query("account_owners.sql"), x=18, y=y, w=6, align="center"),
     ]
-    return panels, y + 4
+    return panels, y + 3
 
 
 def account_details_panels(y, portfolio=False, experimental=True):
@@ -3035,14 +2986,13 @@ def product_section(
                 portfolio=use_portfolio_sql,
                 x=0,
                 y=y,
-                h=4,
+                h=util_height,
                 experimental=experimental,
                 months_count=util_months,
-                include_current_month=True,
-                fit_columns=True,
+                include_current_month=False,
             )
         )
-        y += 4
+        y += util_height
         chart_h = 11
         panels.append(
             monthly_timeseries_panel(

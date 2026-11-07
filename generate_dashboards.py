@@ -3604,10 +3604,9 @@ def product_summary_overview(y):
     )
     gauge_h = 5
     stat_h = 4
-    # 24 columns across five cards. MVG keeps the extra width for its longer title.
-    widths = (4, 4, 4, 4, 8)
-    x = 0
-    for (title, metrics_for, detail), width in zip(cards, widths):
+    width = 4
+    for index, (title, metrics_for, detail) in enumerate(cards):
+        x = index * width
         gauge = gauge_panel(
             title,
             f"SELECT usage_pct AS value FROM (\n{metrics_for(True)}\n) summary_metrics",
@@ -3625,7 +3624,20 @@ def product_summary_overview(y):
         panels.append(
             summary_counts_stat(metrics_for(False), x, y + gauge_h, width, stat_h, detail)
         )
-        x += width
+    panels.append(
+        {
+            "type": "text",
+            "title": "",
+            "gridPos": {"h": gauge_h + stat_h, "w": width, "x": len(cards) * width, "y": y},
+            "id": next_id(),
+            "options": {
+                "mode": "html",
+                "content": "",
+                "code": {"language": "plaintext", "showLineNumbers": False, "showMiniMap": False},
+            },
+            "datasource": DS,
+        }
+    )
     return panels, y + gauge_h + stat_h
 
 

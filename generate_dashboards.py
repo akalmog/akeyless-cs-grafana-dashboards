@@ -3350,93 +3350,202 @@ def kms_timeseries_panel(title, sql, x, y, w, h, series_labels, description, bar
     }
 
 
-def summary_pair_sql(purchased_sql, used_sql):
-    purchased = purchased_sql.strip().rstrip(";")
-    used = used_sql.strip().rstrip(";")
-    return f"""
+def summary_company_accounts_cte():
+    return f"""CompanyAccounts AS (
+    SELECT account_id
+    FROM companies
+    WHERE {company_accounts_filter(False)}
+    GROUP BY account_id
+)"""
+
+
+def summary_usage_expr(purchased_col, used_col):
+    """Percent from one purchased value and one used value. Unlimited contracts use the tier curve."""
+    return f"""CASE
+        WHEN {purchased_col} IN (999, 99999) THEN
+            CASE
+                WHEN {used_col} <= 100 THEN ROUND(MIN(100.0, {used_col} * 100.0 / 500), 1)
+                WHEN {used_col} <= 1000 THEN ROUND(MIN(100.0, {used_col} * 100.0 / (500 + ({used_col} - 100) * 1.666)), 1)
+                WHEN {used_col} <= 5000 THEN ROUND(MIN(100.0, {used_col} * 100.0 / (2000 + ({used_col} - 1000) * 0.75)), 1)
+                ELSE 100.0
+            END
+        WHEN {purchased_col} > 0 THEN ROUND(100.0 * {used_col} / {purchased_col}, 1)
+        ELSE 0
+    END"""
+
+
+def summary_clients_sql(product, purchased_col, purchased_label, used_label, include_usage=True):
+    """Latest ObjectsReport in the Time Range, one row per account. No month-by-month scan."""
+    start = time_range_start_sql()
+    end = time_range_end_sql()
+    return f"""WITH {summary_company_accounts_cte()},
+Purchased AS (
+    SELECT COALESCE(MAX(CAST(c.{purchased_col} AS INTEGER)), 0) AS purchased
+    FROM companies c
+    INNER JOIN CompanyAccounts ca ON c.account_id = ca.account_id
+    WHERE c.{purchased_col} IS NOT NULL AND TRIM(c.{purchased_col}) != ''
+),
+Latest AS (
+    SELECT LOWER(r.account_id) AS account_key, MAX(date(r.report_date)) AS report_date
+    FROM reports r
+    INNER JOIN CompanyAccounts ca ON r.account_id = ca.account_id
+    WHERE r.report_type = 'ObjectsReport'
+      AND date(r.report_date) >= date({start})
+      AND date(r.report_date) <= date({end})
+    GROUP BY LOWER(r.account_id)
+),
+ReportPick AS (
+    SELECT l.account_key, MAX(r.id) AS report_id
+    FROM Latest l
+    INNER JOIN reports r
+        ON LOWER(r.account_id) = l.account_key
+       AND date(r.report_date) = l.report_date
+       AND r.report_type = 'ObjectsReport'
+    GROUP BY l.account_key
+),
+Used AS (
+    SELECT COALESCE(SUM(rcp.amount), 0) + COALESCE(SUM(rcp.exceeded_amount), 0) AS used
+    FROM ReportPick p
+    LEFT JOIN report_clients rc ON rc.report_id = p.report_id
+    LEFT JOIN report_clients_product_info rcp
+        ON rcp.report_client_id = rc.id AND rcp.product = '{product}'
+)
 SELECT
-    (SELECT value FROM (
-{purchased}
-    ) purchased_q) AS "Purchased",
-    (SELECT value FROM (
-{used}
-    ) used_q) AS "Used"
+    p.purchased AS "{purchased_label}",
+    u.used AS "{used_label}"{"," if include_usage else ""}
+    {summary_usage_expr("p.purchased", "u.used") + " AS usage_pct" if include_usage else ""}
+FROM Purchased p
+CROSS JOIN Used u
 """
 
 
-def mvg_metrics_sql():
-    """Latest USC connector count versus the HubSpot connector quantity.
-
-    The report window follows the Time Range filter and stops at the end of the
-    previous month, matching the Multi Vault Governance usage panels.
-    """
+def summary_clm_sql(include_usage=True):
+    """Latest certificate report in the Time Range. Non-expired certificates only."""
     start = time_range_start_sql()
     end = time_range_end_sql()
-    return f"""WITH CompanyAccounts AS (
-    SELECT DISTINCT account_id, connectors___usc
-    FROM companies
-    WHERE {company_accounts_filter(False)}
+    return f"""WITH {summary_company_accounts_cte()},
+Purchased AS (
+    SELECT COALESCE(MAX(CAST(c.clients_ca AS INTEGER)), 0) AS purchased
+    FROM companies c
+    INNER JOIN CompanyAccounts ca ON c.account_id = ca.account_id
+    WHERE c.clients_ca IS NOT NULL AND TRIM(c.clients_ca) != ''
 ),
-TimePeriod AS (
-    SELECT {start} AS range_start,
-           MIN(
-               date({end}),
-               date('now', 'start of month', '-1 day')
-           ) AS range_end
+Latest AS (
+    SELECT LOWER(r.account_id) AS account_key, MAX(date(r.report_date)) AS report_date
+    FROM reports r
+    INNER JOIN CompanyAccounts ca ON r.account_id = ca.account_id
+    WHERE r.report_type = 'certificate_analysis'
+      AND date(r.report_date) >= date({start})
+      AND date(r.report_date) <= date({end})
+    GROUP BY LOWER(r.account_id)
 ),
-Filtered AS (
-    SELECT LOWER(r.account_id) AS account_key,
-           date(r.report_date) AS report_date,
+PerAccount AS (
+    SELECT l.account_key,
+           MAX(CASE
+               WHEN COALESCE(r.total_certificates, 0) - COALESCE(r.risk_expired, 0) < 0 THEN 0
+               ELSE COALESCE(r.total_certificates, 0) - COALESCE(r.risk_expired, 0)
+           END) AS used
+    FROM Latest l
+    INNER JOIN reports r
+        ON LOWER(r.account_id) = l.account_key
+       AND date(r.report_date) = l.report_date
+       AND r.report_type = 'certificate_analysis'
+    GROUP BY l.account_key
+),
+Used AS (
+    SELECT COALESCE(SUM(used), 0) AS used FROM PerAccount
+)
+SELECT
+    p.purchased AS "CLM - purchased certificates",
+    u.used AS "CLM - used certificates"{"," if include_usage else ""}
+    {"CASE WHEN p.purchased > 0 THEN ROUND(100.0 * u.used / p.purchased, 1) ELSE 0 END AS usage_pct" if include_usage else ""}
+FROM Purchased p
+CROSS JOIN Used u
+"""
+
+
+def summary_mvg_sql(include_usage=True):
+    """Latest USC connector report per account. JSON is read only for that report."""
+    start = time_range_start_sql()
+    end = time_range_end_sql()
+    return f"""WITH {summary_company_accounts_cte()},
+Purchased AS (
+    SELECT COALESCE(MAX(CAST(c.connectors___usc AS INTEGER)), 0) AS purchased
+    FROM companies c
+    INNER JOIN CompanyAccounts ca ON c.account_id = ca.account_id
+    WHERE c.connectors___usc IS NOT NULL AND TRIM(c.connectors___usc) != ''
+),
+Latest AS (
+    SELECT LOWER(r.account_id) AS account_key, MAX(date(r.report_date)) AS report_date
+    FROM reports r
+    INNER JOIN CompanyAccounts ca ON r.account_id = ca.account_id
+    WHERE r.report_type = 'unknown'
+      AND r.file_key LIKE '%usc%'
+      AND date(r.report_date) >= date({start})
+      AND date(r.report_date) <= date(MIN(date({end}), date('now', 'start of month', '-1 day')))
+    GROUP BY LOWER(r.account_id)
+),
+PerAccount AS (
+    SELECT l.account_key,
            MAX(COALESCE((
                SELECT SUM(CAST(json_extract(prod.value, '$.actual') AS INTEGER))
                FROM json_each(r.usc_report_data, '$.report.amount') AS yr,
                     json_each(yr.value) AS mo,
                     json_each(mo.value) AS prod
                WHERE json_extract(prod.value, '$.actual') IS NOT NULL
-           ), 0)) AS connectors_used
-    FROM reports r
-    INNER JOIN CompanyAccounts ca ON r.account_id = ca.account_id
-    CROSS JOIN TimePeriod tp
-    WHERE r.report_type = 'unknown'
-      AND r.file_key LIKE '%usc%'
-      AND date(r.report_date) >= date(tp.range_start)
-      AND date(r.report_date) <= date(tp.range_end)
-    GROUP BY LOWER(r.account_id), date(r.report_date)
+           ), 0)) AS used
+    FROM Latest l
+    INNER JOIN reports r
+        ON LOWER(r.account_id) = l.account_key
+       AND date(r.report_date) = l.report_date
+       AND r.report_type = 'unknown'
+       AND r.file_key LIKE '%usc%'
+    GROUP BY l.account_key
 ),
-Summed AS (
-    SELECT report_date, SUM(connectors_used) AS total_used
-    FROM Filtered
-    GROUP BY report_date
-),
-LatestUsed AS (
-    SELECT COALESCE(total_used, 0) AS used
-    FROM Summed
-    ORDER BY report_date DESC
-    LIMIT 1
-),
-Purchased AS (
-    SELECT COALESCE(MAX(CAST(connectors___usc AS INTEGER)), 0) AS purchased
-    FROM CompanyAccounts
-    WHERE connectors___usc IS NOT NULL AND TRIM(connectors___usc) != ''
+Used AS (
+    SELECT COALESCE(SUM(used), 0) AS used FROM PerAccount
 )
 SELECT
-    COALESCE((SELECT purchased FROM Purchased), 0) AS purchased,
-    COALESCE((SELECT used FROM LatestUsed), 0) AS used,
-    CASE
-        WHEN COALESCE((SELECT purchased FROM Purchased), 0) > 0 THEN ROUND(
-            100.0 * COALESCE((SELECT used FROM LatestUsed), 0)
-            / (SELECT purchased FROM Purchased),
-            1
-        )
-        ELSE 0
-    END AS usage_pct
+    p.purchased AS "MVG - purchased connectors",
+    u.used AS "MVG - used connectors"{"," if include_usage else ""}
+    {"CASE WHEN p.purchased > 0 THEN ROUND(100.0 * u.used / p.purchased, 1) ELSE 0 END AS usage_pct" if include_usage else ""}
+FROM Purchased p
+CROSS JOIN Used u
 """
 
 
-def summary_counts_stat(title, sql, x, y, w, h, description):
+def summary_transactions_sql():
+    """Latest KMS report per account. Encryption transactions plus signer transactions."""
+    start = time_range_start_sql()
+    end = time_range_end_sql()
+    return f"""WITH {summary_company_accounts_cte()},
+Latest AS (
+    SELECT LOWER(r.account_id) AS account_key, MAX(date(r.report_date)) AS report_date
+    FROM reports r
+    INNER JOIN CompanyAccounts ca ON r.account_id = ca.account_id
+    WHERE r.report_type = 'KMSUsageMonthlyReport'
+      AND date(r.report_date) >= date({start})
+      AND date(r.report_date) <= date({end})
+    GROUP BY LOWER(r.account_id)
+),
+PerAccount AS (
+    SELECT l.account_key,
+           MAX(COALESCE(r.kms_txn_encryption, 0) + COALESCE(r.kms_txn_signer, 0)) AS used
+    FROM Latest l
+    INNER JOIN reports r
+        ON LOWER(r.account_id) = l.account_key
+       AND date(r.report_date) = l.report_date
+       AND r.report_type = 'KMSUsageMonthlyReport'
+    GROUP BY l.account_key
+)
+SELECT COALESCE(SUM(used), 0) AS value
+FROM PerAccount
+"""
+
+
+def summary_counts_stat(sql, x, y, w, h, description):
     return {
         "type": "stat",
-        "title": title,
         "description": description,
         "gridPos": {"h": h, "w": w, "x": x, "y": y},
         "id": next_id(),
@@ -3457,11 +3566,25 @@ def summary_counts_stat(title, sql, x, y, w, h, description):
                 "mappings": [],
                 "color": {"fixedColor": "text", "mode": "fixed"},
                 "noValue": "0",
+                "decimals": 0,
             },
             "overrides": [
                 {
-                    "matcher": {"id": "byName", "options": "Used"},
-                    "properties": [{"id": "decimals", "value": 0}],
+                    "matcher": {"id": "byRegexp", "options": "/purchased/"},
+                    "properties": [
+                        {
+                            "id": "mappings",
+                            "value": [
+                                {
+                                    "type": "value",
+                                    "options": {
+                                        "999": {"text": "unlimited", "index": 0},
+                                        "99999": {"text": "unlimited", "index": 1},
+                                    },
+                                }
+                            ],
+                        }
+                    ],
                 }
             ],
         },
@@ -3470,46 +3593,54 @@ def summary_counts_stat(title, sql, x, y, w, h, description):
 
 
 def product_summary_overview(y):
-    """Usage snapshot for every product except KMS, above Secrets Management."""
+    """Lightweight usage snapshot above Secrets Management.
+
+    Each product reads the latest report in the Time Range once. KMS contributes
+    only the transactions count.
+    """
     panels = [row_panel("Summary", y)]
     y += 1
-    products = (
-        ("SM", "sm", "clients_sm", "Secrets Management", "clients", 4),
-        ("PWM", "apm", "clients_pm", "Password Management", "clients", 4),
-        ("SRA", "sra", "clients_sra", "Secure Remote Access", "clients", 4),
-        ("CLM", "ca", "clients_ca", "Certificate Lifecycle Management", "certificates", 4),
-        ("MVG", None, None, "Multi Vault Governance", "connectors", 8),
+    cards = (
+        (
+            "SM - Usage",
+            lambda usage: summary_clients_sql(
+                "sm", "clients_sm", "SM - purchased clients", "SM - used clients", include_usage=usage
+            ),
+            "Secrets Management. Latest report in the Time Range, summed across the selected accounts.",
+        ),
+        (
+            "PWM - Usage",
+            lambda usage: summary_clients_sql(
+                "apm", "clients_pm", "PWM - purchased clients", "PWM - used clients", include_usage=usage
+            ),
+            "Password Management. Latest report in the Time Range, summed across the selected accounts.",
+        ),
+        (
+            "SRA - Usage",
+            lambda usage: summary_clients_sql(
+                "sra", "clients_sra", "SRA - purchased clients", "SRA - used clients", include_usage=usage
+            ),
+            "Secure Remote Access. Latest report in the Time Range, summed across the selected accounts.",
+        ),
+        (
+            "CLM - Usage",
+            summary_clm_sql,
+            "Certificate Lifecycle Management. Latest certificate report in the Time Range. Used excludes expired certificates.",
+        ),
+        (
+            "MVG - Connectors Usage",
+            summary_mvg_sql,
+            "Multi Vault Governance. Latest connector report in the Time Range, through the end of the previous month.",
+        ),
     )
     gauge_h = 5
     stat_h = 4
-    x = 0
-    for label, product, purchased_col, full_name, unit, width in products:
-        if label == "MVG":
-            metrics = mvg_metrics_sql()
-            pct_sql = f"SELECT usage_pct AS value FROM (\n{metrics}\n) mvg"
-            pair_sql = f'SELECT purchased AS "Purchased", used AS "Used" FROM (\n{metrics}\n) mvg'
-            detail = (
-                "Multi Vault Governance connectors. Purchased is the HubSpot connector quantity. "
-                "Used is the latest connector count in the Time Range, through the end of the previous month."
-            )
-        else:
-            pct_sql = product_usage_pct_sql(label, product, purchased_col, experimental=True)
-            used_sql = (
-                clm_used_sql()
-                if product == "ca"
-                else product_total_used_sql(product, purchased_col=purchased_col, experimental=True)
-            )
-            pair_sql = summary_pair_sql(
-                product_purchased_sql(purchased_col, product=product, experimental=True),
-                used_sql,
-            )
-            detail = (
-                f"{full_name}. Purchased is the contract quantity for the Time Range. "
-                f"Used is the {unit} counted in that range."
-            )
+    width = 4
+    for index, (title, metrics_for, detail) in enumerate(cards):
+        x = index * width
         gauge = gauge_panel(
-            label if label != "MVG" else "MVG — Multi Vault Governance",
-            pct_sql,
+            title,
+            f"SELECT usage_pct AS value FROM (\n{metrics_for(True)}\n) summary_metrics",
             x,
             y,
             w=width,
@@ -3519,19 +3650,21 @@ def product_summary_overview(y):
         )
         gauge["fieldConfig"]["defaults"]["decimals"] = 1
         gauge["options"]["reduceOptions"]["values"] = False
+        gauge["options"]["reduceOptions"]["fields"] = "/^value$/"
         panels.append(gauge)
         panels.append(
-            summary_counts_stat(
-                "Connectors" if label == "MVG" else unit.capitalize(),
-                pair_sql,
-                x,
-                y + gauge_h,
-                width,
-                stat_h,
-                detail,
-            )
+            summary_counts_stat(metrics_for(False), x, y + gauge_h, width, stat_h, detail)
         )
-        x += width
+    txn = kms_count_stat(
+        "Transactions",
+        summary_transactions_sql(),
+        20,
+        y,
+        w=4,
+        h=gauge_h + stat_h,
+        description="KMS encryption transactions plus signer transactions on the latest report in the Time Range.",
+    )
+    panels.append(txn)
     return panels, y + gauge_h + stat_h
 
 

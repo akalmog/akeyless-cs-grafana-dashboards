@@ -81,33 +81,23 @@ MonthlyReportData AS (
     LEFT JOIN report_clients_product_info rcp
         ON rc.id = rcp.report_client_id AND rcp.product = '{product}'
     GROUP BY s.report_id, s.report_month, s.month_start_date, s.month_end_date
-),
-MonthlyReportSummary AS (
-    SELECT
-        m.account_id,
-        m.report_month,
-        MIN(r.report_date) AS earliest_report_date,
-        MAX(r.report_date) AS latest_report_date
-    FROM MonthsWithData m
-    LEFT JOIN reports r ON r.account_id = m.account_id AND r.report_type = 'ObjectsReport'
-        AND date(r.report_date) >= m.month_start_date
-        AND date(r.report_date) <= m.month_end_date
-    GROUP BY m.account_id, m.report_month
 )
 SELECT
     CAST(strftime('%s', MIN(mrd.month_start_date)) AS INTEGER) AS time,
-    mrd.report_month,
     SUM(mrd.used_amount) AS "Used Clients",
     SUM(mrd.exceeded_amount) AS "Exceeded Clients",
-    CASE
-        WHEN CAST(COALESCE(MAX(ahsd.{purchased_col}), '0') AS INTEGER) IN (999, 99999) THEN NULL
-        ELSE MAX(CAST(COALESCE(ahsd.{purchased_col}, '0') AS INTEGER))
-    END AS "Purchased Clients",
-    MIN(mrs.earliest_report_date) AS report_date_start,
-    MAX(mrs.latest_report_date) AS report_date_end
+    (
+        SELECT CASE WHEN lim IN (999, 99999) THEN NULL ELSE lim END
+        FROM (
+            SELECT CAST(COALESCE(ahsd2.{purchased_col}, '0') AS INTEGER) AS lim
+            FROM AccountHubSpotData ahsd2
+            ORDER BY
+                CASE WHEN CAST(COALESCE(ahsd2.{purchased_col}, '0') AS INTEGER) > 0 THEN 0 ELSE 1 END,
+                ahsd2.account_id
+            LIMIT 1
+        )
+    ) AS "Purchased Clients"
 FROM MonthlyReportData mrd
 INNER JOIN AccountHubSpotData ahsd ON mrd.account_id = ahsd.account_id
-LEFT JOIN MonthlyReportSummary mrs
-    ON mrd.account_id = mrs.account_id AND mrd.report_month = mrs.report_month
 GROUP BY mrd.report_month
 ORDER BY time ASC

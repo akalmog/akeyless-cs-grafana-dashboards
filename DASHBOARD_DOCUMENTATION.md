@@ -169,11 +169,11 @@ Multi-account Best Practice tables:
 ### Usage % (single-account gauges)
 
 ```
-Usage % = (Used + Exceeded) / Purchased × 100
+Usage % = (Used + Exceeded) / (HubSpot purchased × months in Time Range) × 100
 ```
 
 - **Used / Exceeded:** sum of monthly `ObjectsReport` usage within Time Range (one report per account per day, latest per month).
-- **Purchased:** HubSpot monthly limit × months in Time Range. Multiple accounts → first non-unlimited account limit (`LIMIT 1`).
+- **Purchased:** HubSpot product quantity (`clients_sm`, `clients_ca`, `clients_sra`, `clients_pm`) × months in the Time Range. With one account selected, that account’s quantity is used. With Account ID = All, a positive quantity is used ahead of an extra account id stored as 0. `999` / `99999` displays as `unlimited`.
 - **Unlimited purchased** → blank %.
 
 ### Summary by Customer (multi-account)
@@ -197,7 +197,7 @@ Utilization % = (Used + Exceeded) / Purchased × 100   [per month]
 ```
 
 - Latest `ObjectsReport` **per account per calendar month** within Time Range.
-- **Single-account:** one purchased limit (first account).
+- **Single-account:** one purchased limit (first account with a positive limit; `0` and `999`/`99999` are skipped).
 - **Multi-account:** `Purchased = SUM` of limits across accounts; `Used + Exceeded = SUM` across accounts.
 - Months with no report → empty cell.
 

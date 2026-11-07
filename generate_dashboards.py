@@ -2,9 +2,11 @@
 """Generate Akeyless CS Grafana dashboard JSON.
 
 Outputs:
-  dashboard-single-account.json       — production single-account dashboard
+  dashboard-single-account.json       — production single-account dashboard (same layout as staging single)
   dashboard-multi-account.json        — production multi-account dashboard
   dashboard-portfolio-anomalies.json  — production portfolio anomalies dashboard
+  dashboard-staging-account.json      — importable staging copy of the single-account dashboard
+  dashboard-staging-multi-account.json — importable staging copy of the multi-account dashboard
   test-single-account.json            — test copy of single-account dashboard
   test-multiple-accounts.json         — test copy of multi-account dashboard
 """
@@ -16,7 +18,8 @@ from pathlib import Path
 
 OUT_DIR = Path(__file__).parent
 QUERIES_DIR = OUT_DIR / "queries"
-# uid=None uses the org default datasource ("Active Customers Data" on akeyless-analytics.com)
+# uid=None uses the org default datasource ("Active Customers Data" on akeyless-analytics.com).
+# Staging keeps uid null too: a hardcoded uid from another org leaves Company Name empty.
 DS = {"type": "frser-sqlite-datasource", "uid": None}
 
 REPORT_JOIN = "JOIN reports r ON r.id = rc.report_id AND r.report_type = 'clients_report'"
@@ -497,17 +500,35 @@ def monthly_timeseries_field_config():
                 "drawStyle": "line",
                 "lineInterpolation": "linear",
                 "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "barMaxWidth": 36,
                 "lineWidth": 1,
                 "fillOpacity": 0,
-                "stacking": {"mode": "normal", "group": "A"},
-                "axisPlacement": "auto",
-                "axisBorderShow": False,
-                "scaleDistribution": {"type": "linear"},
+                "gradientMode": "none",
+                "spanNulls": False,
+                "insertNulls": False,
                 "showPoints": "auto",
                 "pointSize": 5,
+                "stacking": {"mode": "normal", "group": "A"},
+                "axisPlacement": "left",
+                "axisLabel": "",
+                "axisColorMode": "text",
+                "axisBorderShow": False,
+                "scaleDistribution": {"type": "linear"},
+                "axisCenteredZero": False,
+                "hideFrom": {"tooltip": False, "viz": False, "legend": False},
+                "thresholdsStyle": {"mode": "off"},
             },
             "color": {"mode": "palette-classic"},
+            "min": 0,
             "mappings": [],
+            "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                    {"color": "green", "value": None},
+                    {"color": "red", "value": 80},
+                ],
+            },
         },
         "overrides": [
             {
@@ -515,6 +536,9 @@ def monthly_timeseries_field_config():
                 "properties": [
                     {"id": "custom.drawStyle", "value": "bars"},
                     {"id": "custom.fillOpacity", "value": 100},
+                    {"id": "custom.lineWidth", "value": 0},
+                    {"id": "custom.barWidthFactor", "value": 0.6},
+                    {"id": "custom.barMaxWidth", "value": 36},
                     {"id": "color", "value": {"fixedColor": "blue", "mode": "fixed"}},
                 ],
             },
@@ -523,6 +547,9 @@ def monthly_timeseries_field_config():
                 "properties": [
                     {"id": "custom.drawStyle", "value": "bars"},
                     {"id": "custom.fillOpacity", "value": 100},
+                    {"id": "custom.lineWidth", "value": 0},
+                    {"id": "custom.barWidthFactor", "value": 0.6},
+                    {"id": "custom.barMaxWidth", "value": 36},
                     {"id": "color", "value": {"fixedColor": "red", "mode": "fixed"}},
                 ],
             },
@@ -531,27 +558,50 @@ def monthly_timeseries_field_config():
                 "properties": [
                     {"id": "color", "value": {"fixedColor": "yellow", "mode": "fixed"}},
                     {"id": "custom.drawStyle", "value": "line"},
-                    {"id": "custom.lineWidth", "value": 2},
+                    {"id": "custom.lineWidth", "value": 1},
+                    {"id": "custom.showPoints", "value": "always"},
+                    {"id": "custom.pointSize", "value": 5},
+                    {"id": "custom.stacking", "value": {"mode": "none"}},
                 ],
             },
             {
                 "matcher": {"id": "byName", "options": "Contract Start"},
                 "properties": [
                     {"id": "custom.drawStyle", "value": "points"},
-                    {"id": "custom.pointSize", "value": 19},
-                    {"id": "color", "value": {"fixedColor": "text", "mode": "fixed"}},
+                    {"id": "custom.pointSize", "value": 8},
+                    {"id": "custom.showPoints", "value": "always"},
+                    {"id": "custom.stacking", "value": {"mode": "none"}},
+                    {"id": "color", "value": {"fixedColor": "yellow", "mode": "fixed"}},
                 ],
             },
         ],
     }
 
 
-def monthly_timeseries_panel(title, product, purchased_col, x, y, w=16, h=8):
-    main_sql = load_query("monthly_clients_usage.sql", product=product, purchased_col=purchased_col)
-    contract_sql = load_query("contract_start_marker.sql", product=product, purchased_col=purchased_col)
+def monthly_timeseries_panel(title, product, purchased_col, x, y, w=24, h=12):
+    if product == "ca":
+        main_sql = load_query(
+            "monthly_clm_usage.sql", product=product, purchased_col=purchased_col, time_range_contract_col=""
+        )
+    else:
+        main_sql = load_query("monthly_clients_usage.sql", product=product, purchased_col=purchased_col)
+    contract_sql = load_query(
+        "contract_start_marker.sql",
+        product=product,
+        purchased_col=purchased_col,
+        time_range_contract_col="c.current_contract_start_date",
+    )
+    description = (
+        "Monthly certificates in use, the HubSpot purchased quantity, and contract start. "
+        "The yellow line is the monthly purchased quantity."
+        if product == "ca"
+        else "Monthly used and exceeded clients, the HubSpot purchased quantity, and contract start. "
+        "Blue and red bars stack. The yellow line is the monthly purchased quantity."
+    )
     return {
         "type": "timeseries",
         "title": title,
+        "description": description,
         "gridPos": {"h": h, "w": w, "x": x, "y": y},
         "id": next_id(),
         "targets": [
@@ -644,28 +694,35 @@ def flatten_dashboard_rows(panels):
 
 
 def nest_dashboard_rows(panels):
-    """Normalize to Grafana's collapsed-row JSON: collapsed=true, children in row.panels."""
+    """Collapsed Grafana rows: children live in row.panels, headers stack with no gaps.
+
+    Child gridPos.y stays on the expanded layout. Grafana's expand uses that y
+    against the row position, then pushes the rows below down.
+    """
     nested = []
     i = 0
+    next_y = 0
     while i < len(panels):
         panel = panels[i]
         if panel.get("type") != "row":
             nested.append(panel)
+            next_y = panel["gridPos"]["y"] + panel["gridPos"]["h"]
             i += 1
             continue
 
         row = deepcopy(panel)
-        row_y = row["gridPos"]["y"]
         children = []
         i += 1
         while i < len(panels) and panels[i].get("type") != "row":
-            child = deepcopy(panels[i])
-            children.append(child)
+            children.append(deepcopy(panels[i]))
             i += 1
 
+        row["gridPos"]["y"] = next_y
+        row["gridPos"]["h"] = 1
         row["collapsed"] = True
         row["panels"] = children
         nested.append(row)
+        next_y += 1
 
     return nested
 
@@ -1040,9 +1097,11 @@ def rolling_months(count=24):
     return list(reversed(months))
 
 
-# Default monthly utilization pivot columns — matches default Time Range (Last 12 Months).
-# SQL data window still follows ${period_months} at runtime via range_start.
+# How many month columns the utilization tables show.
+# Headers are computed in SQL from date('now'), not from the day the JSON was generated,
+# so a finished month such as October still appears after the file is imported.
 UTILIZATION_PIVOT_MONTHS = 12
+_MONTH_ABBR = "JanFebMarAprMayJunJulAugSepOctNovDec"
 
 
 def completed_rolling_months(count=3):
@@ -1142,10 +1201,11 @@ FROM PeriodTotals pt
 CROSS JOIN PeriodCapacity pc
 """
     elif metric == "purchased":
+        # HubSpot quantity (positive account wins over a 0 account id) × months in the Time Range.
         final = """
 SELECT CASE
-    WHEN pc.is_unlimited = 1 THEN NULL
-    ELSE pc.purchased_monthly_total
+    WHEN pc.is_unlimited = 1 THEN 'unlimited'
+    ELSE CAST(COALESCE(pc.purchased_monthly_total, 0) AS TEXT)
 END AS value
 FROM PeriodCapacity pc
 """
@@ -1288,18 +1348,24 @@ def account_used_subquery(product, account_id_expr, field="amount"):
 
 
 def purchased_by_company_cte(purchased_col, company_filter_sql):
-    """One purchased limit per company (first account_id), matching single-account dashboard logic."""
+    """HubSpot purchased quantity for the filtered accounts.
+
+    Prefer a positive quantity so an extra account id stored as 0 does not hide
+    the license on the account the customer uses. A selected account id is used as-is.
+    """
     return f"""PurchasedByCompany AS (
     SELECT c.name AS company_name,
         CAST(COALESCE(
             (
-                SELECT c2.{purchased_col}
+                SELECT CAST(COALESCE(c2.{purchased_col}, '0') AS INTEGER)
                 FROM companies c2
                 WHERE c2.name = c.name
                   AND c2.account_id IS NOT NULL
                   AND c2.account_id != ''
-                  AND CAST(COALESCE(c2.{purchased_col}, '0') AS INTEGER) NOT IN (999, 99999)
-                ORDER BY c2.account_id
+                  AND ({ACCOUNT_ALL_CHECK} OR c2.account_id = '${{account_id}}')
+                ORDER BY
+                    CASE WHEN CAST(COALESCE(c2.{purchased_col}, '0') AS INTEGER) > 0 THEN 0 ELSE 1 END,
+                    c2.account_id
                 LIMIT 1
             ),
             '0'
@@ -1310,22 +1376,98 @@ def purchased_by_company_cte(purchased_col, company_filter_sql):
 )"""
 
 
-def month_column_label(year, month):
-    return date(year, month, 1).strftime("%b-%y")
+def _month_anchor_sql(offset):
+    """Start-of-month date, offset 0 = current month, 1 = previous month."""
+    if offset == 0:
+        return "date('now', 'start of month')"
+    return f"date('now', 'start of month', '-{offset} months')"
 
 
-def utilization_pivot_counts_columns(months, used_total="used_total", purchased="clients_purchased"):
-    util_pct = "util_pct"
-    return ", ".join([
-        (
-            f"MAX(CASE WHEN report_month = '{y:04d}-{m:02d}' THEN "
-            f"CASE WHEN {util_pct} IS NULL THEN NULL "
-            f"ELSE printf('%d|(%d/%d)', CAST(ROUND({util_pct}) AS INTEGER), "
-            f"{used_total}, {purchased}) END END) "
-            f'AS "{month_column_label(y, m)}"'
-        )
-        for y, m in months
-    ])
+def month_ym_expr(offset):
+    """YYYY-MM for a month relative to today, evaluated when Grafana runs the query."""
+    return f"strftime('%Y-%m', {_month_anchor_sql(offset)})"
+
+
+def month_key_expr(offset):
+    """Mon-YY label, e.g. Oct-26. SQLite strftime has no %y, so the year is sliced from %Y."""
+    anchor = _month_anchor_sql(offset)
+    return (
+        f"substr('{_MONTH_ABBR}', (CAST(strftime('%m', {anchor}) AS INTEGER) - 1) * 3 + 1, 3) "
+        f"|| '-' || substr(strftime('%Y', {anchor}), 3, 2)"
+    )
+
+
+def dynamic_month_in_list(count, include_current):
+    start = 0 if include_current else 1
+    return ", ".join(month_ym_expr(offset) for offset in range(start, start + count))
+
+
+def utilization_month_cells_sql(count, include_current, display):
+    """One JSON object whose keys are the month labels at query time.
+
+    Grafana extractFields turns those keys into table columns, so October is not
+    stuck on whatever month the dashboard file was generated.
+    """
+    start = 0 if include_current else 1
+    offsets = range(start + count - 1, start - 1, -1)  # oldest month first
+    parts = []
+    for offset in offsets:
+        ym = month_ym_expr(offset)
+        if display == "counts":
+            value = f"""(
+                SELECT CASE WHEN f2.util_pct IS NULL THEN NULL
+                    ELSE printf(
+                        '%d|(%d/%d)',
+                        CAST(ROUND(f2.util_pct) AS INTEGER),
+                        f2.used_total,
+                        f2.clients_purchased
+                    )
+                END
+                FROM FinalData f2
+                WHERE f2.company_name = FinalData.company_name
+                  AND f2.report_month = {ym}
+            )"""
+        elif display == "combined":
+            value = f"""(
+                SELECT CASE WHEN f2.util_pct IS NULL THEN NULL
+                    ELSE printf(
+                        '%d|%.1f%% (%d/%d)',
+                        CAST(ROUND(f2.util_pct) AS INTEGER),
+                        f2.util_pct,
+                        f2.used_total,
+                        f2.clients_purchased
+                    )
+                END
+                FROM FinalData f2
+                WHERE f2.company_name = FinalData.company_name
+                  AND f2.report_month = {ym}
+            )"""
+        else:
+            value = f"""(
+                SELECT f2.util_pct
+                FROM FinalData f2
+                WHERE f2.company_name = FinalData.company_name
+                  AND f2.report_month = {ym}
+            )"""
+        parts.append(f"{month_key_expr(offset)}, {value}")
+    return f'json_object({", ".join(parts)}) AS "Month Cells"'
+
+
+def utilization_month_transformations():
+    """Spread the Month Cells JSON into Mon-YY columns and hide the raw JSON."""
+    return [
+        {
+            "id": "extractFields",
+            "options": {"format": "json", "replace": False, "source": "Month Cells"},
+        },
+        {
+            "id": "organize",
+            "options": {
+                "excludeByName": {"Month Cells": True},
+                "indexByName": {"Customer": 0, "Avg (Last 3M)": 1},
+            },
+        },
+    ]
 
 
 def utilization_avg_counts_sql(avg_months_sql, used_total="used_total", purchased="clients_purchased"):
@@ -1338,9 +1480,18 @@ def utilization_avg_counts_sql(avg_months_sql, used_total="used_total", purchase
     END"""
 
 
-def utilization_counts_string_mappings():
-    """Map encoded 'pct|(used/threshold)' strings to display text + threshold colors."""
-    display = r"(\(\d+/\d+\))"
+def utilization_avg_combined_sql(avg_months_sql, used_total="used_total", purchased="clients_purchased"):
+    avg_util = f"AVG(CASE WHEN report_month IN ({avg_months_sql}) THEN util_pct END)"
+    avg_used = f"AVG(CASE WHEN report_month IN ({avg_months_sql}) THEN {used_total} END)"
+    return f"""CASE
+        WHEN {avg_util} IS NULL THEN NULL
+        ELSE printf('%d|%.1f%% (%d/%d)', CAST(ROUND({avg_util}) AS INTEGER),
+            {avg_util}, CAST(ROUND({avg_used}) AS INTEGER), MAX({purchased}))
+    END"""
+
+
+def utilization_counts_string_mappings(display=r"(\(\d+/\d+\))"):
+    """Map encoded 'pct|display text' strings to display text + threshold colors."""
     return [
         {
             "type": "regex",
@@ -1389,17 +1540,42 @@ def utilization_avg_field_override():
     }
 
 
-def utilization_pct_heatmap_field_config():
+def utilization_pct_heatmap_field_config(fit_columns=False):
     """Field config for numeric utilization % heatmap (matches Grafana 11.1 panel JSON)."""
+    if not fit_columns:
+        return {
+            "defaults": {
+                "color": {"mode": "thresholds"},
+                "custom": {
+                    "align": "center",
+                    "cellOptions": {"type": "color-background", "applyToRow": False, "wrapText": True},
+                    "inspect": False,
+                    "filterable": False,
+                    "minWidth": 80,
+                },
+                "decimals": 1,
+                "mappings": [],
+                "thresholds": SM_UTIL_THRESHOLDS,
+                "unit": "percent",
+            },
+            "overrides": [
+                utilization_customer_field_override(),
+                utilization_avg_field_override(),
+            ],
+        }
+    # Fixed widths with slack for Grafana's always-on table scrollbar.
+    # 150 + 90 + 12*90 = 1320px, under the panel on a laptop and on a zoomed-out window.
+    month_width = 90
     return {
         "defaults": {
             "color": {"mode": "thresholds"},
             "custom": {
                 "align": "center",
-                "cellOptions": {"type": "color-background", "applyToRow": False, "wrapText": True},
+                "cellOptions": {"type": "color-background", "applyToRow": False, "wrapText": False},
                 "inspect": False,
                 "filterable": False,
-                "minWidth": 80,
+                "minWidth": month_width,
+                "width": month_width,
             },
             "decimals": 1,
             "mappings": [],
@@ -1407,8 +1583,32 @@ def utilization_pct_heatmap_field_config():
             "unit": "percent",
         },
         "overrides": [
-            utilization_customer_field_override(),
-            utilization_avg_field_override(),
+            {
+                "matcher": {"id": "byName", "options": "Customer"},
+                "properties": [
+                    {"id": "custom.cellOptions", "value": {"type": "auto", "wrapText": False}},
+                    {"id": "custom.width", "value": 150},
+                    {"id": "custom.minWidth", "value": 150},
+                    {"id": "unit", "value": "string"},
+                    {"id": "color", "value": {"mode": "fixed", "fixedColor": "text"}},
+                    {"id": "mappings", "value": []},
+                ],
+            },
+            {
+                "matcher": {"id": "byName", "options": "Avg (Last 3M)"},
+                "properties": [
+                    {"id": "custom.width", "value": 90},
+                    {"id": "custom.minWidth", "value": 90},
+                    {"id": "custom.cellOptions", "value": {"mode": "gradient", "type": "color-background"}},
+                ],
+            },
+            {
+                "matcher": {"id": "byRegexp", "options": "/^[A-Z][a-z]{2}-\\d{2}$/"},
+                "properties": [
+                    {"id": "custom.width", "value": month_width},
+                    {"id": "custom.minWidth", "value": month_width},
+                ],
+            },
         ],
     }
 
@@ -1440,6 +1640,41 @@ def utilization_counts_heatmap_field_config():
                 "matcher": {"id": "byRegexp", "options": "/^[A-Z][a-z]{2}-\\d{2}$/"},
                 "properties": [
                     {"id": "mappings", "value": utilization_counts_string_mappings()},
+                    {"id": "custom.cellOptions", "value": {"type": "color-background", "applyToRow": False, "wrapText": True}},
+                ],
+            },
+        ],
+    }
+
+
+def utilization_combined_heatmap_field_config():
+    """One monthly table: cell text is '169.3% (593/350)', colored like utilization %."""
+    mappings = utilization_counts_string_mappings(display=r"(.+)")
+    return {
+        "defaults": {
+            "custom": {
+                "align": "center",
+                "cellOptions": {"type": "color-background", "applyToRow": False, "wrapText": True},
+                "inspect": False,
+                "filterable": False,
+                "minWidth": 118,
+            },
+            "mappings": mappings,
+        },
+        "overrides": [
+            utilization_customer_field_override(),
+            {
+                "matcher": {"id": "byName", "options": "Avg (Last 3M)"},
+                "properties": [
+                    {"id": "custom.width", "value": 140},
+                    {"id": "mappings", "value": mappings},
+                    {"id": "custom.cellOptions", "value": {"mode": "gradient", "type": "color-background"}},
+                ],
+            },
+            {
+                "matcher": {"id": "byRegexp", "options": "/^[A-Z][a-z]{2}-\\d{2}$/"},
+                "properties": [
+                    {"id": "mappings", "value": mappings},
                     {"id": "custom.cellOptions", "value": {"type": "color-background", "applyToRow": False, "wrapText": True}},
                 ],
             },
@@ -1531,24 +1766,22 @@ def product_utilization_sql(
     display="pct",
 ):
     if include_current_month:
-        months = rolling_months(months_count)
         range_end = "strftime('%Y-%m-%d', 'now')"
     else:
-        months = completed_rolling_months(months_count) if experimental else rolling_months(months_count)
         range_end = last_completed_month_end_sql()
-    avg_months = completed_rolling_months(3) if experimental else rolling_months(3)
-    avg_months_sql = ", ".join(f"'{y:04d}-{m:02d}'" for y, m in avg_months)
+    # Avg (Last 3M) stays on completed months for the experimental dashboards.
+    # The month list is SQL, so it moves forward with the clock.
+    avg_include_current = not experimental
+    avg_months_sql = dynamic_month_in_list(3, include_current=avg_include_current)
     if display == "counts":
         avg_expr = utilization_avg_counts_sql(avg_months_sql)
-        pivot_cols = utilization_pivot_counts_columns(months)
+    elif display == "combined":
+        avg_expr = utilization_avg_combined_sql(avg_months_sql)
     else:
         avg_expr = (
             f'ROUND(AVG(CASE WHEN report_month IN ({avg_months_sql}) THEN util_pct END), 1)'
         )
-        pivot_cols = ", ".join([
-            f"MAX(CASE WHEN report_month = '{y:04d}-{m:02d}' THEN util_pct END) AS \"{month_column_label(y, m)}\""
-            for y, m in months
-        ])
+    pivot_cols = utilization_month_cells_sql(months_count, include_current_month, display)
     order_by = '"Avg (Last 3M)" DESC' if portfolio else "company_name ASC"
     company_filter = utilization_company_filter(portfolio, experimental=experimental)
 
@@ -1751,6 +1984,7 @@ def product_utilization_table_panel(
     months_count=24,
     include_current_month=False,
     display="pct",
+    fit_columns=False,
 ):
     sql = product_utilization_sql(
         product,
@@ -1761,6 +1995,27 @@ def product_utilization_table_panel(
         include_current_month=include_current_month,
         display=display,
     )
+    if display == "combined":
+        return {
+            "type": "table",
+            "title": title,
+            "description": (
+                "One monthly view. Each cell is utilization % and (used/threshold), "
+                "including exceeded clients in the used count. "
+                "Color: red under 30%, blue 30–69%, green 70% and above."
+            ),
+            "gridPos": {"h": h, "w": w, "x": x, "y": y},
+            "id": next_id(),
+            "targets": [sql_target(sql, query_type="table")],
+            "transformations": utilization_month_transformations(),
+            "options": {
+                "cellHeight": "md",
+                "footer": {"countRows": False, "fields": "", "reducer": ["sum"], "show": False},
+                "showHeader": True,
+            },
+            "fieldConfig": utilization_combined_heatmap_field_config(),
+            "datasource": DS,
+        }
     if display == "counts":
         return {
             "type": "table",
@@ -1769,6 +2024,7 @@ def product_utilization_table_panel(
             "gridPos": {"h": h, "w": w, "x": x, "y": y},
             "id": next_id(),
             "targets": [sql_target(sql, query_type="table")],
+            "transformations": utilization_month_transformations(),
             "options": {
                 "cellHeight": "sm",
                 "footer": {"countRows": False, "fields": "", "reducer": ["sum"], "show": False},
@@ -1783,13 +2039,14 @@ def product_utilization_table_panel(
         "gridPos": {"h": h, "w": w, "x": x, "y": y},
         "id": next_id(),
         "targets": [sql_target(sql, query_type="table")],
+        "transformations": utilization_month_transformations(),
         "options": {
             "cellHeight": "sm",
             "footer": {"countRows": False, "fields": "", "reducer": ["sum"], "show": False},
             "showHeader": True,
             "sortBy": [{"desc": True, "displayName": "Avg (Last 3M)"}],
         },
-        "fieldConfig": utilization_pct_heatmap_field_config(),
+        "fieldConfig": utilization_pct_heatmap_field_config(fit_columns=fit_columns),
         "datasource": DS,
     }
 
@@ -1964,7 +2221,8 @@ LIMIT 1
 
 
 def product_purchased_sql(purchased_col, portfolio=False, product="sm", experimental=True):
-    if product == "ca" or not experimental:
+    """HubSpot purchased quantity for one product (companies.clients_*)."""
+    if not experimental:
         where = account_where_clause(portfolio, experimental=experimental)
         cf = company_filter_sql(portfolio, "companies")
         return f"""
@@ -2592,7 +2850,17 @@ SELECT CAST(julianday('now') - julianday(current_contract_start_date) AS INTEGER
     return panels, y2 + 4
 
 
-def product_section(label, product, purchased_col, y, portfolio=False, multi_account=False, experimental=True):
+def product_section(
+    label,
+    product,
+    purchased_col,
+    y,
+    portfolio=False,
+    multi_account=False,
+    experimental=True,
+    merge_monthly=False,
+    usage_chart=False,
+):
     use_portfolio_sql = portfolio or multi_account
     panels = [row_panel(f"{label} — {product_label_full(label)}", y)]
     y += 1
@@ -2687,6 +2955,58 @@ def product_section(label, product, purchased_col, y, portfolio=False, multi_acc
 
     util_height = 5 if not use_portfolio_sql else 16
     util_months = UTILIZATION_PIVOT_MONTHS
+    if merge_monthly:
+        merged_h = 8 if not use_portfolio_sql else util_height
+        merged_title = (
+            f"{label} Monthly by Customer" if use_portfolio_sql else f"{label} Monthly"
+        )
+        panels.append(
+            product_utilization_table_panel(
+                merged_title,
+                product,
+                purchased_col,
+                portfolio=use_portfolio_sql,
+                x=0,
+                y=y,
+                h=merged_h,
+                experimental=experimental,
+                months_count=util_months,
+                include_current_month=True,
+                display="combined",
+            )
+        )
+        return panels, y + merged_h
+
+    if usage_chart:
+        panels.append(
+            product_utilization_table_panel(
+                f"{label} Monthly Utilization %",
+                product,
+                purchased_col,
+                portfolio=use_portfolio_sql,
+                x=0,
+                y=y,
+                h=util_height,
+                experimental=experimental,
+                months_count=util_months,
+                include_current_month=False,
+            )
+        )
+        y += util_height
+        chart_h = 11
+        panels.append(
+            monthly_timeseries_panel(
+                f"{label} - Clients Usage (#) per month",
+                product,
+                purchased_col,
+                x=0,
+                y=y,
+                w=24,
+                h=chart_h,
+            )
+        )
+        return panels, y + chart_h
+
     counts_title = (
         f"{label} Monthly Used / Threshold by Customer"
         if use_portfolio_sql
@@ -2729,6 +3049,684 @@ def product_section(label, product, purchased_col, y, portfolio=False, multi_acc
         )
     )
     return panels, y + util_height
+
+
+# (key, panel title, companies purchased column or None, reports used aggregate, purchased field, used field)
+KMS_CAPACITY_METRICS = (
+    ("tde", "TDE", "kms_tde", "MAX(COALESCE(r.kms_tde_actual, 0))", "TDE - purchased", "TDE - used"),
+    (
+        "tokenizers",
+        "Tokenizers",
+        "kms_tokenizers",
+        "MAX(COALESCE(r.kms_tokenizers_actual, 0))",
+        "Tokenizers - purchased",
+        "Tokenizers - used",
+    ),
+    (
+        "kmip_servers",
+        "KMIP Servers",
+        "kms_kmip",
+        "MAX(COALESCE(r.kms_kmip_servers_actual, 0))",
+        "KMIP Servers - purchased",
+        "KMIP Servers - used",
+    ),
+    (
+        "cloud_targets",
+        "Cloud KMS Targets",
+        "kms_cloud_accounts",
+        "MAX(COALESCE(r.kms_cloud_targets_actual, 0))",
+        "Cloud Accounts - purchased",
+        "Cloud KMS Targets - used",
+    ),
+)
+
+KMS_ACTIVITY_METRICS = (
+    ("kmip_clients", "KMIP Clients", "MAX(COALESCE(r.kms_kmip_clients_actual, 0))"),
+    ("code_signers", "Code Signers", "MAX(COALESCE(r.kms_signer_keys_actual, 0))"),
+    (
+        "transactions",
+        "Transactions",
+        "MAX(COALESCE(r.kms_txn_encryption, 0) + COALESCE(r.kms_txn_signer, 0))",
+    ),
+)
+
+KMS_TREND_SERIES = (
+    ("tde", "TDE", "MAX(COALESCE(r.kms_tde_actual, 0))"),
+    ("tokenizers", "Tokenizers", "MAX(COALESCE(r.kms_tokenizers_actual, 0))"),
+    ("kmip_clients", "KMIP Clients", "MAX(COALESCE(r.kms_kmip_clients_actual, 0))"),
+    ("kmip_servers", "KMIP Servers", "MAX(COALESCE(r.kms_kmip_servers_actual, 0))"),
+    ("cloud_targets", "Cloud KMS Targets", "MAX(COALESCE(r.kms_cloud_targets_actual, 0))"),
+    ("code_signers", "Code Signers", "MAX(COALESCE(r.kms_signer_keys_actual, 0))"),
+    (
+        "transactions",
+        "Transactions",
+        "MAX(COALESCE(r.kms_txn_encryption, 0) + COALESCE(r.kms_txn_signer, 0))",
+    ),
+)
+
+KMS_TREND_COLORS = {
+    "TDE": "#5794F2",
+    "Tokenizers": "#B877D9",
+    "KMIP Clients": "#73BF69",
+    "KMIP Servers": "#FF9830",
+    "Cloud KMS Targets": "#FADE2A",
+    "Code Signers": "#F2495C",
+    "Transactions": "#5794F2",
+}
+
+
+def kms_company_accounts_cte():
+    return f"""CompanyAccounts AS (
+    SELECT DISTINCT account_id
+    FROM companies
+    WHERE {company_accounts_filter(False)}
+)"""
+
+
+def kms_used_ctes(used_expr):
+    start = time_range_start_sql()
+    end = time_range_end_sql()
+    return f"""{kms_company_accounts_cte()},
+Filtered AS (
+    SELECT LOWER(r.account_id) AS account_key,
+           date(r.report_date) AS report_date,
+           {used_expr} AS metric_used
+    FROM reports r
+    INNER JOIN CompanyAccounts ca ON r.account_id = ca.account_id
+    WHERE r.report_type = 'KMSUsageMonthlyReport'
+      AND date(r.report_date) >= date({start})
+      AND date(r.report_date) <= date({end})
+    GROUP BY LOWER(r.account_id), date(r.report_date)
+),
+LatestPerAccount AS (
+    SELECT f.metric_used
+    FROM Filtered f
+    INNER JOIN (
+        SELECT account_key, MAX(report_date) AS report_date
+        FROM Filtered
+        GROUP BY account_key
+    ) m ON m.account_key = f.account_key AND m.report_date = f.report_date
+),
+LatestUsed AS (
+    SELECT COALESCE(SUM(metric_used), 0) AS metric_used
+    FROM LatestPerAccount
+)"""
+
+
+def kms_purchased_expr(column):
+    return f"""(
+        SELECT CAST(MAX(CAST(c.{column} AS INTEGER)) AS INTEGER)
+        FROM companies c
+        INNER JOIN CompanyAccounts ca ON c.account_id = ca.account_id
+        WHERE c.{column} IS NOT NULL AND TRIM(c.{column}) != ''
+    )"""
+
+
+def kms_pair_sql(purchased_col, purchased_label, used_expr, used_label):
+    purchased = kms_purchased_expr(purchased_col)
+    return f"""WITH {kms_used_ctes(used_expr)}
+SELECT
+    COALESCE({purchased}, 0) AS "{purchased_label}",
+    COALESCE((SELECT metric_used FROM LatestUsed LIMIT 1), 0) AS "{used_label}";
+"""
+
+
+def kms_activity_sql(used_expr):
+    return f"""WITH {kms_used_ctes(used_expr)}
+SELECT COALESCE((SELECT metric_used FROM LatestUsed LIMIT 1), 0) AS value;
+"""
+
+
+def kms_monthly_sql(series):
+    """Latest KMS report in each month, summed across the selected accounts."""
+    start = time_range_start_sql()
+    end = time_range_end_sql()
+    daily_cols = ",\n           ".join(f"{expr} AS {key}" for key, _label, expr in series)
+    sums = ",\n       ".join(f'SUM({key}) AS "{label}"' for key, label, _expr in series)
+    return f"""WITH {kms_company_accounts_cte()},
+Daily AS (
+    SELECT strftime('%Y-%m', date(r.report_date)) AS ym,
+           date(r.report_date) AS report_date,
+           LOWER(r.account_id) AS account_key,
+           {daily_cols}
+    FROM reports r
+    INNER JOIN CompanyAccounts ca ON r.account_id = ca.account_id
+    WHERE r.report_type = 'KMSUsageMonthlyReport'
+      AND date(r.report_date) >= date({start})
+      AND date(r.report_date) <= date({end})
+    GROUP BY ym, date(r.report_date), LOWER(r.account_id)
+),
+LatestInMonth AS (
+    SELECT d.*
+    FROM Daily d
+    INNER JOIN (
+        SELECT ym, account_key, MAX(report_date) AS report_date
+        FROM Daily
+        GROUP BY ym, account_key
+    ) m ON m.ym = d.ym AND m.account_key = d.account_key AND m.report_date = d.report_date
+)
+SELECT d.ym || '-01T00:00:00Z' AS time,
+       {sums}
+FROM LatestInMonth d
+GROUP BY d.ym
+ORDER BY d.ym;
+"""
+
+
+def kms_pair_stat(title, sql, x, y, w, h, description):
+    return {
+        "type": "stat",
+        "title": title,
+        "description": description,
+        "gridPos": {"h": h, "w": w, "x": x, "y": y},
+        "id": next_id(),
+        "targets": [sql_target(sql)],
+        "options": {
+            "reduceOptions": {"values": False, "calcs": ["lastNotNull"], "fields": ""},
+            "orientation": "horizontal",
+            "textMode": "auto",
+            "wideLayout": True,
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "showPercentChange": False,
+            "percentChangeColorMode": "standard",
+        },
+        "fieldConfig": {
+            "defaults": {
+                "mappings": [],
+                "color": {"fixedColor": "text", "mode": "fixed"},
+                "noValue": "0",
+                "unit": "none",
+                "decimals": 0,
+            },
+            "overrides": [],
+        },
+        "datasource": DS,
+    }
+
+
+def kms_count_stat(title, sql, x, y, w, h, description):
+    return {
+        "type": "stat",
+        "title": title,
+        "description": description,
+        "gridPos": {"h": h, "w": w, "x": x, "y": y},
+        "id": next_id(),
+        "targets": [sql_target(sql)],
+        "options": {
+            "reduceOptions": {"values": False, "calcs": ["lastNotNull"], "fields": "/^value$/"},
+            "orientation": "auto",
+            "textMode": "value",
+            "wideLayout": True,
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "center",
+            "showPercentChange": False,
+            "percentChangeColorMode": "standard",
+        },
+        "fieldConfig": {
+            "defaults": {
+                "mappings": [],
+                "color": {"fixedColor": "text", "mode": "fixed"},
+                "noValue": "0",
+                "unit": "none",
+                "decimals": 0,
+            },
+            "overrides": [],
+        },
+        "datasource": DS,
+    }
+
+
+def kms_timeseries_panel(title, sql, x, y, w, h, series_labels, description, bars=False):
+    overrides = []
+    for label in series_labels:
+        custom = [
+            {"id": "custom.axisPlacement", "value": "left"},
+            {"id": "custom.stacking", "value": {"mode": "none"}},
+            {"id": "color", "value": {"fixedColor": KMS_TREND_COLORS[label], "mode": "fixed"}},
+        ]
+        if bars:
+            custom.extend(
+                [
+                    {"id": "custom.drawStyle", "value": "bars"},
+                    {"id": "custom.fillOpacity", "value": 80},
+                    {"id": "custom.lineWidth", "value": 0},
+                    {"id": "custom.barWidthFactor", "value": 0.6},
+                    {"id": "custom.barMaxWidth", "value": 36},
+                ]
+            )
+        else:
+            custom.extend(
+                [
+                    {"id": "custom.drawStyle", "value": "line"},
+                    {"id": "custom.lineWidth", "value": 2},
+                    {"id": "custom.fillOpacity", "value": 12},
+                    {"id": "custom.showPoints", "value": "auto"},
+                ]
+            )
+        overrides.append({"matcher": {"id": "byName", "options": label}, "properties": custom})
+    return {
+        "type": "timeseries",
+        "title": title,
+        "description": description,
+        "gridPos": {"h": h, "w": w, "x": x, "y": y},
+        "id": next_id(),
+        "targets": [sql_target(sql, query_type="table", time_columns=["time", "ts"])],
+        "options": {
+            "legend": {"showLegend": True, "displayMode": "list", "placement": "bottom", "calcs": []},
+            "tooltip": {"mode": "multi", "sort": "desc"},
+        },
+        "fieldConfig": {
+            "defaults": {
+                "custom": {
+                    "drawStyle": "line" if not bars else "bars",
+                    "lineInterpolation": "linear",
+                    "lineWidth": 2,
+                    "fillOpacity": 12,
+                    "showPoints": "auto",
+                    "pointSize": 5,
+                    "stacking": {"mode": "none"},
+                    "axisPlacement": "left",
+                    "axisLabel": "",
+                    "axisColorMode": "text",
+                    "scaleDistribution": {"type": "linear"},
+                    "axisCenteredZero": False,
+                    "hideFrom": {"tooltip": False, "viz": False, "legend": False},
+                    "thresholdsStyle": {"mode": "off"},
+                    "barWidthFactor": 0.6,
+                    "barMaxWidth": 36,
+                },
+                "color": {"mode": "palette-classic"},
+                "min": 0,
+                "decimals": 0,
+                "mappings": [],
+                "thresholds": {"mode": "absolute", "steps": [{"color": "text", "value": None}]},
+            },
+            "overrides": overrides,
+        },
+        "datasource": DS,
+    }
+
+
+def summary_company_accounts_cte():
+    return f"""CompanyAccounts AS (
+    SELECT account_id
+    FROM companies
+    WHERE {company_accounts_filter(False)}
+    GROUP BY account_id
+)"""
+
+
+def summary_usage_expr(purchased_col, used_col):
+    """Percent from one purchased value and one used value. Unlimited contracts use the tier curve."""
+    return f"""CASE
+        WHEN {purchased_col} IN (999, 99999) THEN
+            CASE
+                WHEN {used_col} <= 100 THEN ROUND(MIN(100.0, {used_col} * 100.0 / 500), 1)
+                WHEN {used_col} <= 1000 THEN ROUND(MIN(100.0, {used_col} * 100.0 / (500 + ({used_col} - 100) * 1.666)), 1)
+                WHEN {used_col} <= 5000 THEN ROUND(MIN(100.0, {used_col} * 100.0 / (2000 + ({used_col} - 1000) * 0.75)), 1)
+                ELSE 100.0
+            END
+        WHEN {purchased_col} > 0 THEN ROUND(100.0 * {used_col} / {purchased_col}, 1)
+        ELSE 0
+    END"""
+
+
+def summary_clients_sql(product, purchased_col, purchased_label, used_label, include_usage=True):
+    """Latest ObjectsReport in the Time Range, one row per account. No month-by-month scan."""
+    start = time_range_start_sql()
+    end = time_range_end_sql()
+    return f"""WITH {summary_company_accounts_cte()},
+Purchased AS (
+    SELECT COALESCE(MAX(CAST(c.{purchased_col} AS INTEGER)), 0) AS purchased
+    FROM companies c
+    INNER JOIN CompanyAccounts ca ON c.account_id = ca.account_id
+    WHERE c.{purchased_col} IS NOT NULL AND TRIM(c.{purchased_col}) != ''
+),
+Latest AS (
+    SELECT LOWER(r.account_id) AS account_key, MAX(date(r.report_date)) AS report_date
+    FROM reports r
+    INNER JOIN CompanyAccounts ca ON r.account_id = ca.account_id
+    WHERE r.report_type = 'ObjectsReport'
+      AND date(r.report_date) >= date({start})
+      AND date(r.report_date) <= date({end})
+    GROUP BY LOWER(r.account_id)
+),
+ReportPick AS (
+    SELECT l.account_key, MAX(r.id) AS report_id
+    FROM Latest l
+    INNER JOIN reports r
+        ON LOWER(r.account_id) = l.account_key
+       AND date(r.report_date) = l.report_date
+       AND r.report_type = 'ObjectsReport'
+    GROUP BY l.account_key
+),
+Used AS (
+    SELECT COALESCE(SUM(rcp.amount), 0) + COALESCE(SUM(rcp.exceeded_amount), 0) AS used
+    FROM ReportPick p
+    LEFT JOIN report_clients rc ON rc.report_id = p.report_id
+    LEFT JOIN report_clients_product_info rcp
+        ON rcp.report_client_id = rc.id AND rcp.product = '{product}'
+)
+SELECT
+    p.purchased AS "{purchased_label}",
+    u.used AS "{used_label}"{"," if include_usage else ""}
+    {summary_usage_expr("p.purchased", "u.used") + " AS usage_pct" if include_usage else ""}
+FROM Purchased p
+CROSS JOIN Used u
+"""
+
+
+def summary_clm_sql(include_usage=True):
+    """Latest certificate report in the Time Range. Non-expired certificates only."""
+    start = time_range_start_sql()
+    end = time_range_end_sql()
+    return f"""WITH {summary_company_accounts_cte()},
+Purchased AS (
+    SELECT COALESCE(MAX(CAST(c.clients_ca AS INTEGER)), 0) AS purchased
+    FROM companies c
+    INNER JOIN CompanyAccounts ca ON c.account_id = ca.account_id
+    WHERE c.clients_ca IS NOT NULL AND TRIM(c.clients_ca) != ''
+),
+Latest AS (
+    SELECT LOWER(r.account_id) AS account_key, MAX(date(r.report_date)) AS report_date
+    FROM reports r
+    INNER JOIN CompanyAccounts ca ON r.account_id = ca.account_id
+    WHERE r.report_type = 'certificate_analysis'
+      AND date(r.report_date) >= date({start})
+      AND date(r.report_date) <= date({end})
+    GROUP BY LOWER(r.account_id)
+),
+PerAccount AS (
+    SELECT l.account_key,
+           MAX(CASE
+               WHEN COALESCE(r.total_certificates, 0) - COALESCE(r.risk_expired, 0) < 0 THEN 0
+               ELSE COALESCE(r.total_certificates, 0) - COALESCE(r.risk_expired, 0)
+           END) AS used
+    FROM Latest l
+    INNER JOIN reports r
+        ON LOWER(r.account_id) = l.account_key
+       AND date(r.report_date) = l.report_date
+       AND r.report_type = 'certificate_analysis'
+    GROUP BY l.account_key
+),
+Used AS (
+    SELECT COALESCE(SUM(used), 0) AS used FROM PerAccount
+)
+SELECT
+    p.purchased AS "CLM - purchased certificates",
+    u.used AS "CLM - used certificates"{"," if include_usage else ""}
+    {"CASE WHEN p.purchased > 0 THEN ROUND(100.0 * u.used / p.purchased, 1) ELSE 0 END AS usage_pct" if include_usage else ""}
+FROM Purchased p
+CROSS JOIN Used u
+"""
+
+
+def summary_mvg_sql(include_usage=True):
+    """Latest USC connector report per account. JSON is read only for that report."""
+    start = time_range_start_sql()
+    end = time_range_end_sql()
+    return f"""WITH {summary_company_accounts_cte()},
+Purchased AS (
+    SELECT COALESCE(MAX(CAST(c.connectors___usc AS INTEGER)), 0) AS purchased
+    FROM companies c
+    INNER JOIN CompanyAccounts ca ON c.account_id = ca.account_id
+    WHERE c.connectors___usc IS NOT NULL AND TRIM(c.connectors___usc) != ''
+),
+Latest AS (
+    SELECT LOWER(r.account_id) AS account_key, MAX(date(r.report_date)) AS report_date
+    FROM reports r
+    INNER JOIN CompanyAccounts ca ON r.account_id = ca.account_id
+    WHERE r.report_type = 'unknown'
+      AND r.file_key LIKE '%usc%'
+      AND date(r.report_date) >= date({start})
+      AND date(r.report_date) <= date(MIN(date({end}), date('now', 'start of month', '-1 day')))
+    GROUP BY LOWER(r.account_id)
+),
+PerAccount AS (
+    SELECT l.account_key,
+           MAX(COALESCE((
+               SELECT SUM(CAST(json_extract(prod.value, '$.actual') AS INTEGER))
+               FROM json_each(r.usc_report_data, '$.report.amount') AS yr,
+                    json_each(yr.value) AS mo,
+                    json_each(mo.value) AS prod
+               WHERE json_extract(prod.value, '$.actual') IS NOT NULL
+           ), 0)) AS used
+    FROM Latest l
+    INNER JOIN reports r
+        ON LOWER(r.account_id) = l.account_key
+       AND date(r.report_date) = l.report_date
+       AND r.report_type = 'unknown'
+       AND r.file_key LIKE '%usc%'
+    GROUP BY l.account_key
+),
+Used AS (
+    SELECT COALESCE(SUM(used), 0) AS used FROM PerAccount
+)
+SELECT
+    p.purchased AS "MVG - purchased connectors",
+    u.used AS "MVG - used connectors"{"," if include_usage else ""}
+    {"CASE WHEN p.purchased > 0 THEN ROUND(100.0 * u.used / p.purchased, 1) ELSE 0 END AS usage_pct" if include_usage else ""}
+FROM Purchased p
+CROSS JOIN Used u
+"""
+
+
+def summary_counts_stat(sql, x, y, w, h, description):
+    return {
+        "type": "stat",
+        "description": description,
+        "gridPos": {"h": h, "w": w, "x": x, "y": y},
+        "id": next_id(),
+        "targets": [sql_target(sql)],
+        "options": {
+            "reduceOptions": {"values": False, "calcs": ["lastNotNull"], "fields": ""},
+            "orientation": "horizontal",
+            "textMode": "auto",
+            "wideLayout": True,
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "showPercentChange": False,
+            "percentChangeColorMode": "standard",
+        },
+        "fieldConfig": {
+            "defaults": {
+                "mappings": [],
+                "color": {"fixedColor": "text", "mode": "fixed"},
+                "noValue": "0",
+                "decimals": 0,
+            },
+            "overrides": [
+                {
+                    "matcher": {"id": "byRegexp", "options": "/purchased/"},
+                    "properties": [
+                        {
+                            "id": "mappings",
+                            "value": [
+                                {
+                                    "type": "value",
+                                    "options": {
+                                        "999": {"text": "unlimited", "index": 0},
+                                        "99999": {"text": "unlimited", "index": 1},
+                                    },
+                                }
+                            ],
+                        }
+                    ],
+                }
+            ],
+        },
+        "datasource": DS,
+    }
+
+
+def product_summary_overview(y):
+    """Usage cards under the Home header. No section row.
+
+    Each product reads the latest report in the Time Range once.
+    """
+    panels = []
+    cards = (
+        (
+            "SM - Usage",
+            lambda usage: summary_clients_sql(
+                "sm", "clients_sm", "SM - purchased clients", "SM - used clients", include_usage=usage
+            ),
+            "Secrets Management. Latest report in the Time Range, summed across the selected accounts.",
+        ),
+        (
+            "PWM - Usage",
+            lambda usage: summary_clients_sql(
+                "apm", "clients_pm", "PWM - purchased clients", "PWM - used clients", include_usage=usage
+            ),
+            "Password Management. Latest report in the Time Range, summed across the selected accounts.",
+        ),
+        (
+            "SRA - Usage",
+            lambda usage: summary_clients_sql(
+                "sra", "clients_sra", "SRA - purchased clients", "SRA - used clients", include_usage=usage
+            ),
+            "Secure Remote Access. Latest report in the Time Range, summed across the selected accounts.",
+        ),
+        (
+            "CLM - Usage",
+            summary_clm_sql,
+            "Certificate Lifecycle Management. Latest certificate report in the Time Range. Used excludes expired certificates.",
+        ),
+        (
+            "MVG - Connectors Usage",
+            summary_mvg_sql,
+            "Multi Vault Governance. Latest connector report in the Time Range, through the end of the previous month.",
+        ),
+    )
+    gauge_h = 5
+    stat_h = 4
+    width = 4
+    for index, (title, metrics_for, detail) in enumerate(cards):
+        x = index * width
+        gauge = gauge_panel(
+            title,
+            f"SELECT usage_pct AS value FROM (\n{metrics_for(True)}\n) summary_metrics",
+            x,
+            y,
+            w=width,
+            h=gauge_h,
+            thresholds=ORIGINAL_PRODUCT_USAGE_THRESHOLDS,
+            description=detail,
+        )
+        gauge["fieldConfig"]["defaults"]["decimals"] = 1
+        gauge["options"]["reduceOptions"]["values"] = False
+        gauge["options"]["reduceOptions"]["fields"] = "/^value$/"
+        panels.append(gauge)
+        panels.append(
+            summary_counts_stat(metrics_for(False), x, y + gauge_h, width, stat_h, detail)
+        )
+    panels.append(
+        {
+            "type": "text",
+            "title": "",
+            "gridPos": {"h": gauge_h + stat_h, "w": width, "x": len(cards) * width, "y": y},
+            "id": next_id(),
+            "options": {
+                "mode": "html",
+                "content": "",
+                "code": {"language": "plaintext", "showLineNumbers": False, "showMiniMap": False},
+            },
+            "datasource": DS,
+        }
+    )
+    return panels, y + gauge_h + stat_h
+
+
+def kms_section(y):
+    """Staging single-account KMS block. Sits after Password Management."""
+    panels = [row_panel("KMS — Key Management System", y)]
+    y += 1
+    pair_desc = (
+        "Purchased is the highest contract quantity across the selected accounts. "
+        "Used is the latest KMS monthly report in the Time Range, summed across those accounts."
+    )
+    cloud_desc = (
+        pair_desc + " Purchased is Cloud Accounts. Used is Cloud KMS targets."
+    )
+    row_h = 5
+    for index, (_key, title, purchased_col, used_expr, purchased_label, used_label) in enumerate(
+        KMS_CAPACITY_METRICS
+    ):
+        panels.append(
+            kms_pair_stat(
+                title,
+                kms_pair_sql(purchased_col, purchased_label, used_expr, used_label),
+                index * 6,
+                y,
+                w=6,
+                h=row_h,
+                description=cloud_desc if title == "Cloud KMS Targets" else pair_desc,
+            )
+        )
+    y += row_h
+
+    activity_h = 4
+    activity_desc = (
+        "Latest value in the Time Range, summed across the selected accounts. "
+        "This metric has no purchased limit."
+    )
+    txn_desc = (
+        "Encryption transactions plus signer transactions on the latest KMS monthly report "
+        "in the Time Range, summed across the selected accounts."
+    )
+    for index, (_key, title, used_expr) in enumerate(KMS_ACTIVITY_METRICS):
+        panels.append(
+            kms_count_stat(
+                title,
+                kms_activity_sql(used_expr),
+                index * 8,
+                y,
+                w=8,
+                h=activity_h,
+                description=txn_desc if title == "Transactions" else activity_desc,
+            )
+        )
+    y += activity_h
+
+    trend_h = 10
+    trend_desc = (
+        "Latest KMS monthly report in each month, summed across the selected accounts. "
+        "The Time Range filter chooses which months are drawn. The chart axis stays wide."
+    )
+    inventory = [item for item in KMS_TREND_SERIES if item[0] != "transactions"]
+    transactions = [item for item in KMS_TREND_SERIES if item[0] == "transactions"]
+    panels.append(
+        kms_timeseries_panel(
+            "KMS inventory per month",
+            kms_monthly_sql(inventory),
+            0,
+            y,
+            24,
+            trend_h,
+            [label for _key, label, _expr in inventory],
+            trend_desc,
+        )
+    )
+    y += trend_h
+    txn_h = 8
+    panels.append(
+        kms_timeseries_panel(
+            "KMS transactions per month",
+            kms_monthly_sql(transactions),
+            0,
+            y,
+            24,
+            txn_h,
+            ["Transactions"],
+            trend_desc,
+            bars=True,
+        )
+    )
+    return panels, y + txn_h
 
 
 def objects_info_panel(y):
@@ -3483,18 +4481,53 @@ def templating_portfolio(experimental=True):
     return t
 
 
-def build_dashboard(title, uid, portfolio=False, multi_account=False, experimental=True, test=False):
+def build_dashboard(
+    title,
+    uid,
+    portfolio=False,
+    multi_account=False,
+    experimental=True,
+    test=False,
+    staging=False,
+    datasource_uid=None,
+):
+    previous_uid = DS.get("uid")
+    DS["uid"] = datasource_uid
+    try:
+        return _build_dashboard(
+            title,
+            uid,
+            portfolio=portfolio,
+            multi_account=multi_account,
+            experimental=experimental,
+            test=test,
+            staging=staging,
+        )
+    finally:
+        DS["uid"] = previous_uid
+
+
+def _build_dashboard(
+    title, uid, portfolio=False, multi_account=False, experimental=True, test=False, staging=False
+):
     reset_ids()
     panels = []
     y = 0
     use_portfolio_sql = portfolio or multi_account
 
-    if not portfolio and not multi_account and experimental:
+    # Production and staging single-account share this layout. Multi-account stays as it is.
+    single_layout = not portfolio and not multi_account and experimental
+
+    if single_layout:
         header_panels, y = original_account_header_panels(y)
         panels.extend(header_panels)
     elif portfolio and not multi_account:
         detail_panels, y = account_details_panels(y, portfolio=True, experimental=experimental)
         panels.extend(detail_panels)
+
+    if single_layout:
+        summary_panels, y = product_summary_overview(y)
+        panels.extend(summary_panels)
 
     for label, product, purchased_col in PRODUCTS:
         section, y = product_section(
@@ -3505,8 +4538,14 @@ def build_dashboard(title, uid, portfolio=False, multi_account=False, experiment
             portfolio=use_portfolio_sql,
             multi_account=multi_account,
             experimental=experimental,
+            merge_monthly=staging and multi_account,
+            usage_chart=single_layout,
         )
         panels.extend(section)
+
+    if single_layout:
+        kms_panels, y = kms_section(y)
+        panels.extend(kms_panels)
 
     use_customer_tables = (multi_account or portfolio) and experimental
     obj_panels, y = objects_section(y, multi_account=use_customer_tables)
@@ -3532,7 +4571,10 @@ def build_dashboard(title, uid, portfolio=False, multi_account=False, experiment
         risk, y = risk_section(y, group_by_company=multi_account, experimental=experimental)
         panels.extend(risk)
 
-    panels = flatten_dashboard_rows(panels)
+    if single_layout:
+        panels = nest_dashboard_rows(panels)
+    else:
+        panels = flatten_dashboard_rows(panels)
 
     if multi_account:
         templating = templating_multi_account(experimental=experimental)
@@ -3547,8 +4589,10 @@ def build_dashboard(title, uid, portfolio=False, multi_account=False, experiment
         tags = ["akeyless", "customer-success", "usage", "technical"]
         if test:
             tags.append("test")
+    if staging:
+        tags.append("staging")
 
-    return {
+    return deepcopy({
         "annotations": {"list": []},
         "editable": True,
         "fiscalYearStartMonth": 0,
@@ -3562,14 +4606,18 @@ def build_dashboard(title, uid, portfolio=False, multi_account=False, experiment
         "style": "dark",
         "tags": tags,
         "templating": templating,
-        "time": {"from": "now-12M", "to": "now"},
+        "time": (
+            {"from": "now-2y", "to": "now+2y"}
+            if single_layout
+            else {"from": "now-12M", "to": "now"}
+        ),
         "timepicker": {},
         "timezone": "browser",
         "title": title,
         "uid": uid,
         "version": 26,
         "weekStart": "",
-    }
+    })
 
 
 # Panels that must keep identical display settings (type, size, options, fieldConfig)
@@ -3606,8 +4654,16 @@ def _normalize_panel_for_compare(panel, ignore_grid_height=False):
     return normalized
 
 
-def _find_panel_by_title(panels, title):
+def _iter_panels(panels):
     for panel in panels:
+        yield panel
+        children = panel.get("panels") or []
+        if children:
+            yield from _iter_panels(children)
+
+
+def _find_panel_by_title(panels, title):
+    for panel in _iter_panels(panels):
         if panel.get("title") == title:
             return panel
     return None
@@ -3619,7 +4675,7 @@ def _find_utilization_panel(panels, product_prefix, display="pct"):
     else:
         needle = f"{product_prefix} Monthly Utilization"
     matches = [
-        p for p in panels
+        p for p in _iter_panels(panels)
         if needle in p.get("title", "") and p.get("type") == "table"
     ]
     return matches[0] if len(matches) == 1 else None
@@ -3653,6 +4709,9 @@ def validate_single_multi_alignment(single_dashboard, multi_dashboard):
             single_panel = _find_utilization_panel(single_panels, prefix, display=display)
             multi_panel = _find_utilization_panel(multi_panels, prefix, display=display)
             label = "Used / Threshold" if display == "counts" else "Utilization"
+            if display == "counts" and single_panel is None and multi_panel is not None:
+                # Single-account shows the usage chart instead of the counts table.
+                continue
             if single_panel is None or multi_panel is None:
                 issues.append(f"Missing {prefix} Monthly {label} panel on one dashboard")
                 continue
@@ -3700,11 +4759,27 @@ def main():
         experimental=True,
         test=True,
     )
+    staging_single = build_dashboard(
+        "Akeyless CS — Account Technical Dashboard (STAGING)",
+        "akeyless-cs-staging-account",
+        portfolio=False,
+        experimental=True,
+        staging=True,
+    )
+    staging_multi = build_dashboard(
+        "Akeyless CS — Multi-Account Technical Dashboard (STAGING)",
+        "akeyless-cs-staging-multi-account",
+        multi_account=True,
+        experimental=True,
+        staging=True,
+    )
 
     paths = {
         OUT_DIR / "dashboard-single-account.json": prod_single,
         OUT_DIR / "dashboard-multi-account.json": prod_multi,
         OUT_DIR / "dashboard-portfolio-anomalies.json": prod_portfolio,
+        OUT_DIR / "dashboard-staging-account.json": staging_single,
+        OUT_DIR / "dashboard-staging-multi-account.json": staging_multi,
         OUT_DIR / "test-single-account.json": test_single,
         OUT_DIR / "test-multiple-accounts.json": test_multi,
     }

@@ -3350,6 +3350,191 @@ def kms_timeseries_panel(title, sql, x, y, w, h, series_labels, description, bar
     }
 
 
+def summary_pair_sql(purchased_sql, used_sql):
+    purchased = purchased_sql.strip().rstrip(";")
+    used = used_sql.strip().rstrip(";")
+    return f"""
+SELECT
+    (SELECT value FROM (
+{purchased}
+    ) purchased_q) AS "Purchased",
+    (SELECT value FROM (
+{used}
+    ) used_q) AS "Used"
+"""
+
+
+def mvg_metrics_sql():
+    """Latest USC connector count versus the HubSpot connector quantity.
+
+    The report window follows the Time Range filter and stops at the end of the
+    previous month, matching the Multi Vault Governance usage panels.
+    """
+    start = time_range_start_sql()
+    end = time_range_end_sql()
+    return f"""WITH CompanyAccounts AS (
+    SELECT DISTINCT account_id, connectors___usc
+    FROM companies
+    WHERE {company_accounts_filter(False)}
+),
+TimePeriod AS (
+    SELECT {start} AS range_start,
+           MIN(
+               date({end}),
+               date('now', 'start of month', '-1 day')
+           ) AS range_end
+),
+Filtered AS (
+    SELECT LOWER(r.account_id) AS account_key,
+           date(r.report_date) AS report_date,
+           MAX(COALESCE((
+               SELECT SUM(CAST(json_extract(prod.value, '$.actual') AS INTEGER))
+               FROM json_each(r.usc_report_data, '$.report.amount') AS yr,
+                    json_each(yr.value) AS mo,
+                    json_each(mo.value) AS prod
+               WHERE json_extract(prod.value, '$.actual') IS NOT NULL
+           ), 0)) AS connectors_used
+    FROM reports r
+    INNER JOIN CompanyAccounts ca ON r.account_id = ca.account_id
+    CROSS JOIN TimePeriod tp
+    WHERE r.report_type = 'unknown'
+      AND r.file_key LIKE '%usc%'
+      AND date(r.report_date) >= date(tp.range_start)
+      AND date(r.report_date) <= date(tp.range_end)
+    GROUP BY LOWER(r.account_id), date(r.report_date)
+),
+Summed AS (
+    SELECT report_date, SUM(connectors_used) AS total_used
+    FROM Filtered
+    GROUP BY report_date
+),
+LatestUsed AS (
+    SELECT COALESCE(total_used, 0) AS used
+    FROM Summed
+    ORDER BY report_date DESC
+    LIMIT 1
+),
+Purchased AS (
+    SELECT COALESCE(MAX(CAST(connectors___usc AS INTEGER)), 0) AS purchased
+    FROM CompanyAccounts
+    WHERE connectors___usc IS NOT NULL AND TRIM(connectors___usc) != ''
+)
+SELECT
+    COALESCE((SELECT purchased FROM Purchased), 0) AS purchased,
+    COALESCE((SELECT used FROM LatestUsed), 0) AS used,
+    CASE
+        WHEN COALESCE((SELECT purchased FROM Purchased), 0) > 0 THEN ROUND(
+            100.0 * COALESCE((SELECT used FROM LatestUsed), 0)
+            / (SELECT purchased FROM Purchased),
+            1
+        )
+        ELSE 0
+    END AS usage_pct
+"""
+
+
+def summary_counts_stat(title, sql, x, y, w, h, description):
+    return {
+        "type": "stat",
+        "title": title,
+        "description": description,
+        "gridPos": {"h": h, "w": w, "x": x, "y": y},
+        "id": next_id(),
+        "targets": [sql_target(sql)],
+        "options": {
+            "reduceOptions": {"values": False, "calcs": ["lastNotNull"], "fields": ""},
+            "orientation": "horizontal",
+            "textMode": "auto",
+            "wideLayout": True,
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "showPercentChange": False,
+            "percentChangeColorMode": "standard",
+        },
+        "fieldConfig": {
+            "defaults": {
+                "mappings": [],
+                "color": {"fixedColor": "text", "mode": "fixed"},
+                "noValue": "0",
+            },
+            "overrides": [
+                {
+                    "matcher": {"id": "byName", "options": "Used"},
+                    "properties": [{"id": "decimals", "value": 0}],
+                }
+            ],
+        },
+        "datasource": DS,
+    }
+
+
+def product_summary_overview(y):
+    """Usage snapshot for every product except KMS, above Secrets Management."""
+    panels = [row_panel("Summary", y)]
+    y += 1
+    products = (
+        ("SM", "sm", "clients_sm", "Secrets Management", "clients", 4),
+        ("PWM", "apm", "clients_pm", "Password Management", "clients", 4),
+        ("SRA", "sra", "clients_sra", "Secure Remote Access", "clients", 4),
+        ("CLM", "ca", "clients_ca", "Certificate Lifecycle Management", "certificates", 4),
+        ("MVG", None, None, "Multi Vault Governance", "connectors", 8),
+    )
+    gauge_h = 5
+    stat_h = 4
+    x = 0
+    for label, product, purchased_col, full_name, unit, width in products:
+        if label == "MVG":
+            metrics = mvg_metrics_sql()
+            pct_sql = f"SELECT usage_pct AS value FROM (\n{metrics}\n) mvg"
+            pair_sql = f'SELECT purchased AS "Purchased", used AS "Used" FROM (\n{metrics}\n) mvg'
+            detail = (
+                "Multi Vault Governance connectors. Purchased is the HubSpot connector quantity. "
+                "Used is the latest connector count in the Time Range, through the end of the previous month."
+            )
+        else:
+            pct_sql = product_usage_pct_sql(label, product, purchased_col, experimental=True)
+            used_sql = (
+                clm_used_sql()
+                if product == "ca"
+                else product_total_used_sql(product, purchased_col=purchased_col, experimental=True)
+            )
+            pair_sql = summary_pair_sql(
+                product_purchased_sql(purchased_col, product=product, experimental=True),
+                used_sql,
+            )
+            detail = (
+                f"{full_name}. Purchased is the contract quantity for the Time Range. "
+                f"Used is the {unit} counted in that range."
+            )
+        gauge = gauge_panel(
+            label if label != "MVG" else "MVG — Multi Vault Governance",
+            pct_sql,
+            x,
+            y,
+            w=width,
+            h=gauge_h,
+            thresholds=ORIGINAL_PRODUCT_USAGE_THRESHOLDS,
+            description=detail,
+        )
+        gauge["fieldConfig"]["defaults"]["decimals"] = 1
+        gauge["options"]["reduceOptions"]["values"] = False
+        panels.append(gauge)
+        panels.append(
+            summary_counts_stat(
+                "Connectors" if label == "MVG" else unit.capitalize(),
+                pair_sql,
+                x,
+                y + gauge_h,
+                width,
+                stat_h,
+                detail,
+            )
+        )
+        x += width
+    return panels, y + gauge_h + stat_h
+
+
 def kms_section(y):
     """Staging single-account KMS block. Sits after Password Management."""
     panels = [row_panel("KMS — Key Management System", y)]
@@ -4230,6 +4415,10 @@ def _build_dashboard(
     elif portfolio and not multi_account:
         detail_panels, y = account_details_panels(y, portfolio=True, experimental=experimental)
         panels.extend(detail_panels)
+
+    if staging and not multi_account and not portfolio:
+        summary_panels, y = product_summary_overview(y)
+        panels.extend(summary_panels)
 
     for label, product, purchased_col in PRODUCTS:
         section, y = product_section(

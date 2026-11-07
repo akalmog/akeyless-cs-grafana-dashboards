@@ -2,7 +2,7 @@
 """Generate Akeyless CS Grafana dashboard JSON.
 
 Outputs:
-  dashboard-single-account.json       — production single-account dashboard
+  dashboard-single-account.json       — production single-account dashboard (same layout as staging single)
   dashboard-multi-account.json        — production multi-account dashboard
   dashboard-portfolio-anomalies.json  — production portfolio anomalies dashboard
   dashboard-staging-account.json      — importable staging copy of the single-account dashboard
@@ -4515,14 +4515,17 @@ def _build_dashboard(
     y = 0
     use_portfolio_sql = portfolio or multi_account
 
-    if not portfolio and not multi_account and experimental:
+    # Production and staging single-account share this layout. Multi-account stays as it is.
+    single_layout = not portfolio and not multi_account and experimental
+
+    if single_layout:
         header_panels, y = original_account_header_panels(y)
         panels.extend(header_panels)
     elif portfolio and not multi_account:
         detail_panels, y = account_details_panels(y, portfolio=True, experimental=experimental)
         panels.extend(detail_panels)
 
-    if staging and not multi_account and not portfolio:
+    if single_layout:
         summary_panels, y = product_summary_overview(y)
         panels.extend(summary_panels)
 
@@ -4536,11 +4539,11 @@ def _build_dashboard(
             multi_account=multi_account,
             experimental=experimental,
             merge_monthly=staging and multi_account,
-            usage_chart=staging and not multi_account and not portfolio,
+            usage_chart=single_layout,
         )
         panels.extend(section)
 
-    if staging and not multi_account and not portfolio:
+    if single_layout:
         kms_panels, y = kms_section(y)
         panels.extend(kms_panels)
 
@@ -4568,7 +4571,7 @@ def _build_dashboard(
         risk, y = risk_section(y, group_by_company=multi_account, experimental=experimental)
         panels.extend(risk)
 
-    if staging and not multi_account and not portfolio:
+    if single_layout:
         panels = nest_dashboard_rows(panels)
     else:
         panels = flatten_dashboard_rows(panels)
@@ -4605,7 +4608,7 @@ def _build_dashboard(
         "templating": templating,
         "time": (
             {"from": "now-2y", "to": "now+2y"}
-            if staging and not multi_account and not portfolio
+            if single_layout
             else {"from": "now-12M", "to": "now"}
         ),
         "timepicker": {},
@@ -4651,8 +4654,16 @@ def _normalize_panel_for_compare(panel, ignore_grid_height=False):
     return normalized
 
 
-def _find_panel_by_title(panels, title):
+def _iter_panels(panels):
     for panel in panels:
+        yield panel
+        children = panel.get("panels") or []
+        if children:
+            yield from _iter_panels(children)
+
+
+def _find_panel_by_title(panels, title):
+    for panel in _iter_panels(panels):
         if panel.get("title") == title:
             return panel
     return None
@@ -4664,7 +4675,7 @@ def _find_utilization_panel(panels, product_prefix, display="pct"):
     else:
         needle = f"{product_prefix} Monthly Utilization"
     matches = [
-        p for p in panels
+        p for p in _iter_panels(panels)
         if needle in p.get("title", "") and p.get("type") == "table"
     ]
     return matches[0] if len(matches) == 1 else None
@@ -4698,6 +4709,9 @@ def validate_single_multi_alignment(single_dashboard, multi_dashboard):
             single_panel = _find_utilization_panel(single_panels, prefix, display=display)
             multi_panel = _find_utilization_panel(multi_panels, prefix, display=display)
             label = "Used / Threshold" if display == "counts" else "Utilization"
+            if display == "counts" and single_panel is None and multi_panel is not None:
+                # Single-account shows the usage chart instead of the counts table.
+                continue
             if single_panel is None or multi_panel is None:
                 issues.append(f"Missing {prefix} Monthly {label} panel on one dashboard")
                 continue
